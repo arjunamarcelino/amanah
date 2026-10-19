@@ -13,6 +13,9 @@ remappings = [
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
 ]
 
+[invariant]
+fail_on_revert = true
+
 # Base Sepolia (84532) — RPC provided via env in later prompts.
 [rpc_endpoints]
 base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
