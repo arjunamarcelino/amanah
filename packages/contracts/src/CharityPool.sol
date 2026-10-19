@@ -16,7 +16,8 @@ import {ISwapToBase} from "./interfaces/ISwapToBase.sol";
 ///         and have NO withdrawal path: the standard ERC4626 deposit/mint/withdraw/
 ///         redeem surface is disabled (the irrevocable-gift firewall) and ownership
 ///         cannot be renounced. Pooled principal is minted as shares to the vault
-///         itself; funds can only leave via a future owner/release-gated payout.
+///         itself. THIS version has no payout path whatsoever; an owner/release-gated
+///         payout exists only in a future, separately-deployed version (see DEPLOYMENT).
 /// @dev Intentional: irrevocable charitable gift (firewall — keeps this a charity, not
 ///      a CIS/security).
 ///
@@ -72,7 +73,9 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     /// @param donor The caller (`msg.sender`); for relayed donations this is the relayer.
     /// @param campaignId Attribution bucket; `0` is the general fund.
     /// @param stablecoin The token supplied by the donor.
-    /// @param amountIn Amount of `stablecoin` pulled (in `stablecoin` decimals).
+    /// @param amountIn Requested input amount (in `stablecoin` decimals); equals the amount
+    ///        received for standard ERC20s, but may exceed it for a fee-on-transfer token.
+    ///        `baseOut` is the authoritative credited value.
     /// @param baseOut Base actually received and credited (in base decimals).
     /// @param consentHash Opaque off-chain consent commitment; unverified on-chain and
     ///        carries no on-chain guarantee. MUST be a salted/high-entropy commitment,
