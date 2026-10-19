@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {MockStablecoin} from "../src/mocks/MockStablecoin.sol";
 import {MockSwap} from "../src/mocks/MockSwap.sol";
 
@@ -12,13 +13,17 @@ contract MocksTest is Test {
 
     address internal alice = makeAddr("alice");
 
-    // Mirror of MockSwap.Swapped for vm.expectEmit.
+    // Mirrors of MockSwap events for vm.expectEmit.
     event Swapped(address indexed caller, address indexed tokenIn, uint256 amountIn, uint256 baseOut);
+    event TokenSupported(address indexed token, bool supported);
 
     function setUp() public {
         usdc = new MockStablecoin("Mock USDC", "mUSDC");
         xsgd = new MockStablecoin("Mock XSGD", "mXSGD");
         swap = new MockSwap(address(usdc));
+
+        // Allowlist the non-base token so it can be swapped.
+        swap.setSupported(address(xsgd), true);
 
         // Seed the swap with base liquidity so it can cover non-base swaps.
         usdc.mint(address(swap), 1_000_000e6);
@@ -93,5 +98,38 @@ contract MocksTest is Test {
         emit Swapped(alice, address(usdc), amountIn, amountIn);
         vm.prank(alice);
         swap.swapToBase(address(usdc), amountIn);
+    }
+
+    function test_RevertWhenTokenNotSupported() public {
+        MockStablecoin idrx = new MockStablecoin("Mock IDRX", "mIDRX");
+        uint256 amountIn = 100e6;
+        idrx.mint(alice, amountIn);
+
+        vm.startPrank(alice);
+        idrx.approve(address(swap), amountIn);
+        vm.expectRevert(abi.encodeWithSelector(MockSwap.UnsupportedToken.selector, address(idrx)));
+        swap.swapToBase(address(idrx), amountIn);
+        vm.stopPrank();
+    }
+
+    function test_OnlyOwnerCanSetSupported() public {
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        swap.setSupported(address(xsgd), false);
+    }
+
+    function test_SetSupportedZeroAddressReverts() public {
+        vm.expectRevert(MockSwap.ZeroAddress.selector);
+        swap.setSupported(address(0), true);
+    }
+
+    function test_SetSupportedEmitsEvent() public {
+        MockStablecoin idrx = new MockStablecoin("Mock IDRX", "mIDRX");
+
+        vm.expectEmit(true, false, false, true, address(swap));
+        emit TokenSupported(address(idrx), true);
+        swap.setSupported(address(idrx), true);
+
+        assertTrue(swap.isSupported(address(idrx)));
     }
 }
