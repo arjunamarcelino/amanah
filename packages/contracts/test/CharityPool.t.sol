@@ -56,4 +56,43 @@ contract CharityPoolTest is Test {
         vm.expectRevert(abi.encodeWithSelector(CharityPool.BaseMismatch.selector, address(usdc), address(xsgd)));
         new CharityPool(IERC20(address(usdc)), ISwapToBase(address(wrongSwap)), "n", "s", owner);
     }
+
+    // --- Firewall ----------------------------------------------------------------------
+
+    function test_Firewall_ExitsRevertForDonor() public {
+        vm.startPrank(donor);
+        vm.expectRevert(CharityPool.GiftIsIrrevocable.selector);
+        pool.deposit(1, donor);
+        vm.expectRevert(CharityPool.GiftIsIrrevocable.selector);
+        pool.mint(1, donor);
+        vm.expectRevert(CharityPool.GiftIsIrrevocable.selector);
+        pool.withdraw(1, donor, donor);
+        vm.expectRevert(CharityPool.GiftIsIrrevocable.selector);
+        pool.redeem(1, donor, donor);
+        vm.stopPrank();
+    }
+
+    function test_Firewall_ExitsRevertForOwner() public {
+        // Owner (msg.sender == this) is NOT privileged on the frozen surface.
+        vm.expectRevert(CharityPool.GiftIsIrrevocable.selector);
+        pool.deposit(1, owner);
+        vm.expectRevert(CharityPool.GiftIsIrrevocable.selector);
+        pool.mint(1, owner);
+        vm.expectRevert(CharityPool.GiftIsIrrevocable.selector);
+        pool.withdraw(1, owner, owner);
+        vm.expectRevert(CharityPool.GiftIsIrrevocable.selector);
+        pool.redeem(1, owner, owner);
+    }
+
+    function test_Firewall_RenounceOwnershipReverts() public {
+        vm.expectRevert(CharityPool.GiftIsIrrevocable.selector);
+        pool.renounceOwnership();
+    }
+
+    function test_Firewall_MaxFunctionsReturnZero() public view {
+        assertEq(pool.maxDeposit(donor), 0, "maxDeposit 0");
+        assertEq(pool.maxMint(donor), 0, "maxMint 0");
+        assertEq(pool.maxWithdraw(donor), 0, "maxWithdraw 0");
+        assertEq(pool.maxRedeem(donor), 0, "maxRedeem 0");
+    }
 }

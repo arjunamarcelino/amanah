@@ -46,6 +46,10 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     /// @notice Thrown when the vault asset does not match the swap adapter's base token.
     error BaseMismatch(address asset, address base);
 
+    /// @notice Thrown by every donor-exit path and by `renounceOwnership` — funds are an
+    ///         irrevocable charitable gift and the fund always retains a custodian.
+    error GiftIsIrrevocable();
+
     /// @param asset_ The base stablecoin (mUSDC, 6 decimals) — the ERC4626 asset.
     /// @param swap_ The swap adapter converting non-base donations into `asset_`.
     /// @param name_ ERC20 name of the share token.
@@ -74,6 +78,62 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     ///      assets, and the excess over outstanding principal becomes the yield.
     function totalAssets() public view override returns (uint256) {
         return poolValue();
+    }
+
+    // --- Irrevocable-gift firewall: every ERC4626 exit is disabled ----------------------
+
+    /// @inheritdoc ERC4626
+    /// @dev Disabled: donations enter only via `donate`. Intentional firewall.
+    function deposit(uint256, address) public pure override returns (uint256) {
+        revert GiftIsIrrevocable();
+    }
+
+    /// @inheritdoc ERC4626
+    /// @dev Disabled: donations enter only via `donate`. Intentional firewall.
+    function mint(uint256, address) public pure override returns (uint256) {
+        revert GiftIsIrrevocable();
+    }
+
+    /// @inheritdoc ERC4626
+    /// @dev Disabled: donations are irrevocable; no donor withdrawal path exists.
+    function withdraw(uint256, address, address) public pure override returns (uint256) {
+        revert GiftIsIrrevocable();
+    }
+
+    /// @inheritdoc ERC4626
+    /// @dev Disabled: donations are irrevocable; no donor redemption path exists.
+    function redeem(uint256, address, address) public pure override returns (uint256) {
+        revert GiftIsIrrevocable();
+    }
+
+    /// @inheritdoc Ownable
+    /// @dev Disabled: the fund must always retain a custodian for the future release path.
+    function renounceOwnership() public pure override {
+        revert GiftIsIrrevocable();
+    }
+
+    /// @inheritdoc ERC4626
+    /// @dev Returns 0 per EIP-4626 to signal deposits are permanently disabled.
+    function maxDeposit(address) public pure override returns (uint256) {
+        return 0;
+    }
+
+    /// @inheritdoc ERC4626
+    /// @dev Returns 0 per EIP-4626 to signal mints are permanently disabled.
+    function maxMint(address) public pure override returns (uint256) {
+        return 0;
+    }
+
+    /// @inheritdoc ERC4626
+    /// @dev Returns 0 per EIP-4626 to signal withdrawals are permanently disabled.
+    function maxWithdraw(address) public pure override returns (uint256) {
+        return 0;
+    }
+
+    /// @inheritdoc ERC4626
+    /// @dev Returns 0 per EIP-4626 to signal redemptions are permanently disabled.
+    function maxRedeem(address) public pure override returns (uint256) {
+        return 0;
     }
 
     /// @dev Base-token balance of the pool. `base_` is passed in to avoid re-reading
