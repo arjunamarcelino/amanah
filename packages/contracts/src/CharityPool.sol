@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
@@ -28,6 +29,8 @@ import {ISwapToBase} from "./interfaces/ISwapToBase.sol";
 ///      value sent to it is permanently locked. Testnet/MVP only — the production
 ///      contract ships with the release path already present.
 contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
+    using SafeERC20 for IERC20;
+
     /// @notice The 1:1 swap adapter used to convert non-base donations into base.
     ISwapToBase public immutable swap;
 
@@ -50,6 +53,33 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     ///         irrevocable charitable gift and the fund always retains a custodian.
     error GiftIsIrrevocable();
 
+    /// @notice Thrown when the donation amount is zero.
+    error ZeroAmount();
+
+    /// @notice Thrown when no consent commitment is supplied (`consentHash == 0`).
+    error ZeroConsent();
+
+    /// @notice Thrown when the base actually received (and thus mintable) is zero.
+    error NothingReceived();
+
+    /// @notice Emitted on every successful donation.
+    /// @param donor The caller (`msg.sender`); for relayed donations this is the relayer.
+    /// @param campaignId Attribution bucket; `0` is the general fund.
+    /// @param stablecoin The token supplied by the donor.
+    /// @param amountIn Amount of `stablecoin` pulled (in `stablecoin` decimals).
+    /// @param baseOut Base actually received and credited (in base decimals).
+    /// @param consentHash Opaque off-chain consent commitment; unverified on-chain and
+    ///        carries no on-chain guarantee. MUST be a salted/high-entropy commitment,
+    ///        never a bare hash of raw PII.
+    event Donated(
+        address indexed donor,
+        bytes32 indexed campaignId,
+        address indexed stablecoin,
+        uint256 amountIn,
+        uint256 baseOut,
+        bytes32 consentHash
+    );
+
     /// @param asset_ The base stablecoin (mUSDC, 6 decimals) — the ERC4626 asset.
     /// @param swap_ The swap adapter converting non-base donations into `asset_`.
     /// @param name_ ERC20 name of the share token.
@@ -64,6 +94,40 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         if (address(swap_) == address(0)) revert ZeroAddress();
         if (address(asset_) != swap_.base()) revert BaseMismatch(address(asset_), swap_.base());
         swap = swap_;
+    }
+
+    /// @notice Make an irrevocable charitable donation attributed to `campaignId`.
+    /// @dev Pulls `amount` of `stablecoin`; base donations pass through, non-base are
+    ///      swapped to base via the adapter. Shares equal to the base ACTUALLY received
+    ///      (a balance delta, so fee-on-transfer tokens cannot mint phantom principal) are
+    ///      minted to the pool itself — the donor receives nothing. `nonReentrant` + CEI:
+    ///      all external calls happen before `_mint`/tally.
+    /// @param campaignId Attribution bucket; `0` is the general fund.
+    /// @param stablecoin The token to donate (base or an adapter-allowlisted token).
+    /// @param amount Amount of `stablecoin` to donate (must be > 0).
+    /// @param consentHash Salted off-chain consent commitment (must be non-zero).
+    /// @return baseOut The base received and credited to the pool.
+    function donate(bytes32 campaignId, address stablecoin, uint256 amount, bytes32 consentHash)
+        external
+        nonReentrant
+        returns (uint256 baseOut)
+    {
+        if (amount == 0) revert ZeroAmount();
+        if (stablecoin == address(0)) revert ZeroAddress();
+        if (consentHash == bytes32(0)) revert ZeroConsent();
+
+        address base_ = asset();
+        uint256 baseBefore = _baseBalance(base_);
+
+        IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+
+        baseOut = _baseBalance(base_) - baseBefore;
+        if (baseOut == 0) revert NothingReceived();
+
+        _mint(address(this), baseOut);
+        donatedByCampaign[campaignId] += baseOut;
+
+        emit Donated(msg.sender, campaignId, stablecoin, amount, baseOut, consentHash);
     }
 
     /// @notice Total base held by the pool — the single accounting source of truth.
