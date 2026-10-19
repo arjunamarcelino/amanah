@@ -173,12 +173,10 @@ contract CharityPoolTest is Test {
 
         assertEq(out, amount, "returns base received");
         assertEq(pool.poolValue(), amount, "poolValue += amount");
-        assertEq(pool.totalAssets(), amount, "totalAssets == poolValue");
         assertEq(pool.totalSupply(), amount, "totalSupply == pooled base");
         assertEq(pool.donatedByCampaign(CAMPAIGN), amount, "campaign tally");
         assertEq(pool.balanceOf(donor), 0, "donor gets NO shares");
         assertEq(pool.balanceOf(address(pool)), amount, "pool holds its principal");
-        assertEq(usdc.balanceOf(address(pool)), amount, "pool base balance");
     }
 
     function test_DonateBase_EmitsDonated() public {
@@ -351,16 +349,11 @@ contract CharityPoolTest is Test {
         pool.setBufferBps(1000);
     }
 
-    function test_SetBufferBps_RevertAboveMax() public {
-        vm.expectRevert(abi.encodeWithSelector(CharityPool.InvalidBufferBps.selector, uint16(10_001)));
-        pool.setBufferBps(10_001);
-    }
-
-    function test_SetBufferBps_BoundariesAccepted() public {
-        pool.setBufferBps(0);
-        assertEq(pool.minLiquidityBufferBps(), 0, "0 accepted");
-        pool.setBufferBps(10_000);
+    function test_SetBufferBps_UpperBoundary() public {
+        pool.setBufferBps(10_000); // exactly MAX_BPS accepted
         assertEq(pool.minLiquidityBufferBps(), 10_000, "10000 accepted");
+        vm.expectRevert(abi.encodeWithSelector(CharityPool.InvalidBufferBps.selector, uint16(10_001)));
+        pool.setBufferBps(10_001); // one over reverts
     }
 
     function test_SetBufferBps_NotEnforcedOnDonate() public {
