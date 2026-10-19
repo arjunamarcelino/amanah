@@ -27,12 +27,21 @@ contract CharityPoolInvariantTest is Test {
             IERC20(address(usdc)), ISwapToBase(address(swap)), "Amanah Charity Pool", "aCHAR", address(this)
         );
         handler = new CharityHandler(pool, usdc, xsgd, swap);
+
+        bytes4[] memory selectors = new bytes4[](3);
+        selectors[0] = CharityHandler.donateBase.selector;
+        selectors[1] = CharityHandler.donateSwap.selector;
+        selectors[2] = CharityHandler.rawTransfer.selector;
+        targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
         targetContract(address(handler));
     }
 
-    /// @dev Donors never receive shares.
+    /// @dev Donors (distinct external addresses) never receive shares.
     function invariant_donorSharesAlwaysZero() public view {
-        assertEq(pool.balanceOf(address(handler)), 0, "donor holds no shares");
+        for (uint256 i = 0; i < 4; i++) {
+            assertEq(pool.balanceOf(handler.actors(i)), 0, "donor holds no shares");
+        }
+        assertEq(pool.balanceOf(address(handler)), 0, "handler holds no shares");
     }
 
     /// @dev Every minted share is held by the pool itself.
@@ -40,23 +49,24 @@ contract CharityPoolInvariantTest is Test {
         assertEq(pool.totalSupply(), pool.balanceOf(address(pool)), "all shares held by pool");
     }
 
-    /// @dev Supply tracks the base actually received across all donations.
+    /// @dev Supply tracks the base actually received via donate (raw transfers don't mint).
     function invariant_totalSupplyEqualsBaseOutSum() public view {
         assertEq(pool.totalSupply(), handler.ghost_baseOutSum(), "supply == cumulative base received");
     }
 
-    /// @dev The per-campaign tallies sum to total supply.
+    /// @dev The per-campaign tallies, summed over the real id set used, equal total supply.
     function invariant_campaignTallySumsToSupply() public view {
+        uint256 n = handler.seenCampaignsLength();
         uint256 sum;
-        for (uint256 i = 0; i < 3; i++) {
-            sum += pool.donatedByCampaign(handler.campaigns(i));
+        for (uint256 i = 0; i < n; i++) {
+            sum += pool.donatedByCampaign(handler.seenCampaigns(i));
         }
         assertEq(sum, pool.totalSupply(), "campaign tallies sum to supply");
     }
 
-    /// @dev Accounting source of truth stays consistent; donate-only handler = no drift.
-    function invariant_poolValueConsistent() public view {
-        assertEq(pool.poolValue(), pool.totalAssets(), "poolValue == totalAssets");
-        assertEq(pool.poolValue(), pool.totalSupply(), "no drift (donate-only)");
+    /// @dev Base held always covers minted principal. This is the TRUE invariant: raw
+    ///      transfers can push poolValue strictly above totalSupply (drift), never below.
+    function invariant_poolSolvent() public view {
+        assertGe(pool.poolValue(), pool.totalSupply(), "pool base covers minted principal");
     }
 }
