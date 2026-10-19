@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ISwapToBase} from "../interfaces/ISwapToBase.sol";
 
 /// @title MockSwap
 /// @notice Testnet-only off-ramp swap: converts owner-allowlisted stablecoins into
@@ -12,11 +13,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 ///         DEX/oracle rate instead of the flat 1:1 here.
 /// @dev The allowlist exists so a caller cannot drain base liquidity by swapping a
 ///      worthless token 1:1. The base token is always accepted (passthrough).
-contract MockSwap is Ownable {
+contract MockSwap is Ownable, ISwapToBase {
     using SafeERC20 for IERC20;
 
-    /// @notice The base stablecoin everything swaps into (mUSDC).
-    address public immutable base;
+    /// @inheritdoc ISwapToBase
+    address public immutable override base;
 
     /// @notice Decimals of the base stablecoin, cached at deploy. The 1:1 rate is only
     ///         valid between tokens of equal decimals, which is enforced per swap.
@@ -58,9 +59,7 @@ contract MockSwap is Ownable {
         emit TokenSupported(token, supported);
     }
 
-    /// @notice Swap `amountIn` of `tokenIn` into base (mUSDC) at 1:1.
-    ///         If `tokenIn` is already base, the call is a passthrough (no conversion,
-    ///         no token movement) and simply reports the amount.
+    /// @inheritdoc ISwapToBase
     /// @dev Integration contract — the two branches have different pre/post-conditions:
     ///
     ///      Non-base `tokenIn`:
@@ -77,10 +76,7 @@ contract MockSwap is Ownable {
     ///
     ///      Either way the caller ends up holding `baseOut` base. Production uses a real
     ///      DEX/oracle rate with slippage bounds instead of the flat 1:1 here.
-    /// @param tokenIn The stablecoin being swapped in.
-    /// @param amountIn The amount of `tokenIn` to swap (6 decimals).
-    /// @return baseOut Amount of base credited to the caller (== amountIn for the 1:1 mock).
-    function swapToBase(address tokenIn, uint256 amountIn) external returns (uint256 baseOut) {
+    function swapToBase(address tokenIn, uint256 amountIn) external override returns (uint256 baseOut) {
         // 1:1 for MVP; production uses a real DEX/oracle rate.
         baseOut = amountIn;
 

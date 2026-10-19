@@ -29,6 +29,10 @@ packages/db/src/generated/
 # next typegen
 next-env.d.ts
 
+# brainstorm + plan docs (local-only, not committed)
+docs/brainstorms/
+docs/plans/
+
 # logs / os
 *.log
 npm-debug.log*
