@@ -24,6 +24,11 @@ contract MocksTest is Test {
         usdc.mint(address(swap), 1_000_000e6);
     }
 
+    function test_RevertWhenBaseIsZeroAddress() public {
+        vm.expectRevert(MockSwap.ZeroAddress.selector);
+        new MockSwap(address(0));
+    }
+
     function test_SixDecimals() public view {
         assertEq(usdc.decimals(), 6);
         assertEq(xsgd.decimals(), 6);

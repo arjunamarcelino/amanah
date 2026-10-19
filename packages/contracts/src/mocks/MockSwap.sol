@@ -17,7 +17,11 @@ contract MockSwap {
     /// @notice Emitted on every swap, including base passthroughs.
     event Swapped(address indexed caller, address indexed tokenIn, uint256 amountIn, uint256 baseOut);
 
+    /// @notice Thrown when a zero address is supplied where a token is required.
+    error ZeroAddress();
+
     constructor(address base_) {
+        if (base_ == address(0)) revert ZeroAddress();
         base = base_;
     }
 
