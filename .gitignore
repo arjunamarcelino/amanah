@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# env (keep *.example committed)
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.*.example
+
+# build outputs
+dist/
+.next/
+out/
+coverage/
+
+# turbo
+.turbo/
+
+# foundry artifacts
+packages/contracts/out/
+packages/contracts/cache/
+packages/contracts/broadcast/
+
+# prisma generated client
+packages/db/src/generated/
+
+# next typegen
+next-env.d.ts
+
+# logs / os
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store

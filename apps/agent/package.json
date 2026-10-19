@@ -1,0 +1,22 @@
+{
+  "name": "@amanah/agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Amanah AI off-ramp router (Fastify + Claude).",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "fastify": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

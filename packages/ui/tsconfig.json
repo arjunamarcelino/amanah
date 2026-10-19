@@ -1,0 +1,13 @@
+{
+  "extends": "@amanah/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "declaration": false
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}

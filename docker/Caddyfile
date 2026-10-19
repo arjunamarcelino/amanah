@@ -1,0 +1,18 @@
+# Amanah reverse proxy — one subdomain per service.
+# Replace amanah.example with the real domain when provisioning the VPS.
+
+app.amanah.example {
+	reverse_proxy web:3000
+}
+
+amanah.example, www.amanah.example {
+	reverse_proxy landing:80
+}
+
+api.amanah.example {
+	reverse_proxy api:4000
+}
+
+agent.amanah.example {
+	reverse_proxy agent:5000
+}

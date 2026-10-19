@@ -1,0 +1,73 @@
+# Full-stack orchestration for the VPS. Testnet + mocks only.
+# Secrets come from the host environment / an untracked .env — never committed.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: amanah
+      POSTGRES_PASSWORD: amanah
+      POSTGRES_DB: amanah
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    environment:
+      NODE_ENV: production
+    expose:
+      - "3000"
+    depends_on:
+      - api
+      - agent
+
+  landing:
+    build:
+      context: .
+      dockerfile: docker/landing.Dockerfile
+    expose:
+      - "80"
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://amanah:amanah@postgres:5432/amanah
+    expose:
+      - "4000"
+    depends_on:
+      - postgres
+
+  agent:
+    build:
+      context: .
+      dockerfile: docker/agent.Dockerfile
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    expose:
+      - "5000"
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - landing
+      - api
+      - agent
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
