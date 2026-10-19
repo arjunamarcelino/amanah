@@ -61,9 +61,22 @@ contract MockSwap is Ownable {
     /// @notice Swap `amountIn` of `tokenIn` into base (mUSDC) at 1:1.
     ///         If `tokenIn` is already base, the call is a passthrough (no conversion,
     ///         no token movement) and simply reports the amount.
-    /// @dev Caller must approve this contract to spend `amountIn` of a non-base `tokenIn`,
-    ///      which must be allowlisted via `setSupported`. The contract must hold enough
-    ///      base liquidity to cover non-base swaps. Production uses a real DEX/oracle rate.
+    /// @dev Integration contract — the two branches have different pre/post-conditions:
+    ///
+    ///      Non-base `tokenIn`:
+    ///        - Pre: `tokenIn` allowlisted via `setSupported`, same decimals as base,
+    ///          caller has approved this contract for `amountIn`, and the contract holds
+    ///          >= `baseOut` base liquidity.
+    ///        - Post: contract pulls `amountIn` of `tokenIn` from the caller and sends
+    ///          `baseOut` base to the caller.
+    ///
+    ///      Base `tokenIn` (passthrough):
+    ///        - Pre: none (no approval, no allowlisting needed).
+    ///        - Post: no token movement — the caller already holds the base; the call
+    ///          only reports `baseOut == amountIn`.
+    ///
+    ///      Either way the caller ends up holding `baseOut` base. Production uses a real
+    ///      DEX/oracle rate with slippage bounds instead of the flat 1:1 here.
     /// @param tokenIn The stablecoin being swapped in.
     /// @param amountIn The amount of `tokenIn` to swap (6 decimals).
     /// @return baseOut Amount of base credited to the caller (== amountIn for the 1:1 mock).
