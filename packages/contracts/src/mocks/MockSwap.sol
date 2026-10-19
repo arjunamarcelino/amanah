@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -16,6 +17,10 @@ contract MockSwap is Ownable {
 
     /// @notice The base stablecoin everything swaps into (mUSDC).
     address public immutable base;
+
+    /// @notice Decimals of the base stablecoin, cached at deploy. The 1:1 rate is only
+    ///         valid between tokens of equal decimals, which is enforced per swap.
+    uint8 public immutable baseDecimals;
 
     /// @notice Tokens accepted by `swapToBase` (the base token is always accepted).
     mapping(address token => bool supported) public isSupported;
@@ -32,9 +37,13 @@ contract MockSwap is Ownable {
     /// @notice Thrown when swapping a non-base token that is not allowlisted.
     error UnsupportedToken(address token);
 
+    /// @notice Thrown when `tokenIn` decimals differ from the base, so 1:1 is invalid.
+    error DecimalsMismatch(address token, uint8 tokenDecimals, uint8 baseDecimals);
+
     constructor(address base_) Ownable(msg.sender) {
         if (base_ == address(0)) revert ZeroAddress();
         base = base_;
+        baseDecimals = IERC20Metadata(base_).decimals();
     }
 
     /// @notice Allow or disallow a non-base token for `swapToBase`.
@@ -66,6 +75,11 @@ contract MockSwap is Ownable {
         }
 
         if (!isSupported[tokenIn]) revert UnsupportedToken(tokenIn);
+
+        uint8 tokenDecimals = IERC20Metadata(tokenIn).decimals();
+        if (tokenDecimals != baseDecimals) {
+            revert DecimalsMismatch(tokenIn, tokenDecimals, baseDecimals);
+        }
 
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(base).safeTransfer(msg.sender, baseOut);

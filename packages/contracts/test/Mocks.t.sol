@@ -2,9 +2,19 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {MockStablecoin} from "../src/mocks/MockStablecoin.sol";
 import {MockSwap} from "../src/mocks/MockSwap.sol";
+
+/// @dev Test-only 18-decimal token to exercise the decimals guard.
+contract Token18 is ERC20 {
+    constructor() ERC20("Token 18", "T18") {}
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+}
 
 contract MocksTest is Test {
     MockStablecoin internal usdc;
@@ -109,6 +119,20 @@ contract MocksTest is Test {
         idrx.approve(address(swap), amountIn);
         vm.expectRevert(abi.encodeWithSelector(MockSwap.UnsupportedToken.selector, address(idrx)));
         swap.swapToBase(address(idrx), amountIn);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenDecimalsMismatch() public {
+        Token18 weird = new Token18();
+        swap.setSupported(address(weird), true);
+
+        uint256 amountIn = 1e18;
+        weird.mint(alice, amountIn);
+
+        vm.startPrank(alice);
+        weird.approve(address(swap), amountIn);
+        vm.expectRevert(abi.encodeWithSelector(MockSwap.DecimalsMismatch.selector, address(weird), uint8(18), uint8(6)));
+        swap.swapToBase(address(weird), amountIn);
         vm.stopPrank();
     }
 
