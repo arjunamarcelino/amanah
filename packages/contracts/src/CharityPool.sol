@@ -121,6 +121,15 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
 
         IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
 
+        // Non-base donations are converted to base via the adapter. `baseOut` is read from
+        // the pool's base-balance delta below (not the adapter's return value), so an
+        // under-delivering adapter can never mint more than was actually received.
+        if (stablecoin != base_) {
+            IERC20(stablecoin).forceApprove(address(swap), amount);
+            swap.swapToBase(stablecoin, amount);
+            IERC20(stablecoin).forceApprove(address(swap), 0);
+        }
+
         baseOut = _baseBalance(base_) - baseBefore;
         if (baseOut == 0) revert NothingReceived();
 

@@ -3,10 +3,33 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MockStablecoin} from "../src/mocks/MockStablecoin.sol";
 import {MockSwap} from "../src/mocks/MockSwap.sol";
 import {ISwapToBase} from "../src/interfaces/ISwapToBase.sol";
 import {CharityPool} from "../src/CharityPool.sol";
+
+/// @dev Test adapter that UNDER-DELIVERS: pulls `tokenIn`, sends less base than it
+///      returns — proving CharityPool credits the measured balance delta, not the
+///      adapter's claimed return value.
+contract LossySwap is ISwapToBase {
+    using SafeERC20 for IERC20;
+
+    address public immutable override base;
+    uint256 public immutable feeBps;
+
+    constructor(address base_, uint256 feeBps_) {
+        base = base_;
+        feeBps = feeBps_;
+    }
+
+    function swapToBase(address tokenIn, uint256 amountIn) external override returns (uint256 baseOut) {
+        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+        uint256 delivered = amountIn - (amountIn * feeBps / 10_000);
+        IERC20(base).safeTransfer(msg.sender, delivered);
+        return amountIn; // claims the full amount but delivered less
+    }
+}
 
 contract CharityPoolTest is Test {
     MockStablecoin internal usdc;
@@ -196,5 +219,95 @@ contract CharityPoolTest is Test {
         assertEq(pool.poolValue(), 140e6, "poolValue reflects direct transfer");
         assertEq(pool.totalSupply(), 100e6, "totalSupply unchanged by direct transfer");
         assertEq(pool.donatedByCampaign(CAMPAIGN), 100e6, "tally unchanged");
+    }
+
+    // --- donate: swap path -------------------------------------------------------------
+
+    function test_DonateSwap_IncreasesStateAndClearsAllowance() public {
+        uint256 amount = 800e6;
+        xsgd.mint(donor, amount);
+        vm.startPrank(donor);
+        xsgd.approve(address(pool), amount);
+        uint256 out = pool.donate(CAMPAIGN, address(xsgd), amount, CONSENT);
+        vm.stopPrank();
+
+        assertEq(out, amount, "1:1 baseOut");
+        assertEq(pool.poolValue(), amount, "pool received base");
+        assertEq(pool.totalSupply(), amount, "minted base received");
+        assertEq(pool.donatedByCampaign(CAMPAIGN), amount, "tally");
+        assertEq(pool.balanceOf(donor), 0, "donor no shares");
+        assertEq(xsgd.balanceOf(address(pool)), 0, "pool holds no tokenIn");
+        assertEq(xsgd.allowance(address(pool), address(swap)), 0, "pool->swap allowance re-zeroed");
+    }
+
+    function test_DonateSwap_EmitsDonatedWithBaseOut() public {
+        uint256 amount = 300e6;
+        xsgd.mint(donor, amount);
+        vm.startPrank(donor);
+        xsgd.approve(address(pool), amount);
+        vm.expectEmit(true, true, true, true, address(pool));
+        emit Donated(donor, CAMPAIGN, address(xsgd), amount, amount, CONSENT);
+        pool.donate(CAMPAIGN, address(xsgd), amount, CONSENT);
+        vm.stopPrank();
+    }
+
+    function test_DonateSwap_RevertUnsupported_DonorIntact() public {
+        MockStablecoin idrx = new MockStablecoin("Mock IDRX", "mIDRX");
+        uint256 amount = 100e6;
+        idrx.mint(donor, amount);
+        vm.startPrank(donor);
+        idrx.approve(address(pool), amount);
+        vm.expectRevert(abi.encodeWithSelector(MockSwap.UnsupportedToken.selector, address(idrx)));
+        pool.donate(CAMPAIGN, address(idrx), amount, CONSENT);
+        vm.stopPrank();
+        assertEq(idrx.balanceOf(donor), amount, "donor keeps tokenIn on failed swap");
+        assertEq(pool.totalSupply(), 0, "nothing minted");
+    }
+
+    function test_DonateSwap_RevertUnderfunded_DonorIntact() public {
+        MockSwap dry = new MockSwap(address(usdc));
+        dry.setSupported(address(xsgd), true);
+        CharityPool dryPool = new CharityPool(IERC20(address(usdc)), ISwapToBase(address(dry)), "n", "s", owner);
+
+        uint256 amount = 100e6;
+        xsgd.mint(donor, amount);
+        vm.startPrank(donor);
+        xsgd.approve(address(dryPool), amount);
+        vm.expectRevert(abi.encodeWithSelector(MockSwap.InsufficientBaseLiquidity.selector, amount, 0));
+        dryPool.donate(CAMPAIGN, address(xsgd), amount, CONSENT);
+        vm.stopPrank();
+        assertEq(xsgd.balanceOf(donor), amount, "donor keeps tokenIn");
+    }
+
+    function test_DonateSwap_CreditsMeasuredDeltaNotReturn() public {
+        LossySwap lossy = new LossySwap(address(usdc), 500); // under-delivers 5%
+        usdc.mint(address(lossy), 1_000_000e6);
+        CharityPool lossyPool = new CharityPool(IERC20(address(usdc)), ISwapToBase(address(lossy)), "n", "s", owner);
+
+        uint256 amount = 1_000e6;
+        uint256 expected = amount - (amount * 500 / 10_000); // 950e6 actually delivered
+
+        xsgd.mint(donor, amount);
+        vm.startPrank(donor);
+        xsgd.approve(address(lossyPool), amount);
+        uint256 out = lossyPool.donate(CAMPAIGN, address(xsgd), amount, CONSENT);
+        vm.stopPrank();
+
+        assertEq(out, expected, "credits measured base, not the adapter's claim");
+        assertLt(out, amount, "strictly less than nominal");
+        assertEq(lossyPool.totalSupply(), expected, "no phantom principal");
+        assertEq(lossyPool.donatedByCampaign(CAMPAIGN), expected, "tally == received");
+    }
+
+    function testFuzz_DonateSwap(uint256 amount) public {
+        amount = bound(amount, 1, 1_000_000e6); // bounded to seeded swap liquidity
+        xsgd.mint(donor, amount);
+        vm.startPrank(donor);
+        xsgd.approve(address(pool), amount);
+        uint256 out = pool.donate(CAMPAIGN, address(xsgd), amount, CONSENT);
+        vm.stopPrank();
+        assertEq(out, amount, "1:1");
+        assertEq(pool.totalSupply(), amount, "minted == received");
+        assertEq(pool.donatedByCampaign(CAMPAIGN), amount, "tally");
     }
 }
