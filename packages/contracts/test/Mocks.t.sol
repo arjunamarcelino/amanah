@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {MockStablecoin} from "../src/mocks/MockStablecoin.sol";
 import {MockSwap} from "../src/mocks/MockSwap.sol";
@@ -152,6 +153,49 @@ contract MocksTest is Test {
 
         // Caller keeps their tokenIn — the revert happened before any pull.
         assertEq(xsgd.balanceOf(alice), amountIn, "tokenIn not taken on failed swap");
+    }
+
+    function test_RevertWhenNotApproved() public {
+        uint256 amountIn = 100e6;
+        xsgd.mint(alice, amountIn);
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, address(swap), 0, amountIn)
+        );
+        swap.swapToBase(address(xsgd), amountIn);
+    }
+
+    function test_SwapThirdTokenGeneric() public {
+        // The generic path isn't XSGD-specific — mIDRX works the same once allowlisted.
+        MockStablecoin idrx = new MockStablecoin("Mock IDRX", "mIDRX");
+        swap.setSupported(address(idrx), true);
+
+        uint256 amountIn = 777e6;
+        idrx.mint(alice, amountIn);
+
+        vm.startPrank(alice);
+        idrx.approve(address(swap), amountIn);
+        uint256 out = swap.swapToBase(address(idrx), amountIn);
+        vm.stopPrank();
+
+        assertEq(out, amountIn, "1:1 base out");
+        assertEq(usdc.balanceOf(alice), amountIn, "alice received base");
+        assertEq(idrx.balanceOf(address(swap)), amountIn, "swap holds idrx");
+    }
+
+    function testFuzz_SwapIsOneToOne(uint256 amountIn) public {
+        // Bound to the base liquidity seeded in setUp.
+        amountIn = bound(amountIn, 1, 1_000_000e6);
+        xsgd.mint(alice, amountIn);
+
+        vm.startPrank(alice);
+        xsgd.approve(address(swap), amountIn);
+        uint256 out = swap.swapToBase(address(xsgd), amountIn);
+        vm.stopPrank();
+
+        assertEq(out, amountIn, "1:1 invariant");
+        assertEq(usdc.balanceOf(alice), amountIn, "alice received exactly amountIn base");
     }
 
     function test_OnlyOwnerCanSetSupported() public {
