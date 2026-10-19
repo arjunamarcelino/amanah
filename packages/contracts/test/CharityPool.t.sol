@@ -248,13 +248,17 @@ contract CharityPoolTest is Test {
 
     // --- donate: swap path -------------------------------------------------------------
 
+    function _donateSwap(address from, bytes32 id, uint256 amount) internal returns (uint256 out) {
+        xsgd.mint(from, amount);
+        vm.startPrank(from);
+        xsgd.approve(address(pool), amount);
+        out = pool.donate(id, address(xsgd), amount, CONSENT);
+        vm.stopPrank();
+    }
+
     function test_DonateSwap_IncreasesStateAndClearsAllowance() public {
         uint256 amount = 800e6;
-        xsgd.mint(donor, amount);
-        vm.startPrank(donor);
-        xsgd.approve(address(pool), amount);
-        uint256 out = pool.donate(CAMPAIGN, address(xsgd), amount, CONSENT);
-        vm.stopPrank();
+        uint256 out = _donateSwap(donor, CAMPAIGN, amount);
 
         assertEq(out, amount, "1:1 baseOut");
         assertEq(pool.poolValue(), amount, "pool received base");
@@ -326,11 +330,7 @@ contract CharityPoolTest is Test {
 
     function testFuzz_DonateSwap(uint256 amount) public {
         amount = bound(amount, 1, 1_000_000e6); // bounded to seeded swap liquidity
-        xsgd.mint(donor, amount);
-        vm.startPrank(donor);
-        xsgd.approve(address(pool), amount);
-        uint256 out = pool.donate(CAMPAIGN, address(xsgd), amount, CONSENT);
-        vm.stopPrank();
+        uint256 out = _donateSwap(donor, CAMPAIGN, amount);
         assertEq(out, amount, "1:1");
         assertEq(pool.totalSupply(), amount, "minted == received");
         assertEq(pool.donatedByCampaign(CAMPAIGN), amount, "tally");
