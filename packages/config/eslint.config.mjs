@@ -12,6 +12,7 @@ export default tseslint.config(
       "**/coverage/**",
       "**/node_modules/**",
       "**/generated/**",
+      "**/next-env.d.ts",
     ],
   },
   js.configs.recommended,
@@ -21,6 +22,10 @@ export default tseslint.config(
       globals: { ...globals.node, ...globals.browser },
     },
     rules: {
+      // TypeScript's own checker handles undefined identifiers.
+      "no-undef": "off",
+      // shadcn/ui components use empty marker interfaces by convention.
+      "@typescript-eslint/no-empty-object-type": "off",
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
