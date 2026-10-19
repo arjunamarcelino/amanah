@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {MockStablecoin} from "../src/mocks/MockStablecoin.sol";
 import {MockSwap} from "../src/mocks/MockSwap.sol";
 import {ISwapToBase} from "../src/interfaces/ISwapToBase.sol";
@@ -29,6 +30,27 @@ contract LossySwap is ISwapToBase {
         uint256 delivered = amountIn - (amountIn * feeBps / 10_000);
         IERC20(base).safeTransfer(msg.sender, delivered);
         return amountIn; // claims the full amount but delivered less
+    }
+}
+
+/// @dev Malicious adapter: re-enters `donate` during the swap. The pool's nonReentrant
+///      guard must reject the re-entry.
+contract ReentrantSwap is ISwapToBase {
+    address public immutable override base;
+    CharityPool public pool;
+
+    constructor(address base_) {
+        base = base_;
+    }
+
+    function setPool(CharityPool pool_) external {
+        pool = pool_;
+    }
+
+    function swapToBase(address tokenIn, uint256 amountIn) external override returns (uint256) {
+        // Attempt to re-enter the pool mid-donation — must revert.
+        pool.donate(bytes32("x"), tokenIn, amountIn, keccak256("c"));
+        return amountIn;
     }
 }
 
@@ -347,5 +369,23 @@ contract CharityPoolTest is Test {
         uint256 out = _donateBase(donor, CAMPAIGN, 100e6);
         assertEq(out, 100e6, "donation unaffected by buffer");
         assertEq(pool.poolValue(), 100e6, "funds still accepted in full");
+    }
+
+    // --- reentrancy --------------------------------------------------------------------
+
+    function test_Donate_ReentrancyGuardBlocksReenter() public {
+        ReentrantSwap evil = new ReentrantSwap(address(usdc));
+        CharityPool evilPool = new CharityPool(IERC20(address(usdc)), ISwapToBase(address(evil)), "n", "s", owner);
+        evil.setPool(evilPool);
+
+        MockStablecoin attack = new MockStablecoin("Attack", "ATK");
+        uint256 amount = 100e6;
+        attack.mint(donor, amount);
+
+        vm.startPrank(donor);
+        attack.approve(address(evilPool), amount);
+        vm.expectRevert(ReentrancyGuardTransient.ReentrancyGuardReentrantCall.selector);
+        evilPool.donate(CAMPAIGN, address(attack), amount, CONSENT);
+        vm.stopPrank();
     }
 }
