@@ -13,7 +13,7 @@ contract MocksTest is Test {
     address internal alice = makeAddr("alice");
 
     // Mirror of MockSwap.Swapped for vm.expectEmit.
-    event Swapped(address indexed caller, address indexed tokenIn, uint256 amountIn, uint256 usdcOut);
+    event Swapped(address indexed caller, address indexed tokenIn, uint256 amountIn, uint256 baseOut);
 
     function setUp() public {
         usdc = new MockStablecoin("Mock USDC", "mUSDC");
