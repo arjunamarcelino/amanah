@@ -16,7 +16,7 @@ import {ISwapToBase} from "../interfaces/ISwapToBase.sol";
 contract MockSwap is Ownable, ISwapToBase {
     using SafeERC20 for IERC20;
 
-    /// @notice The base stablecoin everything swaps into (mUSDC).
+    /// @inheritdoc ISwapToBase
     address public immutable override base;
 
     /// @notice Decimals of the base stablecoin, cached at deploy. The 1:1 rate is only
@@ -59,9 +59,7 @@ contract MockSwap is Ownable, ISwapToBase {
         emit TokenSupported(token, supported);
     }
 
-    /// @notice Swap `amountIn` of `tokenIn` into base (mUSDC) at 1:1.
-    ///         If `tokenIn` is already base, the call is a passthrough (no conversion,
-    ///         no token movement) and simply reports the amount.
+    /// @inheritdoc ISwapToBase
     /// @dev Integration contract — the two branches have different pre/post-conditions:
     ///
     ///      Non-base `tokenIn`:
@@ -78,9 +76,6 @@ contract MockSwap is Ownable, ISwapToBase {
     ///
     ///      Either way the caller ends up holding `baseOut` base. Production uses a real
     ///      DEX/oracle rate with slippage bounds instead of the flat 1:1 here.
-    /// @param tokenIn The stablecoin being swapped in.
-    /// @param amountIn The amount of `tokenIn` to swap (6 decimals).
-    /// @return baseOut Amount of base credited to the caller (== amountIn for the 1:1 mock).
     function swapToBase(address tokenIn, uint256 amountIn) external override returns (uint256 baseOut) {
         // 1:1 for MVP; production uses a real DEX/oracle rate.
         baseOut = amountIn;
