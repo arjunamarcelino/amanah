@@ -40,6 +40,9 @@ contract MockSwap is Ownable {
     /// @notice Thrown when `tokenIn` decimals differ from the base, so 1:1 is invalid.
     error DecimalsMismatch(address token, uint8 tokenDecimals, uint8 baseDecimals);
 
+    /// @notice Thrown when the swap holds too little base to cover a non-base swap.
+    error InsufficientBaseLiquidity(uint256 requested, uint256 available);
+
     constructor(address base_) Ownable(msg.sender) {
         if (base_ == address(0)) revert ZeroAddress();
         base = base_;
@@ -80,6 +83,11 @@ contract MockSwap is Ownable {
         if (tokenDecimals != baseDecimals) {
             revert DecimalsMismatch(tokenIn, tokenDecimals, baseDecimals);
         }
+
+        // Check liquidity before pulling tokenIn, so an underfunded swap fails
+        // without taking the caller's funds.
+        uint256 available = IERC20(base).balanceOf(address(this));
+        if (available < baseOut) revert InsufficientBaseLiquidity(baseOut, available);
 
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(base).safeTransfer(msg.sender, baseOut);

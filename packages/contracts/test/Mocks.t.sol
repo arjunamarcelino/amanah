@@ -136,6 +136,24 @@ contract MocksTest is Test {
         vm.stopPrank();
     }
 
+    function test_RevertWhenInsufficientBaseLiquidity() public {
+        // Fresh swap with no base liquidity seeded.
+        MockSwap dry = new MockSwap(address(usdc));
+        dry.setSupported(address(xsgd), true);
+
+        uint256 amountIn = 100e6;
+        xsgd.mint(alice, amountIn);
+
+        vm.startPrank(alice);
+        xsgd.approve(address(dry), amountIn);
+        vm.expectRevert(abi.encodeWithSelector(MockSwap.InsufficientBaseLiquidity.selector, amountIn, 0));
+        dry.swapToBase(address(xsgd), amountIn);
+        vm.stopPrank();
+
+        // Caller keeps their tokenIn — the revert happened before any pull.
+        assertEq(xsgd.balanceOf(alice), amountIn, "tokenIn not taken on failed swap");
+    }
+
     function test_OnlyOwnerCanSetSupported() public {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
