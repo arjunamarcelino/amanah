@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {MockStablecoin} from "../src/mocks/MockStablecoin.sol";
 import {MockSwap} from "../src/mocks/MockSwap.sol";
 import {ISwapToBase} from "../src/interfaces/ISwapToBase.sol";
@@ -52,6 +53,8 @@ contract CharityPoolTest is Test {
         uint256 baseOut,
         bytes32 consentHash
     );
+    // Mirror of CharityPool.BufferBpsUpdated for vm.expectEmit.
+    event BufferBpsUpdated(uint16 oldBps, uint16 newBps);
 
     function setUp() public {
         usdc = new MockStablecoin("Mock USDC", "mUSDC");
@@ -309,5 +312,40 @@ contract CharityPoolTest is Test {
         assertEq(out, amount, "1:1");
         assertEq(pool.totalSupply(), amount, "minted == received");
         assertEq(pool.donatedByCampaign(CAMPAIGN), amount, "tally");
+    }
+
+    // --- buffer (store-only) -----------------------------------------------------------
+
+    function test_SetBufferBps_OwnerUpdatesAndEmits() public {
+        vm.expectEmit(false, false, false, true, address(pool));
+        emit BufferBpsUpdated(2000, 3000);
+        pool.setBufferBps(3000);
+        assertEq(pool.minLiquidityBufferBps(), 3000, "buffer updated");
+    }
+
+    function test_SetBufferBps_RevertNonOwner() public {
+        vm.prank(donor);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, donor));
+        pool.setBufferBps(1000);
+    }
+
+    function test_SetBufferBps_RevertAboveMax() public {
+        vm.expectRevert(abi.encodeWithSelector(CharityPool.InvalidBufferBps.selector, uint16(10_001)));
+        pool.setBufferBps(10_001);
+    }
+
+    function test_SetBufferBps_BoundariesAccepted() public {
+        pool.setBufferBps(0);
+        assertEq(pool.minLiquidityBufferBps(), 0, "0 accepted");
+        pool.setBufferBps(10_000);
+        assertEq(pool.minLiquidityBufferBps(), 10_000, "10000 accepted");
+    }
+
+    function test_SetBufferBps_NotEnforcedOnDonate() public {
+        // Buffer is store-only: setting it does not block or alter donations.
+        pool.setBufferBps(10_000);
+        uint256 out = _donateBase(donor, CAMPAIGN, 100e6);
+        assertEq(out, 100e6, "donation unaffected by buffer");
+        assertEq(pool.poolValue(), 100e6, "funds still accepted in full");
     }
 }

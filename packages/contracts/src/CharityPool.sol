@@ -31,6 +31,9 @@ import {ISwapToBase} from "./interfaces/ISwapToBase.sol";
 contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
+    /// @notice One hundred percent, in basis points.
+    uint16 internal constant MAX_BPS = 10_000;
+
     /// @notice The 1:1 swap adapter used to convert non-base donations into base.
     ISwapToBase public immutable swap;
 
@@ -62,6 +65,9 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     /// @notice Thrown when the base actually received (and thus mintable) is zero.
     error NothingReceived();
 
+    /// @notice Thrown when a buffer value exceeds 100% (`> MAX_BPS`).
+    error InvalidBufferBps(uint16 bps);
+
     /// @notice Emitted on every successful donation.
     /// @param donor The caller (`msg.sender`); for relayed donations this is the relayer.
     /// @param campaignId Attribution bucket; `0` is the general fund.
@@ -79,6 +85,9 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         uint256 baseOut,
         bytes32 consentHash
     );
+
+    /// @notice Emitted when the owner updates the liquidity buffer.
+    event BufferBpsUpdated(uint16 oldBps, uint16 newBps);
 
     /// @param asset_ The base stablecoin (mUSDC, 6 decimals) — the ERC4626 asset.
     /// @param swap_ The swap adapter converting non-base donations into `asset_`.
@@ -151,6 +160,16 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     ///      assets, and the excess over outstanding principal becomes the yield.
     function totalAssets() public view override returns (uint256) {
         return poolValue();
+    }
+
+    /// @notice Set the minimum liquidity buffer. STORE-ONLY this slice — not yet enforced;
+    ///         a future release slice uses it as a floor on releasable funds.
+    /// @param bps New buffer in basis points; must be <= 10_000.
+    function setBufferBps(uint16 bps) external onlyOwner {
+        if (bps > MAX_BPS) revert InvalidBufferBps(bps);
+        uint16 oldBps = minLiquidityBufferBps;
+        minLiquidityBufferBps = bps;
+        emit BufferBpsUpdated(oldBps, bps);
     }
 
     // --- Irrevocable-gift firewall: every ERC4626 exit is disabled ----------------------
