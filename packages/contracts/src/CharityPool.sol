@@ -352,6 +352,9 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
 
     /// @dev Pull up to `need` base from the active adapter back to the pool. Internal: only
     ///      reached through `nonReentrant` entrypoints. Pushes base pool-ward via the adapter.
+    ///      Currently the sole caller (`setMode`) always passes the full deployed amount, so the
+    ///      `need`-clamp is exercised only as a partial-divest primitive the deferred
+    ///      release/harvest path will use.
     function _divest(uint256 need) internal {
         IYieldAdapter adapter = _activeAdapter();
         if (address(adapter) == address(0) || need == 0) return;
