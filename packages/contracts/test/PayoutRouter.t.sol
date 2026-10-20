@@ -94,6 +94,13 @@ contract PayoutRouterTest is Test {
         router.setPending(PAYOUT, CAMPAIGN, beneficiary, 0);
     }
 
+    function test_SetPending_RevertOverwriteUnconsumed() public {
+        _stamp(PAYOUT, 100e6);
+        vm.prank(poolAddr);
+        vm.expectRevert(abi.encodeWithSelector(PayoutRouter.AlreadyPending.selector, PAYOUT));
+        router.setPending(PAYOUT, CAMPAIGN, beneficiary, 200e6);
+    }
+
     // --- recordAndPay -------------------------------------------------------------------
 
     function test_RecordAndPay_ConsumesAndEmitsRouted() public {

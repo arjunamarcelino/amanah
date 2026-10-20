@@ -62,6 +62,9 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
     /// @notice Thrown when a pool-only function is called by anyone other than the configured pool.
     error OnlyPool();
 
+    /// @notice Thrown when `setPending` would overwrite an existing, not-yet-consumed payout record.
+    error AlreadyPending(bytes32 payoutId);
+
     /// @notice Thrown when `recoverToPool` is called before the pool address is set.
     error PoolNotSet();
 
@@ -108,13 +111,16 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
     }
 
     /// @inheritdoc IPayoutRouterWriter
-    /// @dev Pool-only. Records the intended disbursement for a parked tranche. The pool guarantees
-    ///      `payoutId` uniqueness (campaignId + monotonic running total), so no overwrite guard is needed.
+    /// @dev Pool-only. Records the intended disbursement for a parked tranche. The pool derives `payoutId`
+    ///      from the campaign's monotonic running total, so collisions require a pool bug; the overwrite
+    ///      guard is defense-in-depth at the trust boundary, since the router already distrusts callers.
     function setPending(bytes32 payoutId, bytes32 campaignId, address beneficiary, uint256 amount) external override {
         if (msg.sender != pool) revert OnlyPool();
         if (beneficiary == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
-        pending[payoutId] = Pending({campaignId: campaignId, beneficiary: beneficiary, amount: amount, consumed: false});
+        Pending storage existing = pending[payoutId];
+        if (existing.amount != 0 && !existing.consumed) revert AlreadyPending(payoutId);
+        pending[payoutId] = Pending({campaignId: campaignId, beneficiary: beneficiary, consumed: false, amount: amount});
     }
 
     /// @notice Disburse a parked tranche to its stamped beneficiary with the AI routing decision.
