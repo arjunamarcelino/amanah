@@ -399,6 +399,24 @@ contract YieldTest is Test {
         pool.emergencyReplaceAdapter(false, wrong);
     }
 
+    /// @dev Pins the documented "abandons funds" contract: invoked on an ACTIVE, FUNDED slot the
+    ///      emergency path strands the deployed base and leaves the pool knowingly insolvent
+    ///      (poolValue < totalSupply). Locks the owner-custodian tradeoff so it can't regress silently.
+    function test_EmergencyReplace_AbandonsFundsInActiveSlot() public {
+        _donateBase(1_000e6);
+        pool.investIdle(); // 800e6 deployed into the active standard adapter
+        assertEq(standardVault.totalAssets(), 800e6, "precondition: funds deployed");
+
+        MockYieldVault healthy = new MockYieldVault(address(usdc), owner);
+        pool.emergencyReplaceAdapter(false, healthy);
+
+        assertEq(standardVault.totalAssets(), 800e6, "old adapter still holds the abandoned base");
+        assertEq(healthy.totalAssets(), 0, "new adapter is empty");
+        assertEq(pool.poolValue(), 200e6, "poolValue = idle + new empty adapter only");
+        assertEq(pool.totalSupply(), 1_000e6, "principal (shares) unchanged");
+        assertLt(pool.poolValue(), pool.totalSupply(), "documented insolvency: abandoned 800e6");
+    }
+
     // --- regression + firewall ----------------------------------------------------------
 
     function test_PoolValue_IdleOnlyWhenAdapterUnset() public {
