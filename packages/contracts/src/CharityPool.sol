@@ -30,6 +30,12 @@ import {IYieldAdapter} from "./yield/IYieldAdapter.sol";
 ///      DEPLOYMENT: this version has no exit at all and is non-upgradeable, so any real
 ///      value sent to it is permanently locked. Testnet/MVP only — the production
 ///      contract ships with the release path already present.
+///
+///      YIELD / EGRESS: `investIdle` deploys idle base into an owner-set adapter — the ONLY
+///      path that moves base out of the pool. The donor-irrevocability firewall does not
+///      constrain this owner-custodian power; a hostile owner-set adapter could route idle
+///      principal away. Testnet/MVP accepts this (mocks only). A production deployment MUST
+///      gate adapters behind an allowlist/timelock or make them set-once immutable.
 contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
