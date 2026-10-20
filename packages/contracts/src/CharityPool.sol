@@ -56,11 +56,12 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     mapping(bytes32 campaignId => uint256 totalBase) public donatedByCampaign;
 
     /// @notice The standard (riba-bearing) yield adapter idle base is deployed into when not
-    ///         in Halal mode. Declared before `halalMode` so the bool packs into this slot.
+    ///         in Halal mode.
     IYieldAdapter public standardAdapter;
 
     /// @notice When true, idle base routes to `halalAdapter` (riba-free); otherwise to
-    ///         `standardAdapter`. Packs into `standardAdapter`'s storage slot.
+    ///         `standardAdapter`. Shares a slot with `standardAdapter` (address + bool < 32
+    ///         bytes), so the two adapters plus this flag occupy 2 storage slots total.
     bool public halalMode;
 
     /// @notice The Halal (Shariah-compliant, riba-free) yield adapter used in Halal mode.
