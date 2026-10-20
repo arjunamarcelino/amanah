@@ -283,7 +283,9 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         if (address(adapter) == address(0)) revert AdapterNotSet();
 
         uint256 idle = _baseBalance(asset());
-        uint256 target = poolValue() * minLiquidityBufferBps / MAX_BPS;
+        // `adapter` is already resolved and non-zero here, so this equals poolValue() without
+        // the extra balanceOf STATICCALL + adapter re-resolution that poolValue() would redo.
+        uint256 target = (idle + adapter.totalAssets()) * minLiquidityBufferBps / MAX_BPS;
         if (idle <= target) return;
         uint256 surplus = idle - target;
 
