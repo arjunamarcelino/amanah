@@ -150,3 +150,4 @@ protect, not merely declared.
 - Prior lesson (first-order): [handler missing the falsifying action + wrong assertion](./foundry-invariant-false-pass-handler-blind-spot.md)
 - PR [#3](https://github.com/arjunamarcelino/amanah/pull/3) — yield adapters + invest + halal mode
 - Found during the PR #3 multi-agent review (finding P2-1, architecture + data-integrity reviewers); fixed in commit `11ad12d`, buffer-fuzz follow-up `964958d`.
+- **Third-order follow-up:** [forcing a state to satisfy an effectiveness ghost can dilute another invariant's coverage](./foundry-invariant-forced-reachability-dilutes-coverage.md). The very buffer-fuzz coverage added here in `964958d` was later silently diluted when PR #4 forced `setBufferBps(0)` to reach the divest-during-release state without restoring it.
