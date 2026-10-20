@@ -147,6 +147,12 @@ contract ReleaseControllerTest is Test {
         rc.revoke(PARAM);
     }
 
+    function test_Revoke_RevertNotActive() public {
+        _registerParam(); // registered but never fired
+        vm.expectRevert(abi.encodeWithSelector(ReleaseController.NotActive.selector, PARAM));
+        rc.revoke(PARAM);
+    }
+
     function test_Revoke_RevertNonOwner() public {
         _registerParam();
         rc.fire(PARAM, "x");

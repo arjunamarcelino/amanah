@@ -29,7 +29,7 @@ contract PayoutRouterTest is Test {
         uint16 feeBpsCovered,
         string rationale
     );
-    event Recovered(uint256 amount);
+    event Recovered(address indexed to, uint256 amount);
     event PendingCancelled(bytes32 indexed payoutId);
     event PendingSet(bytes32 indexed payoutId, bytes32 indexed campaignId, address indexed beneficiary, uint256 amount);
 
@@ -180,8 +180,8 @@ contract PayoutRouterTest is Test {
     function test_RecoverToPool_TransfersAndEmits() public {
         uint256 amount = 300e6;
         usdc.mint(address(router), amount);
-        vm.expectEmit(false, false, false, true, address(router));
-        emit Recovered(amount);
+        vm.expectEmit(true, false, false, true, address(router));
+        emit Recovered(poolAddr, amount);
         router.recoverToPool(amount);
         assertEq(usdc.balanceOf(poolAddr), amount, "returned to pool");
     }

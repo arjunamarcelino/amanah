@@ -10,6 +10,6 @@ pragma solidity ^0.8.24;
 ///      mismatch guard in `setPayoutRouter`.
 interface IPayoutSink {
     /// @notice The base asset this router holds/disburses; MUST equal the pool's `asset()`.
-    /// @return base The base token address.
-    function base() external view returns (address base);
+    /// @return The base token address.
+    function base() external view returns (address);
 }

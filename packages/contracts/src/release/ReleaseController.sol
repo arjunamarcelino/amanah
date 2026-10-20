@@ -48,6 +48,9 @@ contract ReleaseController is IReleaseController, Ownable2Step {
     /// @notice Thrown when registering `campaignId == 0` (the pool's general fund is not individually releasable).
     error ZeroId();
 
+    /// @notice Thrown when revoking a campaign that is not currently active (nothing to undo).
+    error NotActive(bytes32 campaignId);
+
     /// @notice Thrown by `renounceOwnership` — a custody-gating contract must always retain an owner.
     error OwnershipCannotBeRenounced();
 
@@ -105,9 +108,11 @@ contract ReleaseController is IReleaseController, Ownable2Step {
     ///      use `PayoutRouter.recoverToPool` for funds still parked in the router.
     /// @param campaignId The campaign to revoke.
     function revoke(bytes32 campaignId) external onlyOwner {
-        if (!_campaigns[campaignId].registered) revert NotRegistered(campaignId);
-        _campaigns[campaignId].active = false;
-        _campaigns[campaignId].activatedAt = 0;
+        Campaign storage c = _campaigns[campaignId];
+        if (!c.registered) revert NotRegistered(campaignId);
+        if (!c.active) revert NotActive(campaignId);
+        c.active = false;
+        c.activatedAt = 0;
         emit TriggerRevoked(campaignId);
     }
 

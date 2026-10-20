@@ -110,7 +110,7 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
     );
 
     /// @notice Emitted when base is recovered back to the pool.
-    event Recovered(uint256 amount);
+    event Recovered(address indexed to, uint256 amount);
 
     /// @notice Emitted when an unconsumed pending payout is cancelled (frees its earmark; can no longer be paid).
     event PendingCancelled(bytes32 indexed payoutId);
@@ -205,7 +205,7 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
         uint256 free = IERC20(base).balanceOf(address(this)) - totalEarmarked;
         if (amount > free) revert ExceedsFreeBalance(amount, free);
         IERC20(base).safeTransfer(pool, amount);
-        emit Recovered(amount);
+        emit Recovered(pool, amount);
     }
 
     /// @inheritdoc Ownable
