@@ -45,8 +45,9 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     /// @notice The 1:1 swap adapter used to convert non-base donations into base.
     ISwapToBase public immutable swap;
 
-    /// @notice Minimum reserve (bps of cumulative donations) the pool must retain once a
-    ///         payout path exists. STORE-ONLY this slice — not yet enforced.
+    /// @notice Liquidity buffer in bps. ENFORCED NOW by `investIdle` as the fraction of
+    ///         `poolValue()` (idle + deployed) kept liquid rather than deployed. NOT yet used
+    ///         as the release-time payout floor — that use arrives with the future release slice.
     uint16 public minLiquidityBufferBps = 2000;
 
     /// @notice Cumulative base attributed to each campaign for transparency. Never
@@ -220,8 +221,8 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         return halalMode ? halalAdapter : standardAdapter;
     }
 
-    /// @notice Set the minimum liquidity buffer. STORE-ONLY this slice — not yet enforced;
-    ///         a future release slice uses it as a floor on releasable funds.
+    /// @notice Set the liquidity buffer. Takes effect immediately on the next `investIdle`
+    ///         (the fraction of poolValue kept liquid); the release-time payout-floor use is still future.
     /// @param bps New buffer in basis points; must be <= 10_000.
     function setBufferBps(uint16 bps) external onlyOwner {
         if (bps > MAX_BPS) revert InvalidBufferBps(bps);
