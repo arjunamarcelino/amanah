@@ -254,7 +254,8 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     }
 
     /// @dev Validates and stores an adapter slot, refusing to overwrite one that still holds
-    ///      funds (which would make `poolValue()` stop counting them).
+    ///      funds (which would make `poolValue()` stop counting them). The `totalAssets() != 0`
+    ///      gate assumes an exact-divest adapter — see `setMode`'s EXACT DIVEST note.
     function _setAdapter(bool halal, IYieldAdapter a) internal {
         if (address(a) == address(0)) revert ZeroAddress();
         if (a.base() != asset()) revert BaseMismatch(asset(), a.base());
@@ -301,6 +302,12 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     ///      new (single) active adapter is the sole deployed location and `poolValue()` stays
     ///      correct. Requires the target adapter to be set and empty. Owner redeploys with
     ///      `investIdle` afterwards. `nonReentrant`.
+    ///
+    ///      ASSUMPTION — EXACT DIVEST: the post-divest `old.totalAssets() == 0` re-check assumes
+    ///      an adapter that divests exactly to zero (the 1:1 mocks do). A real rounding/share-based
+    ///      adapter may leave dust, which would make this check revert and brick mode switching.
+    ///      The release slice MUST replace the exact-zero gate here and in `_setAdapter` with a
+    ///      dust tolerance / sweep-to-idle before integrating such an adapter.
     /// @param halal True to route to the Halal adapter, false for the standard adapter.
     function setMode(bool halal) external onlyOwner nonReentrant {
         if (halal == halalMode) return;
