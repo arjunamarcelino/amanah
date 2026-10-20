@@ -108,10 +108,10 @@ contract CharityPoolReleaseTest is Test {
     event PayoutRouterUpdated(address indexed oldRouter, address indexed newRouter);
     event ReleaseDelayUpdated(uint64 oldDelay, uint64 newDelay);
     event TrancheReleased(
-        bytes32 indexed campaignId,
         bytes32 indexed payoutId,
-        uint256 usdcAmount,
+        bytes32 indexed campaignId,
         address indexed beneficiary,
+        uint256 usdcAmount,
         uint256 unlockTime
     );
 
@@ -261,7 +261,7 @@ contract CharityPoolReleaseTest is Test {
         bytes32 expectedPayoutId = keccak256(abi.encode(CAMPAIGN, uint256(0)));
 
         vm.expectEmit(true, true, true, true, address(pool));
-        emit TrancheReleased(CAMPAIGN, expectedPayoutId, amount, beneficiary, block.timestamp);
+        emit TrancheReleased(expectedPayoutId, CAMPAIGN, beneficiary, amount, block.timestamp);
         pool.releaseTranche(CAMPAIGN, amount, beneficiary);
 
         assertEq(pool.releasedByCampaign(CAMPAIGN), amount, "tally bumped");

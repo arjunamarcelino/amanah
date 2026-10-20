@@ -198,16 +198,18 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     event ReleaseDelayUpdated(uint64 oldDelay, uint64 newDelay);
 
     /// @notice Emitted when a tranche is released out of the pool into the payout router.
-    /// @param campaignId The campaign released against.
+    /// @dev Indexed-topic order (payoutId, campaignId, beneficiary) matches `PayoutRouter.Routed` so an
+    ///      indexer can reconcile a release to its disbursement by topic position.
     /// @param payoutId Deterministic id stamped in the router for this tranche's disbursement.
-    /// @param usdcAmount Base released (shares of equal value are burned from the pool).
+    /// @param campaignId The campaign released against.
     /// @param beneficiary The vetted recipient the tranche is intended for (bound in the router).
+    /// @param usdcAmount Base released (shares of equal value are burned from the pool).
     /// @param unlockTime The `activatedAt + releaseDelay` the release satisfied.
     event TrancheReleased(
-        bytes32 indexed campaignId,
         bytes32 indexed payoutId,
-        uint256 usdcAmount,
+        bytes32 indexed campaignId,
         address indexed beneficiary,
+        uint256 usdcAmount,
         uint256 unlockTime
     );
 
@@ -526,7 +528,7 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         payoutRouter.setPending(payoutId, campaignId, beneficiary, usdcAmount);
         IERC20(base_).safeTransfer(address(payoutRouter), usdcAmount);
 
-        emit TrancheReleased(campaignId, payoutId, usdcAmount, beneficiary, unlockTime);
+        emit TrancheReleased(payoutId, campaignId, beneficiary, usdcAmount, unlockTime);
     }
 
     // --- Irrevocable-gift firewall: every ERC4626 exit is disabled ----------------------

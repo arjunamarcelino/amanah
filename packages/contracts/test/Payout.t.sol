@@ -31,10 +31,10 @@ contract PayoutTest is Test {
 
     // Mirrors for vm.expectEmit.
     event TrancheReleased(
-        bytes32 indexed campaignId,
         bytes32 indexed payoutId,
-        uint256 usdcAmount,
+        bytes32 indexed campaignId,
         address indexed beneficiary,
+        uint256 usdcAmount,
         uint256 unlockTime
     );
     event Routed(
@@ -92,7 +92,7 @@ contract PayoutTest is Test {
 
         uint256 amount = 40e6;
         vm.expectEmit(true, true, true, true, address(pool));
-        emit TrancheReleased(DISASTER, _firstPayoutId(DISASTER), amount, beneficiary, block.timestamp);
+        emit TrancheReleased(_firstPayoutId(DISASTER), DISASTER, beneficiary, amount, block.timestamp);
         pool.releaseTranche(DISASTER, amount, beneficiary);
 
         assertEq(usdc.balanceOf(address(router)), amount, "tranche parked in router");
