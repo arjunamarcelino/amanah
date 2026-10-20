@@ -98,6 +98,11 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     /// @notice Cumulative base released per campaign via `releaseTranche`. Monotonic "ever-moved-out"
     ///         counter (never decremented, even by `PayoutRouter.recoverToPool`); the per-campaign cap is
     ///         `releasedByCampaign[id] <= donatedByCampaign[id]`.
+    /// @dev RECOVERY SEMANTICS: a tranche clawed back via `PayoutRouter.cancelPending` + `recoverToPool`
+    ///      returns to the pool as UNATTRIBUTED surplus and does NOT restore this counter. The campaign's
+    ///      releasable headroom (`donated − released`) therefore stays permanently reduced — recovery is a
+    ///      safety/clawback mechanism (e.g. after a false-positive trigger), NOT a re-release path. To
+    ///      re-fund that campaign after a clawback, donate to it again.
     mapping(bytes32 campaignId => uint256 releasedBase) public releasedByCampaign;
 
     /// @notice Thrown when a zero address is supplied where a token/adapter is required.
