@@ -65,6 +65,16 @@ every wire, and writes the labeled ledger `deployments/84532.json` (committed â€
 addresses only). `script/export-shared.mjs` turns that ledger + `out/*.abi` into
 `packages/shared/src/{addresses.ts,abis/*}`.
 
+**Post-deploy â€” fund MockSwap for non-base donations.** Deploy does structural wiring only;
+it mints no tokens. `MockSwap.swapToBase` reverts `InsufficientBaseLiquidity` for mXSGD/mIDRX
+donations until the swap holds mUSDC. Before demoing non-base donations, fund it via the
+public faucet mint, e.g.:
+
+```shell
+$ cast send <mUSDC> "mint(address,uint256)" <MockSwap> 1000000000000 \
+    --rpc-url base_sepolia --account <your-key>   # 1,000,000 mUSDC (6 decimals)
+```
+
 ### Verify on Basescan (optional)
 
 Verification is off the deploy path. A single Etherscan V2 key (`ETHERSCAN_API_KEY` in
