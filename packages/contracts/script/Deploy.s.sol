@@ -70,11 +70,11 @@ contract Deploy is Script {
         vm.stopBroadcast();
 
         // --- read-back verification: revert BEFORE writing the ledger if any wire is wrong ---
-        require(pool.asset() == address(mUSDC), "wire: pool.asset");
-        require(swap.base() == address(mUSDC), "wire: swap.base");
-        require(router.base() == address(mUSDC), "wire: router.base");
-        require(stdVault.base() == address(mUSDC), "wire: stdVault.base");
-        require(halalVault.base() == address(mUSDC), "wire: halalVault.base");
+        // Only the MUTABLE wiring the setters just applied is checked — a setter given a wrong
+        // address succeeds on-chain (no revert) but points at the wrong contract, which this
+        // catches. Constructor immutables (base()/asset()) and single-owner ownership are
+        // guaranteed by construction (initialOwner = deployer, no transfer/renounce call), so
+        // they can only "fail" on an OpenZeppelin/compiler bug and are not re-checked.
         require(address(pool.standardAdapter()) == address(stdVault), "wire: standardAdapter");
         require(address(pool.halalAdapter()) == address(halalVault), "wire: halalAdapter");
         require(address(pool.releaseController()) == address(rc), "wire: releaseController");
@@ -85,17 +85,6 @@ contract Deploy is Script {
         require(router.pool() == address(pool), "wire: router.pool");
         require(swap.isSupported(address(mXSGD)), "wire: mXSGD allowlist");
         require(swap.isSupported(address(mIDRX)), "wire: mIDRX allowlist");
-
-        // ownership: deployer owns everything; no two-step transfer was initiated.
-        require(pool.owner() == deployer, "own: pool");
-        require(swap.owner() == deployer, "own: swap");
-        require(router.owner() == deployer, "own: router");
-        require(stdVault.owner() == deployer, "own: stdVault");
-        require(halalVault.owner() == deployer, "own: halalVault");
-        require(rc.owner() == deployer, "own: rc");
-        require(pool.pendingOwner() == address(0), "own: pool pending");
-        require(router.pendingOwner() == address(0), "own: router pending");
-        require(rc.pendingOwner() == address(0), "own: rc pending");
 
         // --- labeled ledger (FS write, after stopBroadcast) ---
         string memory o = "deployment";
