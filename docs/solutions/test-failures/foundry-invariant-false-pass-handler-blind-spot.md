@@ -151,3 +151,4 @@ right one.
 
 - PR [#2](https://github.com/arjunamarcelino/amanah/pull/2) — CharityPool donations + firewall
 - Fix commit `016ddbb`; found during the PR #2 multi-agent code review (local `docs/reviews/pr-2-charitypool-donations.md`, finding P2-1/P2-2)
+- **Second-order follow-up:** [coverage guard false-passes — counting calls isn't counting work](./foundry-invariant-coverage-guard-counts-calls-not-work.md). After adding `rawTransfer`/ghost-tracking here, PR #3 added a call-count coverage guard that was itself a blind spot (early-returning actions increment the counter without doing work). The fix: assert *effective-work* ghosts, not `calls[selector] > 0`.
