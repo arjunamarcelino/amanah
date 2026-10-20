@@ -138,6 +138,12 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
         ghost_yieldMinted += pool.poolValue() - before;
     }
 
+    /// @notice Fuzz the liquidity buffer across its full range, so the invest/divest math is
+    ///         exercised at every buffer level (0%..100%), not just the 2000 bps default.
+    function setBufferBps(uint256 seed) external countCall {
+        pool.setBufferBps(uint16(bound(seed, 0, MAX_BPS)));
+    }
+
     function seenCampaignsLength() external view returns (uint256) {
         return seenCampaigns.length;
     }

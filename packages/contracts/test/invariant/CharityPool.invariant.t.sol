@@ -37,13 +37,14 @@ contract CharityPoolInvariantTest is Test {
         vm.prank(address(handler));
         pool.acceptOwnership();
 
-        bytes4[] memory selectors = new bytes4[](6);
+        bytes4[] memory selectors = new bytes4[](7);
         selectors[0] = CharityHandler.donateBase.selector;
         selectors[1] = CharityHandler.donateSwap.selector;
         selectors[2] = CharityHandler.rawTransfer.selector;
         selectors[3] = CharityHandler.investIdle.selector;
         selectors[4] = CharityHandler.setMode.selector;
         selectors[5] = CharityHandler.accrue.selector;
+        selectors[6] = CharityHandler.setBufferBps.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
         targetContract(address(handler));
     }
