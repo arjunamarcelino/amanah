@@ -88,6 +88,9 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
     /// @notice Emitted when the owner sets/replaces the pool allowed to stamp payouts.
     event PoolUpdated(address indexed oldPool, address indexed newPool);
 
+    /// @notice Emitted when the pool stamps a tranche's intended disbursement (for standalone router indexing).
+    event PendingSet(bytes32 indexed payoutId, bytes32 indexed campaignId, address indexed beneficiary, uint256 amount);
+
     /// @notice Emitted on a disbursement. `rail` + `rationale` = the AI routing decision recorded on-chain.
     /// @param payoutId The consumed pending-payout id.
     /// @param campaignId The campaign the tranche belonged to (for reconciliation to `TrancheReleased`).
@@ -139,6 +142,7 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
         if (existing.amount != 0 && !existing.consumed) revert AlreadyPending(payoutId);
         pending[payoutId] = Pending({campaignId: campaignId, beneficiary: beneficiary, consumed: false, amount: amount});
         totalEarmarked += amount;
+        emit PendingSet(payoutId, campaignId, beneficiary, amount);
     }
 
     /// @notice Disburse a parked tranche to its stamped beneficiary with the AI routing decision.

@@ -31,6 +31,7 @@ contract PayoutRouterTest is Test {
     );
     event Recovered(uint256 amount);
     event PendingCancelled(bytes32 indexed payoutId);
+    event PendingSet(bytes32 indexed payoutId, bytes32 indexed campaignId, address indexed beneficiary, uint256 amount);
 
     function setUp() public {
         usdc = new MockStablecoin("Mock USDC", "mUSDC");
@@ -93,6 +94,13 @@ contract PayoutRouterTest is Test {
         vm.prank(poolAddr);
         vm.expectRevert(PayoutRouter.ZeroAmount.selector);
         router.setPending(PAYOUT, CAMPAIGN, beneficiary, 0);
+    }
+
+    function test_SetPending_EmitsPendingSet() public {
+        vm.prank(poolAddr);
+        vm.expectEmit(true, true, true, true, address(router));
+        emit PendingSet(PAYOUT, CAMPAIGN, beneficiary, 100e6);
+        router.setPending(PAYOUT, CAMPAIGN, beneficiary, 100e6);
     }
 
     function test_SetPending_RevertOverwriteUnconsumed() public {
