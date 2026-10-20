@@ -61,6 +61,10 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     /// @notice Cumulative base attributed to each campaign for transparency. Never
     ///         decremented; `campaignId == 0` is the general (unattributed) fund. Open and
     ///         unauthenticated — anyone may attribute real funds to any id.
+    /// @dev EGRESS NOTE: `campaignId == 0` (the general/unattributed fund) is NOT individually
+    ///      releasable — `ReleaseController.registerCampaign` rejects id 0, so `canRelease(0)` is always
+    ///      false and `releaseTranche(0, …)` always reverts. Funds must be donated under a specific,
+    ///      registerable campaign id to be payable out via `releaseTranche`.
     mapping(bytes32 campaignId => uint256 totalBase) public donatedByCampaign;
 
     /// @notice The standard (riba-bearing) yield adapter idle base is deployed into when not
