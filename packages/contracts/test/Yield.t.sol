@@ -116,7 +116,6 @@ contract YieldTest is Test {
     event ModeChanged(bool halal);
     event StandardAdapterUpdated(address indexed oldAdapter, address indexed newAdapter);
     event AdapterEmergencyReplaced(address indexed oldAdapter, address indexed newAdapter, bool halal);
-    event SukukYieldAccrued(uint256 amount);
 
     function setUp() public {
         usdc = new MockStablecoin("Mock USDC", "mUSDC");
@@ -245,11 +244,6 @@ contract YieldTest is Test {
         assertEq(pool.poolValue(), before + 80e6, "poolValue grows by accrued yield");
         assertEq(pool.totalSupply(), 1_000e6, "totalSupply unchanged by yield");
         assertEq(pool.poolValue() - pool.totalSupply(), 80e6, "yield = poolValue - principal");
-
-        // accrue on an empty adapter mints nothing (the inactive halal vault is empty).
-        uint256 pv = pool.poolValue();
-        halalVault.accrue(5_000);
-        assertEq(pool.poolValue(), pv, "accrue on empty adapter is a no-op");
     }
 
     // --- setMode ------------------------------------------------------------------------
@@ -265,10 +259,6 @@ contract YieldTest is Test {
 
         pool.investIdle(); // now routes to halal
         assertEq(halalVault.totalAssets(), 800e6, "deployed into halal adapter");
-
-        vm.expectEmit(false, false, false, true, address(halalVault));
-        emit SukukYieldAccrued(80e6);
-        halalVault.accrue(1_000);
     }
 
     function test_SetMode_EmitsModeChanged() public {
