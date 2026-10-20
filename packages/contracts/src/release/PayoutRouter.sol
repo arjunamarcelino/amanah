@@ -24,6 +24,9 @@ import {IPayoutRouter} from "./IPayoutRouter.sol";
 contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
+    /// @notice One hundred percent, in basis points.
+    uint16 internal constant MAX_BPS = 10_000;
+
     /// @inheritdoc IPayoutSink
     address public immutable override base;
 
@@ -75,6 +78,9 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
 
     /// @notice Thrown when `recoverToPool(amount)` would dip into base earmarked for unconsumed payouts.
     error ExceedsFreeBalance(uint256 requested, uint256 free);
+
+    /// @notice Thrown when `feeBpsCovered` exceeds 100% (`> MAX_BPS`).
+    error InvalidBps(uint16 bps);
 
     /// @notice Thrown by `renounceOwnership` — a custody contract must always retain an owner.
     error OwnershipCannotBeRenounced();
@@ -155,6 +161,7 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
         uint16 feeBpsCovered,
         string calldata rationale
     ) external onlyOwner nonReentrant {
+        if (feeBpsCovered > MAX_BPS) revert InvalidBps(feeBpsCovered);
         Pending memory p = pending[payoutId];
         if (p.amount == 0) revert UnknownPayout(payoutId);
         if (p.consumed) revert AlreadyPaid(payoutId);

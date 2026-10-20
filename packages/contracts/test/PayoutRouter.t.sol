@@ -119,6 +119,14 @@ contract PayoutRouterTest is Test {
         assertTrue(consumed, "marked consumed");
     }
 
+    function test_RecordAndPay_RevertInvalidBps() public {
+        uint256 amount = 500e6;
+        _stamp(PAYOUT, amount);
+        usdc.mint(address(router), amount);
+        vm.expectRevert(abi.encodeWithSelector(PayoutRouter.InvalidBps.selector, uint16(10_001)));
+        router.recordAndPay(PAYOUT, beneficiary, amount, "r", 10_001, "x");
+    }
+
     function test_RecordAndPay_RevertUnknownPayout() public {
         vm.expectRevert(abi.encodeWithSelector(PayoutRouter.UnknownPayout.selector, PAYOUT));
         router.recordAndPay(PAYOUT, beneficiary, 1e6, "r", 0, "x");
