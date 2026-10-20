@@ -57,7 +57,14 @@ function fail(msg) {
 // --- addresses ---------------------------------------------------------------
 const ledger = JSON.parse(readFileSync(ledgerPath, "utf8"));
 for (const key of ADDRESS_KEYS) {
-  if (!ledger[key]) fail(`missing "${key}" in ${ledgerPath} — re-run the deploy`);
+  const value = ledger[key];
+  if (!value) fail(`missing "${key}" in ${ledgerPath} — re-run the deploy`);
+  // Validate BEFORE interpolating into generated .ts: the ledger is a committed,
+  // human-editable file, so a crafted value could otherwise break out of the string
+  // literal and inject arbitrary TypeScript that executes when a consumer imports it.
+  if (!/^0x[0-9a-fA-F]{40}$/.test(value)) {
+    fail(`invalid address for "${key}" in ${ledgerPath}: ${JSON.stringify(value)} — expected 0x + 40 hex`);
+  }
 }
 
 const unionLines = ADDRESS_KEYS.map((k) => `  | "${k}"`).join("\n");
