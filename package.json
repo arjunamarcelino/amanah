@@ -13,7 +13,8 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "deploy:contracts": "pnpm --filter @amanah/contracts deploy:contracts"
   },
   "devDependencies": {
     "prettier": "^3.4.2",

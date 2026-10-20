@@ -45,11 +45,60 @@ $ forge snapshot
 $ anvil
 ```
 
-### Deploy
+### Deploy (Base Sepolia, chainId 84532)
+
+Requires `packages/contracts/.env` (copy from `.env.example`) with `BASE_SEPOLIA_RPC_URL`
+and a **dedicated testnet-only** `DEPLOYER_PRIVATE_KEY` (its address must hold Base Sepolia
+ETH for gas). forge auto-loads `.env`.
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+# Deploy all contracts + structural wiring, then export addresses/ABIs into @amanah/shared:
+$ pnpm deploy:contracts            # = :run (forge broadcast) then :export (codegen + shared build)
+
+# Re-export @amanah/shared from the committed ledger WITHOUT a redeploy (e.g. after recompile):
+$ pnpm deploy:contracts:export
 ```
+
+`script/Deploy.s.sol` deploys in dependency order, wires everything (demo posture:
+`releaseDelay=0`, `bufferBps=2000`, standard mode, swap allowlist mXSGD+mIDRX), reads back
+every wire, and writes the labeled ledger `deployments/84532.json` (committed — public
+addresses only). `script/export-shared.mjs` turns that ledger + `out/*.abi` into
+`packages/shared/src/{addresses.ts,abis/*}`.
+
+**Post-deploy — fund MockSwap for non-base donations.** Deploy does structural wiring only;
+it mints no tokens. `MockSwap.swapToBase` reverts `InsufficientBaseLiquidity` for mXSGD/mIDRX
+donations until the swap holds mUSDC. Before demoing non-base donations, fund it via the
+public faucet mint, e.g.:
+
+```shell
+$ cast send <mUSDC> "mint(address,uint256)" <MockSwap> 1000000000000 \
+    --rpc-url base_sepolia --account <your-key>   # 1,000,000 mUSDC (6 decimals)
+```
+
+### Verify on Basescan (optional)
+
+Verification is off the deploy path. A single Etherscan V2 key (`ETHERSCAN_API_KEY` in
+`.env`) covers Base Sepolia via `--chain 84532`. Do **not** pass the key on the CLI — forge
+auto-reads it from `.env` (avoids process-list/history leak). Per address, with its own
+constructor args, e.g.:
+
+```shell
+$ forge verify-contract --chain 84532 --watch \
+    <ADDR> src/mocks/MockStablecoin.sol:MockStablecoin \
+    --constructor-args $(cast abi-encode "constructor(string,string)" "Mock USDC" "mUSDC")
+```
+
+### Security posture (testnet-only)
+
+This deployment is deliberately testnet-grade and **must not be carried to mainnet as-is**:
+
+- **Single-EOA ownership (SPOF).** The deployer key is the perpetual owner of every
+  `Ownable`/`Ownable2Step` contract's privileged setters (adapters, router, mode). Compromise
+  of that one key = full control. Before any mainnet/real-value deploy, migrate ownership to a
+  multisig/Safe (and ideally a timelock on admin setters).
+- **Permissionless mint.** `MockStablecoin.mint` is open to anyone, so the guarded "funds" are
+  valueless faucet tokens — which is what bounds the SPOF risk on testnet. A real deployment
+  uses real assets and this guarantee disappears.
 
 ### Cast
 

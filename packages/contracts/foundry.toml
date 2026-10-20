@@ -12,6 +12,8 @@ remappings = [
     "forge-std/=lib/forge-std/src/",
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
 ]
+# Deploy.s.sol writes the labeled deployment ledger here via vm.writeJson.
+fs_permissions = [{ access = "read-write", path = "./deployments" }]
 
 [invariant]
 fail_on_revert = true

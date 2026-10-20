@@ -22,6 +22,7 @@ coverage/
 packages/contracts/out/
 packages/contracts/cache/
 packages/contracts/broadcast/
+packages/contracts/foundry-pp/
 
 # prisma generated client
 packages/db/src/generated/

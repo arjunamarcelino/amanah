@@ -29,6 +29,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
@@ -38,4 +42,12 @@ jobs:
 
       - name: Forge test
         run: forge test
+        working-directory: packages/contracts
+
+      # Guard against committed-codegen drift: regenerate @amanah/shared from the committed
+      # ledger (deployments/<chain>.json) + freshly built out/ ABIs, and fail if the result
+      # differs from what's checked in. Catches stale addresses/ABIs that still compile but
+      # point consumers at the wrong contracts.
+      - name: Check shared exports are in sync
+        run: node script/export-shared.mjs && git diff --exit-code ../shared/src
         working-directory: packages/contracts
