@@ -96,8 +96,10 @@ contract CharityPoolInvariantTest is Test {
         }
     }
 
-    /// @dev Released base is conserved at the router (moved out of the pool, not lost/burned). recordAndPay
-    ///      is deliberately NOT in the action set, so the router simply accumulates every released tranche.
+    /// @dev Released base is conserved at the router (moved out of the pool, not lost/burned). Both
+    ///      `recordAndPay` AND `recoverToPool`/`cancelPending` are deliberately NOT in the action set — each
+    ///      would move base out of the router and break this equality — so the router simply accumulates
+    ///      every released tranche and `balanceOf(router) == ghost_releasedSum` holds.
     function invariant_routerCustodyConserved() public view {
         assertEq(
             usdc.balanceOf(address(handler.router())), handler.ghost_releasedSum(), "router holds all released base"
