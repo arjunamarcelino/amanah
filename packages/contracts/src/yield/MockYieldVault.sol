@@ -56,6 +56,9 @@ contract MockYieldVault is Ownable, IYieldAdapter {
     }
 
     /// @inheritdoc IYieldAdapter
+    /// @dev Raw `balanceOf` — anyone can transfer 1 wei of base in to make this non-zero, which
+    ///      can grief CharityPool's `setMode`/`_setAdapter` funded-checks. Acceptable for a test
+    ///      double; a production adapter MUST report a non-donatable, index-based value.
     function totalAssets() public view override returns (uint256) {
         return IERC20(base).balanceOf(address(this));
     }
