@@ -30,11 +30,14 @@ contract PayoutRouter is IPayoutSink, IPayoutRouterWriter, Ownable2Step, Reentra
     address public pool;
 
     /// @notice A tranche's intended disbursement, stamped by the pool at release and consumed once.
+    /// @dev Field order packs `consumed` into `beneficiary`'s slot (address 20B + bool 1B), so the record
+    ///      is 3 slots not 4 and flipping `consumed` in `recordAndPay` is a modify-nonzero (~2.9k) rather
+    ///      than a fresh 0->1 SSTORE (~20k). Do not reorder.
     struct Pending {
         bytes32 campaignId;
         address beneficiary;
-        uint256 amount;
         bool consumed;
+        uint256 amount;
     }
 
     /// @notice Pending payout record per `payoutId` (pool-derived: campaignId + running release total).

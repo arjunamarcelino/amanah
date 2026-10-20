@@ -107,7 +107,7 @@ contract PayoutRouterTest is Test {
 
         assertEq(usdc.balanceOf(beneficiary), amount, "beneficiary paid");
         assertEq(usdc.balanceOf(address(router)), 0, "router drained");
-        (,,, bool consumed) = router.pending(PAYOUT);
+        (,, bool consumed,) = router.pending(PAYOUT);
         assertTrue(consumed, "marked consumed");
     }
 
