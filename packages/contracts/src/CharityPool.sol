@@ -10,6 +10,9 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {ISwapToBase} from "./interfaces/ISwapToBase.sol";
 import {IYieldAdapter} from "./yield/IYieldAdapter.sol";
+import {IReleaseController} from "./release/IReleaseController.sol";
+import {IPayoutSink} from "./release/IPayoutSink.sol";
+import {IPayoutRouterWriter} from "./release/IPayoutRouterWriter.sol";
 
 /// @title CharityPool
 /// @notice An ERC4626 vault over a base stablecoin (mUSDC) that accepts IRREVOCABLE
@@ -17,8 +20,9 @@ import {IYieldAdapter} from "./yield/IYieldAdapter.sol";
 ///         and have NO withdrawal path: the standard ERC4626 deposit/mint/withdraw/
 ///         redeem surface is disabled (the irrevocable-gift firewall) and ownership
 ///         cannot be renounced. Pooled principal is minted as shares to the vault
-///         itself. THIS version has no payout path whatsoever; an owner/release-gated
-///         payout exists only in a future, separately-deployed version (see DEPLOYMENT).
+///         itself. Funds leave ONLY via `releaseTranche` — an owner-gated, condition-gated
+///         (ReleaseController) and time-staged (T+N) payout that burns the matching shares and
+///         forwards the tranche to a PayoutRouter for disbursement (see RELEASE below).
 /// @dev Intentional: irrevocable charitable gift (firewall — keeps this a charity, not
 ///      a CIS/security).
 ///
@@ -27,9 +31,13 @@ import {IYieldAdapter} from "./yield/IYieldAdapter.sol";
 ///      source. `preview*`/`convertTo*` stay live per EIP-4626 but quote a value that is
 ///      NOT redeemable here.
 ///
-///      DEPLOYMENT: this version has no exit at all and is non-upgradeable, so any real
-///      value sent to it is permanently locked. Testnet/MVP only — the production
-///      contract ships with the release path already present.
+///      RELEASE / EGRESS: donors still have NO exit (the firewall stands). The only way funds leave is
+///      the owner-custodian path: `investIdle` into an adapter (yield) and `releaseTranche` out to the
+///      PayoutRouter (payout). Both are owner powers the donor firewall does not constrain; `releaseTranche`
+///      is additionally gated by `releaseController.canRelease` + a staged `releaseDelay` (demo default 0;
+///      production T+2) and capped per campaign at `donatedByCampaign`. T+N and the router's idempotency
+///      are OPERATIONAL guards, NOT defenses against a compromised owner key — production should split the
+///      trigger/pay/admin authorities into roles and timelock the admin setters.
 ///
 ///      YIELD / EGRESS: `investIdle` deploys idle base into an owner-set adapter — the ONLY
 ///      path that moves base out of the pool. The donor-irrevocability firewall does not
@@ -45,9 +53,10 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     /// @notice The 1:1 swap adapter used to convert non-base donations into base.
     ISwapToBase public immutable swap;
 
-    /// @notice Liquidity buffer in bps. ENFORCED NOW by `investIdle` as the fraction of
-    ///         `poolValue()` (idle + deployed) kept liquid rather than deployed. NOT yet used
-    ///         as the release-time payout floor — that use arrives with the future release slice.
+    /// @notice Liquidity buffer in bps. ENFORCED by `investIdle` as the fraction of `poolValue()`
+    ///         (idle + deployed) kept liquid rather than deployed. `releaseTranche` is allowed to draw
+    ///         liquidity BELOW this buffer to fund a payout (the sanctioned payout draw) — the buffer is
+    ///         an invest-time floor, not a hard payout floor.
     uint16 public minLiquidityBufferBps = 2000;
 
     /// @notice Cumulative base attributed to each campaign for transparency. Never
@@ -66,6 +75,25 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
 
     /// @notice The Halal (Shariah-compliant, riba-free) yield adapter used in Halal mode.
     IYieldAdapter public halalAdapter;
+
+    /// @notice The release-condition oracle gating `releaseTranche`. Read-only to the pool
+    ///         (`canRelease`/`activatedAt`). Packs with `releaseDelay` into one slot (20 + 8 bytes).
+    IReleaseController public releaseController;
+
+    /// @notice Staged-payout delay in seconds (T+N). `releaseTranche` requires
+    ///         `block.timestamp >= activatedAt + releaseDelay`. Demo default 0 (instant); production T+2
+    ///         (2 days). `uint64` so it shares `releaseController`'s slot.
+    uint64 public releaseDelay;
+
+    /// @notice The PayoutRouter released tranches are forwarded to. Stored as a plain address because the
+    ///         pool only pushes base to it (via `safeTransfer`) and stamps it (`setPending`); validated at
+    ///         set time to satisfy `base() == asset()`.
+    address public payoutRouter;
+
+    /// @notice Cumulative base released per campaign via `releaseTranche`. Monotonic "ever-moved-out"
+    ///         counter (never decremented, even by `PayoutRouter.recoverToPool`); the per-campaign cap is
+    ///         `releasedByCampaign[id] <= donatedByCampaign[id]`.
+    mapping(bytes32 campaignId => uint256 releasedBase) public releasedByCampaign;
 
     /// @notice Thrown when a zero address is supplied where a token/adapter is required.
     error ZeroAddress();
@@ -95,6 +123,21 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     /// @notice Thrown when configuring/switching would strand base in an adapter that still
     ///         holds funds (`remaining` base left behind).
     error AdapterStillFunded(uint256 remaining);
+
+    /// @notice Thrown when `releaseTranche` is called before the release controller + payout router are set.
+    error ReleaseNotConfigured();
+
+    /// @notice Thrown when the campaign's release condition (`canRelease`) is not yet met.
+    error ReleaseConditionNotMet();
+
+    /// @notice Thrown when the staged T+N delay has not elapsed since activation.
+    error ReleaseLocked();
+
+    /// @notice Thrown when a release would exceed the campaign's remaining donated principal.
+    error ExceedsCampaignFunds(uint256 requested, uint256 available);
+
+    /// @notice Thrown when, even after divesting, the pool holds less base than the tranche to release.
+    error InsufficientLiquidity();
 
     /// @notice Emitted on every successful donation.
     /// @param donor The caller (`msg.sender`); for relayed donations this is the relayer.
@@ -134,6 +177,29 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
 
     /// @notice Emitted on an emergency adapter replacement that bypasses the funded-check.
     event AdapterEmergencyReplaced(address indexed oldAdapter, address indexed newAdapter, bool halal);
+
+    /// @notice Emitted when the owner sets/replaces the release controller.
+    event ReleaseControllerUpdated(address indexed oldController, address indexed newController);
+
+    /// @notice Emitted when the owner sets/replaces the payout router.
+    event PayoutRouterUpdated(address indexed oldRouter, address indexed newRouter);
+
+    /// @notice Emitted when the owner updates the staged-payout delay.
+    event ReleaseDelayUpdated(uint64 oldDelay, uint64 newDelay);
+
+    /// @notice Emitted when a tranche is released out of the pool into the payout router.
+    /// @param campaignId The campaign released against.
+    /// @param payoutId Deterministic id stamped in the router for this tranche's disbursement.
+    /// @param usdcAmount Base released (shares of equal value are burned from the pool).
+    /// @param beneficiary The vetted recipient the tranche is intended for (bound in the router).
+    /// @param unlockTime The `activatedAt + releaseDelay` the release satisfied.
+    event TrancheReleased(
+        bytes32 indexed campaignId,
+        bytes32 indexed payoutId,
+        uint256 usdcAmount,
+        address indexed beneficiary,
+        uint256 unlockTime
+    );
 
     /// @param asset_ The base stablecoin (mUSDC, 6 decimals) — the ERC4626 asset.
     /// @param swap_ The swap adapter converting non-base donations into `asset_`.
@@ -367,6 +433,90 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         uint256 deployed = adapter.totalAssets();
         uint256 pull = need > deployed ? deployed : need;
         if (pull != 0) adapter.withdraw(pull);
+    }
+
+    // --- Release layer: condition-gated, time-staged payout -----------------------------
+
+    /// @notice Set/replace the release controller that gates `releaseTranche`.
+    /// @param c The controller (non-zero). The pool reads only `canRelease`/`activatedAt`.
+    function setReleaseController(IReleaseController c) external onlyOwner {
+        if (address(c) == address(0)) revert ZeroAddress();
+        address old = address(releaseController);
+        releaseController = c;
+        emit ReleaseControllerUpdated(old, address(c));
+    }
+
+    /// @notice Set/replace the payout router released tranches are forwarded to.
+    /// @dev Enforces the repo-wide `base() == asset()` invariant (as the swap/adapter setters do) so a
+    ///      released tranche can never be stranded in a router operating on the wrong asset.
+    /// @param r The router (non-zero, `r.base() == asset()`).
+    function setPayoutRouter(IPayoutSink r) external onlyOwner {
+        if (address(r) == address(0)) revert ZeroAddress();
+        if (r.base() != asset()) revert BaseMismatch(asset(), r.base());
+        address old = payoutRouter;
+        payoutRouter = address(r);
+        emit PayoutRouterUpdated(old, address(r));
+    }
+
+    /// @notice Set the staged-payout delay (T+N). Takes effect on the next `releaseTranche`.
+    /// @param newDelay Delay in seconds (demo default 0; production T+2 = 172800).
+    function setReleaseDelay(uint64 newDelay) external onlyOwner {
+        uint64 old = releaseDelay;
+        releaseDelay = newDelay;
+        emit ReleaseDelayUpdated(old, newDelay);
+    }
+
+    /// @notice Release a capped tranche of a campaign's donated principal to the payout router, once the
+    ///         campaign's condition is met and the T+N delay has elapsed.
+    /// @dev Owner-gated, `nonReentrant`. Burns `usdcAmount` of the pool's self-held shares so
+    ///      `totalSupply()` tracks outstanding principal and `poolValue() >= totalSupply()` solvency is
+    ///      preserved (base leaves and shares burn in lockstep). May divest from the active adapter to
+    ///      fund the payout, drawing liquidity below `minLiquidityBufferBps` (the sanctioned payout draw).
+    ///
+    ///      CEI / REENTRANCY: the external `_divest` precedes effects and the outbound `setPending` +
+    ///      `safeTransfer` follow the `_burn`; this ordering is safe ONLY under `nonReentrant` + a
+    ///      hook-free base ERC20 (an ERC-777-style base could re-enter). Do not reorder.
+    /// @param campaignId The campaign to release against (must be registered + active in the controller).
+    /// @param usdcAmount Base to release (<= `donatedByCampaign - releasedByCampaign`).
+    /// @param beneficiary The vetted recipient the tranche is intended for (bound in the router record).
+    function releaseTranche(bytes32 campaignId, uint256 usdcAmount, address beneficiary)
+        external
+        onlyOwner
+        nonReentrant
+    {
+        if (address(releaseController) == address(0) || payoutRouter == address(0)) {
+            revert ReleaseNotConfigured();
+        }
+        if (usdcAmount == 0) revert ZeroAmount();
+        if (beneficiary == address(0)) revert ZeroAddress();
+        if (!releaseController.canRelease(campaignId)) revert ReleaseConditionNotMet();
+
+        uint256 unlockTime = releaseController.activatedAt(campaignId) + releaseDelay;
+        if (block.timestamp < unlockTime) revert ReleaseLocked();
+
+        uint256 released = releasedByCampaign[campaignId];
+        uint256 available = donatedByCampaign[campaignId] - released;
+        if (usdcAmount > available) revert ExceedsCampaignFunds(usdcAmount, available);
+
+        // Divest from the active adapter only what the idle balance cannot cover (sanctioned payout draw).
+        address base_ = asset();
+        uint256 idle = _baseBalance(base_);
+        if (idle < usdcAmount) {
+            _divest(usdcAmount - idle);
+            // Measure-don't-trust: confirm the base actually arrived before burning/transferring.
+            if (_baseBalance(base_) < usdcAmount) revert InsufficientLiquidity();
+        }
+
+        // Effects: burn principal and bump the monotonic per-campaign tally.
+        releasedByCampaign[campaignId] = released + usdcAmount;
+        _burn(address(this), usdcAmount);
+
+        // Bind the tranche to its payout record, then forward the base to the router.
+        bytes32 payoutId = keccak256(abi.encode(campaignId, released));
+        IPayoutRouterWriter(payoutRouter).setPending(payoutId, campaignId, beneficiary, usdcAmount);
+        IERC20(base_).safeTransfer(payoutRouter, usdcAmount);
+
+        emit TrancheReleased(campaignId, payoutId, usdcAmount, beneficiary, unlockTime);
     }
 
     // --- Irrevocable-gift firewall: every ERC4626 exit is disabled ----------------------
