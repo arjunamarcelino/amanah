@@ -12,8 +12,7 @@ import {IYieldAdapter} from "../src/yield/IYieldAdapter.sol";
 import {MockYieldVault} from "../src/yield/MockYieldVault.sol";
 import {CharityPool} from "../src/CharityPool.sol";
 import {IReleaseController} from "../src/release/IReleaseController.sol";
-import {IPayoutSink} from "../src/release/IPayoutSink.sol";
-import {IPayoutRouterWriter} from "../src/release/IPayoutRouterWriter.sol";
+import {IPayoutRouter} from "../src/release/IPayoutRouter.sol";
 
 /// @dev Inline test double for the release controller — lets the pool's gating/cap/burn logic be driven
 ///      directly (house pattern: inline doubles like LossySwap/ReentrantSwap in CharityPool.t.sol).
@@ -40,7 +39,7 @@ contract MockReleaseController is IReleaseController {
 
 /// @dev Inline payout-router double: records what the pool stamps + receives base. Keeps the pool unit
 ///      test focused on pool logic (the real PayoutRouter's recordAndPay is covered in Payout.t.sol).
-contract MockPayoutRouter is IPayoutSink, IPayoutRouterWriter {
+contract MockPayoutRouter is IPayoutRouter {
     address public immutable override base;
 
     struct Stamp {
@@ -125,7 +124,7 @@ contract CharityPoolReleaseTest is Test {
         controller = new MockReleaseController();
         router = new MockPayoutRouter(address(usdc));
         pool.setReleaseController(IReleaseController(address(controller)));
-        pool.setPayoutRouter(IPayoutSink(address(router)));
+        pool.setPayoutRouter(IPayoutRouter(address(router)));
 
         vm.warp(1_000_000);
     }
@@ -169,20 +168,20 @@ contract CharityPoolReleaseTest is Test {
         MockPayoutRouter r2 = new MockPayoutRouter(address(usdc));
         vm.expectEmit(true, true, false, false, address(pool));
         emit PayoutRouterUpdated(address(router), address(r2));
-        pool.setPayoutRouter(IPayoutSink(address(r2)));
-        assertEq(pool.payoutRouter(), address(r2), "router updated");
+        pool.setPayoutRouter(IPayoutRouter(address(r2)));
+        assertEq(address(pool.payoutRouter()), address(r2), "router updated");
     }
 
     function test_SetPayoutRouter_RevertZero() public {
         vm.expectRevert(CharityPool.ZeroAddress.selector);
-        pool.setPayoutRouter(IPayoutSink(address(0)));
+        pool.setPayoutRouter(IPayoutRouter(address(0)));
     }
 
     function test_SetPayoutRouter_RevertBaseMismatch() public {
         MockStablecoin other = new MockStablecoin("Other", "OTH");
         MockPayoutRouter wrong = new MockPayoutRouter(address(other));
         vm.expectRevert(abi.encodeWithSelector(CharityPool.BaseMismatch.selector, address(usdc), address(other)));
-        pool.setPayoutRouter(IPayoutSink(address(wrong)));
+        pool.setPayoutRouter(IPayoutRouter(address(wrong)));
     }
 
     function test_SetReleaseDelay_EmitsAndStores() public {

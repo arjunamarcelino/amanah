@@ -8,6 +8,7 @@ import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {IPayoutSink} from "./IPayoutSink.sol";
 import {IPayoutRouterWriter} from "./IPayoutRouterWriter.sol";
+import {IPayoutRouter} from "./IPayoutRouter.sol";
 
 /// @title PayoutRouter
 /// @notice Second custody phase of a staged payout. CharityPool parks a released tranche here (stamping
@@ -20,7 +21,7 @@ import {IPayoutRouterWriter} from "./IPayoutRouterWriter.sol";
 ///      `pending[payoutId]`; it cannot invent a new payee/amount. `feeBpsCovered` is platform-covered and
 ///      recorded, NOT deducted from the beneficiary amount. `recoverToPool` is an owner escape hatch for
 ///      mis-released (post-`revoke`) or raw-transfer-griefed base.
-contract PayoutRouter is IPayoutSink, IPayoutRouterWriter, Ownable2Step, ReentrancyGuardTransient {
+contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
     /// @inheritdoc IPayoutSink

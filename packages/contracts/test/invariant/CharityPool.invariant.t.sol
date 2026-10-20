@@ -9,7 +9,7 @@ import {ISwapToBase} from "../../src/interfaces/ISwapToBase.sol";
 import {IYieldAdapter} from "../../src/yield/IYieldAdapter.sol";
 import {CharityPool} from "../../src/CharityPool.sol";
 import {IReleaseController} from "../../src/release/IReleaseController.sol";
-import {IPayoutSink} from "../../src/release/IPayoutSink.sol";
+import {IPayoutRouter} from "../../src/release/IPayoutRouter.sol";
 import {CharityHandler} from "./CharityHandler.sol";
 
 contract CharityPoolInvariantTest is Test {
@@ -38,7 +38,7 @@ contract CharityPoolInvariantTest is Test {
         // Wire the release path (controller + router) before handing ownership to the handler, so its
         // `release` action can gate/park tranches. releaseDelay stays 0 (instant) for the fuzz run.
         pool.setReleaseController(IReleaseController(address(handler.releaseController())));
-        pool.setPayoutRouter(IPayoutSink(address(handler.router())));
+        pool.setPayoutRouter(IPayoutRouter(address(handler.router())));
         pool.transferOwnership(address(handler));
         vm.prank(address(handler));
         pool.acceptOwnership();

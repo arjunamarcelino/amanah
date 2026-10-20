@@ -11,8 +11,7 @@ import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/Reentrancy
 import {ISwapToBase} from "./interfaces/ISwapToBase.sol";
 import {IYieldAdapter} from "./yield/IYieldAdapter.sol";
 import {IReleaseController} from "./release/IReleaseController.sol";
-import {IPayoutSink} from "./release/IPayoutSink.sol";
-import {IPayoutRouterWriter} from "./release/IPayoutRouterWriter.sol";
+import {IPayoutRouter} from "./release/IPayoutRouter.sol";
 
 /// @title CharityPool
 /// @notice An ERC4626 vault over a base stablecoin (mUSDC) that accepts IRREVOCABLE
@@ -85,10 +84,12 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     ///         (2 days). `uint64` so it shares `releaseController`'s slot.
     uint64 public releaseDelay;
 
-    /// @notice The PayoutRouter released tranches are forwarded to. Stored as a plain address because the
-    ///         pool only pushes base to it (via `safeTransfer`) and stamps it (`setPending`); validated at
-    ///         set time to satisfy `base() == asset()`.
-    address public payoutRouter;
+    /// @notice The PayoutRouter released tranches are forwarded to. Typed as `IPayoutRouter` (the composite
+    ///         of the `base()` check + the `setPending` push the pool uses) so `setPayoutRouter` demands
+    ///         exactly the surface `releaseTranche` relies on; validated at set time to satisfy
+    ///         `base() == asset()`. The operator surface (recordAndPay/recoverToPool) is intentionally not
+    ///         in this type — the pool never calls it.
+    IPayoutRouter public payoutRouter;
 
     /// @notice Cumulative base released per campaign via `releaseTranche`. Monotonic "ever-moved-out"
     ///         counter (never decremented, even by `PayoutRouter.recoverToPool`); the per-campaign cap is
@@ -450,11 +451,11 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     /// @dev Enforces the repo-wide `base() == asset()` invariant (as the swap/adapter setters do) so a
     ///      released tranche can never be stranded in a router operating on the wrong asset.
     /// @param r The router (non-zero, `r.base() == asset()`).
-    function setPayoutRouter(IPayoutSink r) external onlyOwner {
+    function setPayoutRouter(IPayoutRouter r) external onlyOwner {
         if (address(r) == address(0)) revert ZeroAddress();
         if (r.base() != asset()) revert BaseMismatch(asset(), r.base());
-        address old = payoutRouter;
-        payoutRouter = address(r);
+        address old = address(payoutRouter);
+        payoutRouter = r;
         emit PayoutRouterUpdated(old, address(r));
     }
 
@@ -484,7 +485,7 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         onlyOwner
         nonReentrant
     {
-        if (address(releaseController) == address(0) || payoutRouter == address(0)) {
+        if (address(releaseController) == address(0) || address(payoutRouter) == address(0)) {
             revert ReleaseNotConfigured();
         }
         if (usdcAmount == 0) revert ZeroAmount();
@@ -513,8 +514,8 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
 
         // Bind the tranche to its payout record, then forward the base to the router.
         bytes32 payoutId = keccak256(abi.encode(campaignId, released));
-        IPayoutRouterWriter(payoutRouter).setPending(payoutId, campaignId, beneficiary, usdcAmount);
-        IERC20(base_).safeTransfer(payoutRouter, usdcAmount);
+        payoutRouter.setPending(payoutId, campaignId, beneficiary, usdcAmount);
+        IERC20(base_).safeTransfer(address(payoutRouter), usdcAmount);
 
         emit TrancheReleased(campaignId, payoutId, usdcAmount, beneficiary, unlockTime);
     }

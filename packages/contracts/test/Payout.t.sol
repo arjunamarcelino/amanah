@@ -11,7 +11,7 @@ import {CharityPool} from "../src/CharityPool.sol";
 import {ReleaseController} from "../src/release/ReleaseController.sol";
 import {IReleaseController} from "../src/release/IReleaseController.sol";
 import {PayoutRouter} from "../src/release/PayoutRouter.sol";
-import {IPayoutSink} from "../src/release/IPayoutSink.sol";
+import {IPayoutRouter} from "../src/release/IPayoutRouter.sol";
 
 /// @dev End-to-end release + routing across the REAL ReleaseController + CharityPool + PayoutRouter.
 contract PayoutTest is Test {
@@ -57,7 +57,7 @@ contract PayoutTest is Test {
         router = new PayoutRouter(address(usdc), owner);
 
         pool.setReleaseController(IReleaseController(address(controller)));
-        pool.setPayoutRouter(IPayoutSink(address(router)));
+        pool.setPayoutRouter(IPayoutRouter(address(router)));
         router.setPool(address(pool));
 
         controller.registerCampaign(DISASTER, IReleaseController.ReleaseType.PARAMETRIC);
