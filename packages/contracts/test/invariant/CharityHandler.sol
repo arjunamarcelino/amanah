@@ -43,6 +43,8 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
     uint256 public ghost_yieldMinted;
     /// @notice Count of `investIdle` calls that actually deployed base (surplus > 0).
     uint256 public ghost_meaningfulInvests;
+    /// @notice Count of `setMode` calls that actually flipped the mode (not same-mode no-ops).
+    uint256 public ghost_modeFlips;
 
     /// @notice Per-selector call counts, for the coverage guard against handler blind spots.
     mapping(bytes4 selector => uint256 count) public calls;
@@ -114,9 +116,11 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
         if (_activeDeployed() > before) ghost_meaningfulInvests++;
     }
 
-    /// @notice Flip yield mode (internal no-op if already in the requested mode).
+    /// @notice Flip yield mode (internal no-op if already in the requested mode); count real flips.
     function setMode(uint256 seed) external countCall {
+        bool before = pool.halalMode();
         pool.setMode(seed % 2 == 1);
+        if (pool.halalMode() != before) ghost_modeFlips++;
     }
 
     /// @notice Accrue simulated yield on the active adapter — skipped when it holds nothing,

@@ -107,6 +107,7 @@ contract CharityPoolInvariantTest is Test {
         assertGt(handler.calls(CharityHandler.setMode.selector), 0, "setMode never called");
         assertGt(handler.calls(CharityHandler.accrue.selector), 0, "accrue never called");
         assertGt(handler.ghost_meaningfulInvests(), 0, "no invest ever deployed base (all no-ops)");
+        assertGt(handler.ghost_modeFlips(), 0, "mode never actually flipped (all same-mode no-ops)");
         assertGt(handler.ghost_yieldMinted(), 0, "no effective yield ever produced");
     }
 }
