@@ -124,7 +124,7 @@ contract PayoutTest is Test {
         assertEq(pool.releasedByCampaign(DISASTER), 10e6, "released after unlock");
     }
 
-    function test_Release_WrongType_Reverts() public {
+    function test_Release_RevertWrongType() public {
         // fire() on a MILESTONE campaign and approveMilestone() on a PARAMETRIC one both revert.
         vm.expectRevert(abi.encodeWithSelector(ReleaseController.WrongReleaseType.selector, SCHOOL));
         controller.fire(SCHOOL, "x");
@@ -136,7 +136,7 @@ contract PayoutTest is Test {
         controller.fire(ghost, "x");
     }
 
-    function test_Release_ExceedsCampaignFunds_Reverts() public {
+    function test_Release_RevertExceedsCampaignFunds_RealController() public {
         _donate(DISASTER, 100e6);
         controller.fire(DISASTER, "x");
         vm.expectRevert(abi.encodeWithSelector(CharityPool.ExceedsCampaignFunds.selector, 150e6, 100e6));
