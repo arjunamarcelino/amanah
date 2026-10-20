@@ -386,6 +386,8 @@ contract YieldTest is Test {
         MockYieldVault healthy = new MockYieldVault(address(usdc), owner);
 
         vm.expectEmit(true, true, false, true, address(pool));
+        emit StandardAdapterUpdated(address(bricked), address(healthy));
+        vm.expectEmit(true, true, false, true, address(pool));
         emit AdapterEmergencyReplaced(false, address(bricked), address(healthy));
         pool.emergencyReplaceAdapter(false, healthy);
 

@@ -344,9 +344,13 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         if (address(a) == address(0)) revert ZeroAddress();
         if (a.base() != asset()) revert BaseMismatch(asset(), a.base());
         IYieldAdapter old = halal ? halalAdapter : standardAdapter;
+        // Emit the canonical *AdapterUpdated event too, so indexers tracking the current
+        // adapter via those events don't go stale on an emergency swap.
         if (halal) {
+            emit HalalAdapterUpdated(address(old), address(a));
             halalAdapter = a;
         } else {
+            emit StandardAdapterUpdated(address(old), address(a));
             standardAdapter = a;
         }
         emit AdapterEmergencyReplaced(halal, address(old), address(a));
