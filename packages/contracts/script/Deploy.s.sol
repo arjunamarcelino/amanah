@@ -69,6 +69,20 @@ contract Deploy is Script {
 
         vm.stopBroadcast();
 
+        // --- console summary (addresses only — never the key). Printed BEFORE the read-back
+        // asserts so a failing assert still surfaces the live addresses for recovery. ---
+        console2.log("== Amanah deploy (Base Sepolia 84532) ==");
+        console2.log("deployer         ", deployer);
+        console2.log("mUSDC            ", address(mUSDC));
+        console2.log("mXSGD            ", address(mXSGD));
+        console2.log("mIDRX            ", address(mIDRX));
+        console2.log("MockSwap         ", address(swap));
+        console2.log("CharityPool      ", address(pool));
+        console2.log("MockYieldVault   ", address(stdVault));
+        console2.log("MockHalalVault   ", address(halalVault));
+        console2.log("ReleaseController", address(rc));
+        console2.log("PayoutRouter     ", address(router));
+
         // --- read-back verification: revert BEFORE writing the ledger if any wire is wrong ---
         // Only the MUTABLE wiring the setters just applied is checked — a setter given a wrong
         // address succeeds on-chain (no revert) but points at the wrong contract, which this
@@ -98,18 +112,5 @@ contract Deploy is Script {
         vm.serializeAddress(o, "ReleaseController", address(rc));
         string memory json = vm.serializeAddress(o, "PayoutRouter", address(router));
         vm.writeJson(json, "./deployments/84532.json");
-
-        // --- console summary (addresses only — never the key) ---
-        console2.log("== Amanah deploy (Base Sepolia 84532) ==");
-        console2.log("deployer         ", deployer);
-        console2.log("mUSDC            ", address(mUSDC));
-        console2.log("mXSGD            ", address(mXSGD));
-        console2.log("mIDRX            ", address(mIDRX));
-        console2.log("MockSwap         ", address(swap));
-        console2.log("CharityPool      ", address(pool));
-        console2.log("MockYieldVault   ", address(stdVault));
-        console2.log("MockHalalVault   ", address(halalVault));
-        console2.log("ReleaseController", address(rc));
-        console2.log("PayoutRouter     ", address(router));
     }
 }
