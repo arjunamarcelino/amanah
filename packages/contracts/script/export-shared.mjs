@@ -9,7 +9,7 @@
 // Zero runtime deps on purpose: this only does file IO + string templating. The real type
 // safety gate is `tsc` in the next pipeline stage (pnpm --filter @amanah/shared build).
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -52,6 +52,13 @@ const ABI_CONTRACTS = [
 function fail(msg) {
   console.error(`export-shared: ${msg}`);
   process.exit(1);
+}
+
+// This script reaches across the monorepo into @amanah/shared's source tree via a hardcoded
+// relative path. Guard it: if that package's layout moved, fail loudly here rather than
+// writing generated files into a stale/wrong path.
+for (const dir of [sharedSrc, abisDir]) {
+  if (!existsSync(dir)) fail(`target dir not found: ${dir} — did @amanah/shared's src layout change?`);
 }
 
 // --- addresses ---------------------------------------------------------------
