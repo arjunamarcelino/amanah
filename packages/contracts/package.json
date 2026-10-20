@@ -7,6 +7,9 @@
     "build": "forge build",
     "test": "forge test",
     "fmt": "forge fmt",
-    "clean": "forge clean"
+    "clean": "forge clean",
+    "deploy:contracts:run": "forge build && forge script script/Deploy.s.sol:Deploy --rpc-url base_sepolia --broadcast",
+    "deploy:contracts:export": "node script/export-shared.mjs && pnpm --filter @amanah/shared build",
+    "deploy:contracts": "pnpm deploy:contracts:run && pnpm deploy:contracts:export"
   }
 }
