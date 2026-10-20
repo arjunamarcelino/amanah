@@ -9,6 +9,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {ISwapToBase} from "./interfaces/ISwapToBase.sol";
+import {IYieldAdapter} from "./yield/IYieldAdapter.sol";
 
 /// @title CharityPool
 /// @notice An ERC4626 vault over a base stablecoin (mUSDC) that accepts IRREVOCABLE
@@ -47,6 +48,17 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     ///         unauthenticated — anyone may attribute real funds to any id.
     mapping(bytes32 campaignId => uint256 totalBase) public donatedByCampaign;
 
+    /// @notice The standard (riba-bearing) yield adapter idle base is deployed into when not
+    ///         in Halal mode. Declared before `halalMode` so the bool packs into this slot.
+    IYieldAdapter public standardAdapter;
+
+    /// @notice When true, idle base routes to `halalAdapter` (riba-free); otherwise to
+    ///         `standardAdapter`. Packs into `standardAdapter`'s storage slot.
+    bool public halalMode;
+
+    /// @notice The Halal (Shariah-compliant, riba-free) yield adapter used in Halal mode.
+    IYieldAdapter public halalAdapter;
+
     /// @notice Thrown when a zero address is supplied where a token/adapter is required.
     error ZeroAddress();
 
@@ -68,6 +80,13 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
 
     /// @notice Thrown when a buffer value exceeds 100% (`> MAX_BPS`).
     error InvalidBufferBps(uint16 bps);
+
+    /// @notice Thrown when an invest/divest/mode action needs an adapter that is not set.
+    error AdapterNotSet();
+
+    /// @notice Thrown when configuring/switching would strand base in an adapter that still
+    ///         holds funds (`remaining` base left behind).
+    error AdapterStillFunded(uint256 remaining);
 
     /// @notice Emitted on every successful donation.
     /// @param donor The caller (`msg.sender`); for relayed donations this is the relayer.
@@ -91,6 +110,22 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
 
     /// @notice Emitted when the owner updates the liquidity buffer.
     event BufferBpsUpdated(uint16 oldBps, uint16 newBps);
+
+    /// @notice Emitted when the owner sets/replaces the standard yield adapter.
+    event StandardAdapterUpdated(address indexed oldAdapter, address indexed newAdapter);
+
+    /// @notice Emitted when the owner sets/replaces the Halal yield adapter.
+    event HalalAdapterUpdated(address indexed oldAdapter, address indexed newAdapter);
+
+    /// @notice Emitted when idle base is deployed into the active adapter. `assets` is the
+    ///         measured base delta leaving the pool, not the adapter's claimed amount.
+    event Invested(address indexed adapter, uint256 assets);
+
+    /// @notice Emitted when the active yield mode is switched.
+    event ModeChanged(bool halal);
+
+    /// @notice Emitted on an emergency adapter replacement that bypasses the funded-check.
+    event AdapterEmergencyReplaced(bool halal, address indexed oldAdapter, address indexed newAdapter);
 
     /// @param asset_ The base stablecoin (mUSDC, 6 decimals) — the ERC4626 asset.
     /// @param swap_ The swap adapter converting non-base donations into `asset_`.
@@ -151,18 +186,32 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         emit Donated(msg.sender, campaignId, stablecoin, amount, baseOut, consentHash);
     }
 
-    /// @notice Total base held by the pool — the single accounting source of truth.
-    /// @return The pool's base-token balance.
+    /// @notice Live fund value: idle base held by the pool PLUS base deployed in the active
+    ///         yield adapter. The excess of this over `totalSupply()` (outstanding principal)
+    ///         is accrued yield.
+    /// @dev Short-circuits to idle-only when the active adapter is unset (`address(0)`), so the
+    ///      pre-yield behaviour and the whole ERC4626 view surface keep working. `totalAssets()`
+    ///      MUST NOT revert per EIP-4626; a reverting adapter breaks that (see `investIdle` /
+    ///      `emergencyReplaceAdapter`).
+    /// @return The pool's idle base balance plus the active adapter's holdings.
     function poolValue() public view returns (uint256) {
-        return _baseBalance(asset());
+        uint256 idle = _baseBalance(asset());
+        IYieldAdapter adapter = _activeAdapter();
+        uint256 deployed = address(adapter) == address(0) ? 0 : adapter.totalAssets();
+        return idle + deployed;
     }
 
     /// @inheritdoc ERC4626
-    /// @dev Overridden to the pool's base balance; equals `poolValue()`. When a future
-    ///      yield slice deploys base into a yield source, this must count deployed + idle
-    ///      assets, and the excess over outstanding principal becomes the yield.
+    /// @dev Equals `poolValue()` = idle + deployed base. The excess over `totalSupply()`
+    ///      (outstanding donated principal) is the yield accrued in the active adapter.
     function totalAssets() public view override returns (uint256) {
         return poolValue();
+    }
+
+    /// @dev The adapter idle base is currently routed to, per `halalMode`. May be `address(0)`
+    ///      if the selected adapter has not been set.
+    function _activeAdapter() internal view returns (IYieldAdapter) {
+        return halalMode ? halalAdapter : standardAdapter;
     }
 
     /// @notice Set the minimum liquidity buffer. STORE-ONLY this slice — not yet enforced;
@@ -173,6 +222,127 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
         uint16 oldBps = minLiquidityBufferBps;
         minLiquidityBufferBps = bps;
         emit BufferBpsUpdated(oldBps, bps);
+    }
+
+    // --- Yield layer: adapters, invest/divest, mode -------------------------------------
+
+    /// @notice Set/replace the standard yield adapter.
+    /// @dev EGRESS WARNING: configuring an adapter enables `investIdle` to move base OUT of
+    ///      the pool — the only path that does so. A hostile owner-set adapter could route
+    ///      idle principal away. The donor firewall does NOT constrain this owner-custodian
+    ///      power; a production deployment should gate adapters behind an allowlist/timelock
+    ///      or make them set-once immutable.
+    /// @param a The adapter (must operate on `asset()` and be non-zero). Reverts
+    ///        `AdapterStillFunded` if replacing an adapter that still holds base.
+    function setStandardAdapter(IYieldAdapter a) external onlyOwner {
+        _setAdapter(false, a);
+    }
+
+    /// @notice Set/replace the Halal yield adapter. See `setStandardAdapter` egress warning.
+    /// @param a The adapter (must operate on `asset()` and be non-zero). Reverts
+    ///        `AdapterStillFunded` if replacing an adapter that still holds base.
+    function setHalalAdapter(IYieldAdapter a) external onlyOwner {
+        _setAdapter(true, a);
+    }
+
+    /// @dev Validates and stores an adapter slot, refusing to overwrite one that still holds
+    ///      funds (which would make `poolValue()` stop counting them).
+    function _setAdapter(bool halal, IYieldAdapter a) internal {
+        if (address(a) == address(0)) revert ZeroAddress();
+        if (a.base() != asset()) revert BaseMismatch(asset(), a.base());
+        IYieldAdapter current = halal ? halalAdapter : standardAdapter;
+        if (address(current) != address(0) && current.totalAssets() != 0) {
+            revert AdapterStillFunded(current.totalAssets());
+        }
+        if (halal) {
+            emit HalalAdapterUpdated(address(current), address(a));
+            halalAdapter = a;
+        } else {
+            emit StandardAdapterUpdated(address(current), address(a));
+            standardAdapter = a;
+        }
+    }
+
+    /// @notice Deploy idle base above the liquidity buffer into the active yield adapter.
+    /// @dev Keeps `poolValue() * minLiquidityBufferBps / MAX_BPS` liquid and invests only the
+    ///      surplus; a no-op when idle is at/below target (so it is idempotent and safe at a
+    ///      100% buffer). EGRESS WARNING: this is the only path moving base out of the pool —
+    ///      see `setStandardAdapter`. `nonReentrant` + the base delta is MEASURED, never the
+    ///      adapter's return value.
+    function investIdle() external onlyOwner nonReentrant {
+        IYieldAdapter adapter = _activeAdapter();
+        if (address(adapter) == address(0)) revert AdapterNotSet();
+
+        uint256 idle = _baseBalance(asset());
+        uint256 target = poolValue() * minLiquidityBufferBps / MAX_BPS;
+        if (idle <= target) return;
+        uint256 surplus = idle - target;
+
+        IERC20 base_ = IERC20(asset());
+        base_.forceApprove(address(adapter), surplus);
+        adapter.deposit(surplus);
+        base_.forceApprove(address(adapter), 0);
+
+        uint256 afterBal = _baseBalance(asset());
+        // Defensive: an adapter that returns base during deposit must not underflow here.
+        emit Invested(address(adapter), afterBal >= idle ? 0 : idle - afterBal);
+    }
+
+    /// @notice Switch between standard and Halal yield modes.
+    /// @dev Fully divests the currently-active adapter back to idle BEFORE flipping, so the
+    ///      new (single) active adapter is the sole deployed location and `poolValue()` stays
+    ///      correct. Requires the target adapter to be set and empty. Owner redeploys with
+    ///      `investIdle` afterwards. `nonReentrant`.
+    /// @param halal True to route to the Halal adapter, false for the standard adapter.
+    function setMode(bool halal) external onlyOwner nonReentrant {
+        if (halal == halalMode) return;
+
+        IYieldAdapter target = halal ? halalAdapter : standardAdapter;
+        if (address(target) == address(0)) revert AdapterNotSet();
+        // Stray funds in the inactive adapter (anyone can transfer base in) would surface
+        // uncounted on switch — require it empty.
+        if (target.totalAssets() != 0) revert AdapterStillFunded(target.totalAssets());
+
+        IYieldAdapter old = _activeAdapter(); // resolve before the flip
+        if (address(old) != address(0)) {
+            uint256 deployed = old.totalAssets();
+            if (deployed != 0) {
+                _divest(deployed); // old still active — pulls from it
+                if (old.totalAssets() != 0) revert AdapterStillFunded(old.totalAssets());
+            }
+        }
+
+        halalMode = halal;
+        emit ModeChanged(halal);
+    }
+
+    /// @notice LAST RESORT: replace an adapter whose `totalAssets()`/`withdraw` reverts (e.g.
+    ///         a paused/bricked yield source), which would otherwise brick `poolValue()` and
+    ///         the normal setter/`setMode` recovery paths.
+    /// @dev Skips the funded-check and does NOT divest — any base stuck in the old adapter is
+    ///      ABANDONED. Still validates the new adapter's base. `nonReentrant`.
+    /// @param halal Which slot to replace (true = Halal, false = standard).
+    /// @param a The replacement adapter.
+    function emergencyReplaceAdapter(bool halal, IYieldAdapter a) external onlyOwner nonReentrant {
+        if (address(a) == address(0)) revert ZeroAddress();
+        if (a.base() != asset()) revert BaseMismatch(asset(), a.base());
+        IYieldAdapter old = halal ? halalAdapter : standardAdapter;
+        if (halal) {
+            halalAdapter = a;
+        } else {
+            standardAdapter = a;
+        }
+        emit AdapterEmergencyReplaced(halal, address(old), address(a));
+    }
+
+    /// @dev Pull up to `need` base from the active adapter back to the pool. Internal: only
+    ///      reached through `nonReentrant` entrypoints. Pushes base pool-ward via the adapter.
+    function _divest(uint256 need) internal {
+        IYieldAdapter adapter = _activeAdapter();
+        if (address(adapter) == address(0) || need == 0) return;
+        uint256 deployed = adapter.totalAssets();
+        uint256 pull = need > deployed ? deployed : need;
+        if (pull != 0) adapter.withdraw(pull);
     }
 
     // --- Irrevocable-gift firewall: every ERC4626 exit is disabled ----------------------
