@@ -17,8 +17,8 @@ import {IPayoutRouter} from "../src/release/IPayoutRouter.sol";
 /// @dev Inline test double for the release controller — lets the pool's gating/cap/burn logic be driven
 ///      directly (house pattern: inline doubles like LossySwap/ReentrantSwap in CharityPool.t.sol).
 contract MockReleaseController is IReleaseController {
-    mapping(bytes32 => bool) internal _releasable;
-    mapping(bytes32 => uint256) internal _activatedAt;
+    mapping(bytes32 campaignId => bool releasable) internal _releasable;
+    mapping(bytes32 campaignId => uint256 at) internal _activatedAt;
 
     function setCanRelease(bytes32 id, bool v) external {
         _releasable[id] = v;
@@ -48,7 +48,7 @@ contract MockPayoutRouter is IPayoutRouter {
         uint256 amount;
     }
 
-    mapping(bytes32 => Stamp) public stamped;
+    mapping(bytes32 payoutId => Stamp stamp) public stamped;
 
     constructor(address base_) {
         base = base_;
