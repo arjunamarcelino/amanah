@@ -30,6 +30,7 @@ contract PayoutRouterTest is Test {
         string rationale
     );
     event Recovered(uint256 amount);
+    event PendingCancelled(bytes32 indexed payoutId);
 
     function setUp() public {
         usdc = new MockStablecoin("Mock USDC", "mUSDC");
@@ -167,6 +168,57 @@ contract PayoutRouterTest is Test {
         emit Recovered(amount);
         router.recoverToPool(amount);
         assertEq(usdc.balanceOf(poolAddr), amount, "returned to pool");
+    }
+
+    function test_RecoverToPool_RevertExceedsFree_WhenEarmarked() public {
+        _stamp(PAYOUT, 100e6); // earmarks 100e6
+        usdc.mint(address(router), 100e6);
+        vm.expectRevert(abi.encodeWithSelector(PayoutRouter.ExceedsFreeBalance.selector, 100e6, 0));
+        router.recoverToPool(100e6);
+    }
+
+    function test_RecoverToPool_OnlyFreeBalanceRecoverable() public {
+        _stamp(PAYOUT, 100e6); // earmarked
+        usdc.mint(address(router), 150e6); // 100 earmarked + 50 stray/griefed
+        router.recoverToPool(50e6); // free == 50, ok
+        assertEq(usdc.balanceOf(poolAddr), 50e6, "only free base recovered");
+        vm.expectRevert(abi.encodeWithSelector(PayoutRouter.ExceedsFreeBalance.selector, 1, 0));
+        router.recoverToPool(1); // nothing free left
+    }
+
+    function test_CancelPending_FreesEarmarkAndBlocksPay() public {
+        _stamp(PAYOUT, 100e6);
+        usdc.mint(address(router), 100e6);
+        assertEq(router.totalEarmarked(), 100e6, "earmarked after stamp");
+
+        vm.expectEmit(true, false, false, false, address(router));
+        emit PendingCancelled(PAYOUT);
+        router.cancelPending(PAYOUT);
+        assertEq(router.totalEarmarked(), 0, "earmark freed");
+
+        // Cancelled payout can no longer be paid, and its base is now recoverable.
+        vm.expectRevert(abi.encodeWithSelector(PayoutRouter.UnknownPayout.selector, PAYOUT));
+        router.recordAndPay(PAYOUT, beneficiary, 100e6, "r", 0, "x");
+        router.recoverToPool(100e6);
+        assertEq(usdc.balanceOf(poolAddr), 100e6, "freed base recovered");
+    }
+
+    function test_CancelPending_RevertUnknownAndAlreadyPaid() public {
+        vm.expectRevert(abi.encodeWithSelector(PayoutRouter.UnknownPayout.selector, PAYOUT));
+        router.cancelPending(PAYOUT);
+
+        _stamp(PAYOUT, 100e6);
+        usdc.mint(address(router), 100e6);
+        router.recordAndPay(PAYOUT, beneficiary, 100e6, "r", 0, "x");
+        vm.expectRevert(abi.encodeWithSelector(PayoutRouter.AlreadyPaid.selector, PAYOUT));
+        router.cancelPending(PAYOUT);
+    }
+
+    function test_RecordAndPay_FreesEarmark() public {
+        _stamp(PAYOUT, 100e6);
+        usdc.mint(address(router), 100e6);
+        router.recordAndPay(PAYOUT, beneficiary, 100e6, "r", 0, "x");
+        assertEq(router.totalEarmarked(), 0, "earmark released on disbursement");
     }
 
     function test_RecoverToPool_RevertPoolNotSet() public {

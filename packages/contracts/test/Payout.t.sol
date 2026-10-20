@@ -227,12 +227,20 @@ contract PayoutTest is Test {
         assertEq(pool.releasedByCampaign(DISASTER), 10e6, "release works after re-arm");
     }
 
-    function test_RecoverToPool_ReturnsStrandedBase() public {
+    function test_Recover_CancelThenReturnsStrandedBase() public {
         _donate(DISASTER, 100e6);
-        controller.fire(DISASTER, "x");
-        pool.releaseTranche(DISASTER, 40e6, beneficiary); // 40e6 now parked in router
+        controller.fire(DISASTER, "false positive");
+        pool.releaseTranche(DISASTER, 40e6, beneficiary); // 40e6 parked + earmarked in router
+        bytes32 pid = _firstPayoutId(DISASTER);
         uint256 poolValueBefore = pool.poolValue();
 
+        // Earmarked base cannot be recovered while the pending is live...
+        vm.expectRevert(abi.encodeWithSelector(PayoutRouter.ExceedsFreeBalance.selector, 40e6, 0));
+        router.recoverToPool(40e6);
+
+        // ...cancel frees the earmark, then recovery returns it to the pool as surplus.
+        controller.revoke(DISASTER);
+        router.cancelPending(pid);
         router.recoverToPool(40e6);
 
         assertEq(usdc.balanceOf(address(router)), 0, "router returned funds");

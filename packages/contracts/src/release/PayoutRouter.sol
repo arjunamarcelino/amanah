@@ -44,6 +44,11 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
     /// @notice Pending payout record per `payoutId` (pool-derived: campaignId + running release total).
     mapping(bytes32 payoutId => Pending pending) public pending;
 
+    /// @notice Sum of all unconsumed `pending` amounts — base that is spoken-for and must not be recovered.
+    ///         `recoverToPool` may only move the FREE balance (`balanceOf(this) - totalEarmarked`), so an
+    ///         over-recovery can never cannibalize the backing of a live, not-yet-disbursed tranche.
+    uint256 public totalEarmarked;
+
     /// @notice Thrown when a required address/token is zero.
     error ZeroAddress();
 
@@ -67,6 +72,9 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
 
     /// @notice Thrown when `recoverToPool` is called before the pool address is set.
     error PoolNotSet();
+
+    /// @notice Thrown when `recoverToPool(amount)` would dip into base earmarked for unconsumed payouts.
+    error ExceedsFreeBalance(uint256 requested, uint256 free);
 
     /// @notice Thrown by `renounceOwnership` — a custody contract must always retain an owner.
     error OwnershipCannotBeRenounced();
@@ -95,6 +103,9 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
     /// @notice Emitted when base is recovered back to the pool.
     event Recovered(uint256 amount);
 
+    /// @notice Emitted when an unconsumed pending payout is cancelled (frees its earmark; can no longer be paid).
+    event PendingCancelled(bytes32 indexed payoutId);
+
     /// @param base_ The base stablecoin (mUSDC) this router disburses; MUST equal the pool's asset.
     /// @param initialOwner The initial owner/custodian (the AI/operator authority for this MVP).
     constructor(address base_, address initialOwner) Ownable(initialOwner) {
@@ -121,6 +132,7 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
         Pending storage existing = pending[payoutId];
         if (existing.amount != 0 && !existing.consumed) revert AlreadyPending(payoutId);
         pending[payoutId] = Pending({campaignId: campaignId, beneficiary: beneficiary, consumed: false, amount: amount});
+        totalEarmarked += amount;
     }
 
     /// @notice Disburse a parked tranche to its stamped beneficiary with the AI routing decision.
@@ -146,20 +158,38 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
         if (beneficiary != p.beneficiary || usdcAmount != p.amount) revert PayoutMismatch(payoutId);
 
         pending[payoutId].consumed = true;
+        totalEarmarked -= p.amount;
 
         IERC20(base).safeTransfer(p.beneficiary, p.amount);
 
         emit Routed(payoutId, p.campaignId, p.beneficiary, p.amount, rail, feeBpsCovered, rationale);
     }
 
+    /// @notice Cancel an unconsumed pending payout (e.g. after a mistaken/false-positive release), freeing
+    ///         its earmarked base so it can then be returned to the pool via `recoverToPool`.
+    /// @dev Owner-gated. Deletes the record (so `recordAndPay` can no longer pay it) and releases the
+    ///      earmark. Moves no funds — pair with `recoverToPool` to return the base to the pool.
+    /// @param payoutId The pending payout to cancel.
+    function cancelPending(bytes32 payoutId) external onlyOwner {
+        Pending memory p = pending[payoutId];
+        if (p.amount == 0) revert UnknownPayout(payoutId);
+        if (p.consumed) revert AlreadyPaid(payoutId);
+        totalEarmarked -= p.amount;
+        delete pending[payoutId];
+        emit PendingCancelled(payoutId);
+    }
+
     /// @notice Return mis-released or griefed base to the pool as general surplus.
-    /// @dev Owner escape hatch, `nonReentrant`. Does NOT re-credit any campaign tally or un-burn shares
-    ///      (the pool's `releasedByCampaign` is a monotonic "ever-moved-out" counter). The owner is
-    ///      responsible for not recovering base still earmarked for a valid unconsumed `pending`.
+    /// @dev Owner escape hatch, `nonReentrant`. Only the FREE balance (`balanceOf(this) - totalEarmarked`)
+    ///      is recoverable, so this can never cannibalize the backing of a live, unconsumed `pending`.
+    ///      Does NOT re-credit any campaign tally or un-burn shares (the pool's `releasedByCampaign` is a
+    ///      monotonic "ever-moved-out" counter), so recovered base returns as unattributed pool surplus.
     /// @param amount Base to send back to the pool.
     function recoverToPool(uint256 amount) external onlyOwner nonReentrant {
         if (pool == address(0)) revert PoolNotSet();
         if (amount == 0) revert ZeroAmount();
+        uint256 free = IERC20(base).balanceOf(address(this)) - totalEarmarked;
+        if (amount > free) revert ExceedsFreeBalance(amount, free);
         IERC20(base).safeTransfer(pool, amount);
         emit Recovered(amount);
     }
