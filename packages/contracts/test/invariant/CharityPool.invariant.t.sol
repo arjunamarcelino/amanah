@@ -8,6 +8,8 @@ import {MockSwap} from "../../src/mocks/MockSwap.sol";
 import {ISwapToBase} from "../../src/interfaces/ISwapToBase.sol";
 import {IYieldAdapter} from "../../src/yield/IYieldAdapter.sol";
 import {CharityPool} from "../../src/CharityPool.sol";
+import {IReleaseController} from "../../src/release/IReleaseController.sol";
+import {IPayoutSink} from "../../src/release/IPayoutSink.sol";
 import {CharityHandler} from "./CharityHandler.sol";
 
 contract CharityPoolInvariantTest is Test {
@@ -33,11 +35,15 @@ contract CharityPoolInvariantTest is Test {
         // drive the onlyOwner yield actions (Ownable2Step: transfer + accept).
         pool.setStandardAdapter(handler.standardVault());
         pool.setHalalAdapter(handler.halalVault());
+        // Wire the release path (controller + router) before handing ownership to the handler, so its
+        // `release` action can gate/park tranches. releaseDelay stays 0 (instant) for the fuzz run.
+        pool.setReleaseController(IReleaseController(address(handler.releaseController())));
+        pool.setPayoutRouter(IPayoutSink(address(handler.router())));
         pool.transferOwnership(address(handler));
         vm.prank(address(handler));
         pool.acceptOwnership();
 
-        bytes4[] memory selectors = new bytes4[](7);
+        bytes4[] memory selectors = new bytes4[](8);
         selectors[0] = CharityHandler.donateBase.selector;
         selectors[1] = CharityHandler.donateSwap.selector;
         selectors[2] = CharityHandler.rawTransfer.selector;
@@ -45,6 +51,7 @@ contract CharityPoolInvariantTest is Test {
         selectors[4] = CharityHandler.setMode.selector;
         selectors[5] = CharityHandler.accrue.selector;
         selectors[6] = CharityHandler.setBufferBps.selector;
+        selectors[7] = CharityHandler.release.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
         targetContract(address(handler));
     }
@@ -62,19 +69,39 @@ contract CharityPoolInvariantTest is Test {
         assertEq(pool.totalSupply(), pool.balanceOf(address(pool)), "all shares held by pool");
     }
 
-    /// @dev Supply tracks the base actually received via donate (raw transfers don't mint).
+    /// @dev Supply tracks base received via donate MINUS base released (releases burn shares 1:1).
     function invariant_totalSupplyEqualsBaseOutSum() public view {
-        assertEq(pool.totalSupply(), handler.ghost_baseOutSum(), "supply == cumulative base received");
+        assertEq(
+            pool.totalSupply(), handler.ghost_baseOutSum() - handler.ghost_releasedSum(), "supply == donated - released"
+        );
     }
 
-    /// @dev The per-campaign tallies, summed over the real id set used, equal total supply.
+    /// @dev Per-campaign NET tallies (donated - released), summed over the real id set, equal total supply.
     function invariant_campaignTallySumsToSupply() public view {
         uint256 n = handler.seenCampaignsLength();
         uint256 sum;
         for (uint256 i = 0; i < n; i++) {
-            sum += pool.donatedByCampaign(handler.seenCampaigns(i));
+            bytes32 id = handler.seenCampaigns(i);
+            sum += pool.donatedByCampaign(id) - pool.releasedByCampaign(id);
         }
-        assertEq(sum, pool.totalSupply(), "campaign tallies sum to supply");
+        assertEq(sum, pool.totalSupply(), "net campaign tallies sum to supply");
+    }
+
+    /// @dev A campaign can never release more than was donated to it (the per-campaign cap).
+    function invariant_releasedNeverExceedsDonated() public view {
+        uint256 n = handler.seenCampaignsLength();
+        for (uint256 i = 0; i < n; i++) {
+            bytes32 id = handler.seenCampaigns(i);
+            assertLe(pool.releasedByCampaign(id), pool.donatedByCampaign(id), "released <= donated");
+        }
+    }
+
+    /// @dev Released base is conserved at the router (moved out of the pool, not lost/burned). recordAndPay
+    ///      is deliberately NOT in the action set, so the router simply accumulates every released tranche.
+    function invariant_routerCustodyConserved() public view {
+        assertEq(
+            usdc.balanceOf(address(handler.router())), handler.ghost_releasedSum(), "router holds all released base"
+        );
     }
 
     /// @dev Base held always covers minted principal. This is the TRUE invariant: raw
@@ -95,8 +122,9 @@ contract CharityPoolInvariantTest is Test {
     function invariant_valueConservation() public view {
         assertEq(
             pool.poolValue(),
-            handler.ghost_baseOutSum() + handler.ghost_rawTransferSum() + handler.ghost_yieldMinted(),
-            "poolValue == donated + raw drift + yield"
+            handler.ghost_baseOutSum() + handler.ghost_rawTransferSum() + handler.ghost_yieldMinted()
+                - handler.ghost_releasedSum(),
+            "poolValue == donated + raw drift + yield - released"
         );
     }
 
@@ -110,5 +138,8 @@ contract CharityPoolInvariantTest is Test {
         assertGt(handler.ghost_meaningfulInvests(), 0, "no invest ever deployed base (all no-ops)");
         assertGt(handler.ghost_modeFlips(), 0, "mode never actually flipped (all same-mode no-ops)");
         assertGt(handler.ghost_yieldMinted(), 0, "no effective yield ever produced");
+        assertGt(handler.calls(CharityHandler.release.selector), 0, "release never called");
+        assertGt(handler.ghost_releasedSum(), 0, "no effective release ever occurred (all no-ops)");
+        assertGt(handler.ghost_releasesFromDeployed(), 0, "divest-during-release branch never exercised");
     }
 }
