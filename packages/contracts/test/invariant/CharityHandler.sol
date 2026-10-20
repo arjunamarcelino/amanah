@@ -6,18 +6,28 @@ import {StdCheats} from "forge-std/StdCheats.sol";
 import {StdUtils} from "forge-std/StdUtils.sol";
 import {MockStablecoin} from "../../src/mocks/MockStablecoin.sol";
 import {MockSwap} from "../../src/mocks/MockSwap.sol";
+import {MockYieldVault} from "../../src/yield/MockYieldVault.sol";
+import {MockHalalVault} from "../../src/yield/MockHalalVault.sol";
 import {CharityPool} from "../../src/CharityPool.sol";
 
 /// @dev Handler for CharityPool invariant testing. Donations come from DISTINCT external
 ///      actor addresses (never the pool), use ARBITRARY campaign ids, and are joined by a
-///      `rawTransfer` action that sends base straight to the pool (bypassing `donate`) so
-///      the direct-transfer drift path is actually exercised. Bounds keep every call
-///      non-reverting (fail_on_revert).
+///      `rawTransfer` action (base straight to the pool, bypassing `donate`) plus the yield
+///      actions `investIdle`/`setMode`/`accrue` so the fuzzer actually reaches deployed +
+///      accrued-yield states. The handler owns the two adapters (so it can `accrue`) and is
+///      the pool owner (so it can `investIdle`/`setMode`). Bounds + early-returns keep every
+///      call non-reverting (fail_on_revert).
 contract CharityHandler is CommonBase, StdCheats, StdUtils {
+    uint16 internal constant MAX_BPS = 10_000;
+
     CharityPool internal pool;
     MockStablecoin internal usdc;
     MockStablecoin internal xsgd;
     MockSwap internal swap;
+
+    /// @notice Adapters owned by this handler, wired into the pool by the invariant test.
+    MockYieldVault public standardVault;
+    MockHalalVault public halalVault;
 
     bytes32 internal constant CONSENT = keccak256("consent-doc|salt");
 
@@ -27,23 +37,42 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
 
     /// @notice Cumulative base credited across all donations (the expected totalSupply).
     uint256 public ghost_baseOutSum;
+    /// @notice Cumulative base sent to the pool via raw transfer (drift, not minted).
+    uint256 public ghost_rawTransferSum;
+    /// @notice Cumulative simulated yield minted into the active adapter (poolValue growth).
+    uint256 public ghost_yieldMinted;
+    /// @notice Count of `investIdle` calls that actually deployed base (surplus > 0).
+    uint256 public ghost_meaningfulInvests;
+    /// @notice Count of `setMode` calls that actually flipped the mode (not same-mode no-ops).
+    uint256 public ghost_modeFlips;
+
+    /// @notice Per-selector call counts, for the coverage guard against handler blind spots.
+    mapping(bytes4 selector => uint256 count) public calls;
+
     /// @notice Every campaignId actually used — lets the tally-sum invariant cover the real
     ///         id set instead of a hardcoded few.
     bytes32[] public seenCampaigns;
     mapping(bytes32 campaignId => bool seen) internal _campaignSeen;
+
+    modifier countCall() {
+        calls[msg.sig]++;
+        _;
+    }
 
     constructor(CharityPool pool_, MockStablecoin usdc_, MockStablecoin xsgd_, MockSwap swap_) {
         pool = pool_;
         usdc = usdc_;
         xsgd = xsgd_;
         swap = swap_;
+        standardVault = new MockYieldVault(address(usdc_), address(this));
+        halalVault = new MockHalalVault(address(usdc_), address(this));
         actors[0] = address(0xA11CE);
         actors[1] = address(0xB0B);
         actors[2] = address(0xC0FFEE);
         actors[3] = address(0xDECAF);
     }
 
-    function donateBase(uint256 amount, uint256 seed) external {
+    function donateBase(uint256 amount, uint256 seed) external countCall {
         amount = bound(amount, 1, 1_000_000e6);
         bytes32 id = bytes32(seed); // arbitrary campaign id (may be 0 = general fund)
         address actor = actors[seed % 4];
@@ -56,7 +85,7 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
         _track(id);
     }
 
-    function donateSwap(uint256 amount, uint256 seed) external {
+    function donateSwap(uint256 amount, uint256 seed) external countCall {
         uint256 liq = usdc.balanceOf(address(swap));
         if (liq == 0) return; // adapter out of base liquidity — skip rather than revert
         amount = bound(amount, 1, liq);
@@ -73,14 +102,54 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
 
     /// @notice Raw ERC20 transfer of base into the pool — NOT via `donate`. Exercises the
     ///         direct-transfer drift path (poolValue rises without minting/tallying).
-    function rawTransfer(uint256 amount) external {
+    function rawTransfer(uint256 amount) external countCall {
         amount = bound(amount, 0, 1_000_000e6);
         usdc.mint(address(this), amount);
         usdc.transfer(address(pool), amount);
+        ghost_rawTransferSum += amount;
+    }
+
+    /// @notice Deploy idle surplus into the active adapter; count only deploying calls.
+    function investIdle() external countCall {
+        uint256 before = _activeDeployed();
+        pool.investIdle();
+        if (_activeDeployed() > before) ghost_meaningfulInvests++;
+    }
+
+    /// @notice Flip yield mode (internal no-op if already in the requested mode); count real flips.
+    function setMode(uint256 seed) external countCall {
+        bool before = pool.halalMode();
+        pool.setMode(seed % 2 == 1);
+        if (pool.halalMode() != before) ghost_modeFlips++;
+    }
+
+    /// @notice Accrue simulated yield on the active adapter — skipped when it holds nothing,
+    ///         so only EFFECTIVE accruals (that actually grow poolValue) are produced.
+    function accrue(uint256 seed) external countCall {
+        uint16 bps = uint16(bound(seed, 1, MAX_BPS));
+        uint256 before = pool.poolValue();
+        if (pool.halalMode()) {
+            if (halalVault.totalAssets() == 0) return;
+            halalVault.accrue(bps);
+        } else {
+            if (standardVault.totalAssets() == 0) return;
+            standardVault.accrue(bps);
+        }
+        ghost_yieldMinted += pool.poolValue() - before;
+    }
+
+    /// @notice Fuzz the liquidity buffer across its full range, so the invest/divest math is
+    ///         exercised at every buffer level (0%..100%), not just the 2000 bps default.
+    function setBufferBps(uint256 seed) external countCall {
+        pool.setBufferBps(uint16(bound(seed, 0, MAX_BPS)));
     }
 
     function seenCampaignsLength() external view returns (uint256) {
         return seenCampaigns.length;
+    }
+
+    function _activeDeployed() internal view returns (uint256) {
+        return pool.halalMode() ? halalVault.totalAssets() : standardVault.totalAssets();
     }
 
     function _track(bytes32 id) internal {
