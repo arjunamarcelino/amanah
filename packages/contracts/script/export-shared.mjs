@@ -55,7 +55,12 @@ function fail(msg) {
 }
 
 // --- addresses ---------------------------------------------------------------
-const ledger = JSON.parse(readFileSync(ledgerPath, "utf8"));
+let ledger;
+try {
+  ledger = JSON.parse(readFileSync(ledgerPath, "utf8"));
+} catch {
+  fail(`cannot read ${ledgerPath} — run the deploy first (pnpm deploy:contracts:run)`);
+}
 for (const key of ADDRESS_KEYS) {
   const value = ledger[key];
   if (!value) fail(`missing "${key}" in ${ledgerPath} — re-run the deploy`);
