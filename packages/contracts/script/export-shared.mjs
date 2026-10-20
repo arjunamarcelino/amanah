@@ -66,6 +66,13 @@ for (const key of ADDRESS_KEYS) {
     fail(`invalid address for "${key}" in ${ledgerPath}: ${JSON.stringify(value)} — expected 0x + 40 hex`);
   }
 }
+// The loop above catches keys in ADDRESS_KEYS missing from the ledger; this catches the
+// reverse — a contract added to Deploy.s.sol's ledger but not to ADDRESS_KEYS, which would
+// otherwise be silently dropped from addresses.ts with no error anywhere.
+const extraKeys = Object.keys(ledger).filter((k) => !ADDRESS_KEYS.includes(k));
+if (extraKeys.length) {
+  fail(`${ledgerPath} has keys not in ADDRESS_KEYS: ${extraKeys.join(", ")} — add them to the codegen list`);
+}
 
 const unionLines = ADDRESS_KEYS.map((k) => `  | "${k}"`).join("\n");
 const addrLines = ADDRESS_KEYS.map((k) => `    ${k}: "${ledger[k]}",`).join("\n");
