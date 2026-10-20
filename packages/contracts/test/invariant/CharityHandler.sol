@@ -9,6 +9,9 @@ import {MockSwap} from "../../src/mocks/MockSwap.sol";
 import {MockYieldVault} from "../../src/yield/MockYieldVault.sol";
 import {MockHalalVault} from "../../src/yield/MockHalalVault.sol";
 import {CharityPool} from "../../src/CharityPool.sol";
+import {ReleaseController} from "../../src/release/ReleaseController.sol";
+import {IReleaseController} from "../../src/release/IReleaseController.sol";
+import {PayoutRouter} from "../../src/release/PayoutRouter.sol";
 
 /// @dev Handler for CharityPool invariant testing. Donations come from DISTINCT external
 ///      actor addresses (never the pool), use ARBITRARY campaign ids, and are joined by a
@@ -29,7 +32,15 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
     MockYieldVault public standardVault;
     MockHalalVault public halalVault;
 
+    /// @notice Release controller (owned by this handler so it can register/fire) + payout router (base
+    ///         sink for released tranches), both wired into the pool by the invariant test.
+    ReleaseController public releaseController;
+    PayoutRouter public router;
+
     bytes32 internal constant CONSENT = keccak256("consent-doc|salt");
+
+    /// @notice Fixed non-zero beneficiary for released tranches (router requires non-zero).
+    address internal constant BENEFICIARY = address(0xBEEF);
 
     /// @notice Distinct external donor addresses (never the pool), so donor-share
     ///         invariants carry real signal.
@@ -45,6 +56,14 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
     uint256 public ghost_meaningfulInvests;
     /// @notice Count of `setMode` calls that actually flipped the mode (not same-mode no-ops).
     uint256 public ghost_modeFlips;
+    /// @notice Cumulative base released out of the pool (measured totalSupply drop per release).
+    uint256 public ghost_releasedSum;
+    /// @notice Count of releases that actually drew from a deployed adapter (the divest-during-release
+    ///         branch — the slice's novel code; a call-count/releasedSum guard alone would be vacuous here).
+    uint256 public ghost_releasesFromDeployed;
+
+    /// @notice Campaign ids this handler has registered in the controller (register-once guard).
+    mapping(bytes32 campaignId => bool registered) internal _handlerRegistered;
 
     /// @notice Per-selector call counts, for the coverage guard against handler blind spots.
     mapping(bytes4 selector => uint256 count) public calls;
@@ -66,6 +85,9 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
         swap = swap_;
         standardVault = new MockYieldVault(address(usdc_), address(this));
         halalVault = new MockHalalVault(address(usdc_), address(this));
+        releaseController = new ReleaseController(address(this));
+        router = new PayoutRouter(address(usdc_), address(this));
+        router.setPool(address(pool_));
         actors[0] = address(0xA11CE);
         actors[1] = address(0xB0B);
         actors[2] = address(0xC0FFEE);
@@ -142,6 +164,60 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
     ///         exercised at every buffer level (0%..100%), not just the 2000 bps default.
     function setBufferBps(uint256 seed) external countCall {
         pool.setBufferBps(uint16(bound(seed, 0, MAX_BPS)));
+    }
+
+    /// @notice Release a capped tranche of a DONATED campaign, registering + firing it first if needed.
+    /// @dev Draws the id from `seenCampaigns` (the donated set) so the per-campaign cap is non-zero and the
+    ///      release does real work — a fresh id would early-return forever and trip the afterInvariant
+    ///      ghost. All campaigns registered PARAMETRIC + fired (type-correctness is covered by unit tests).
+    ///      Biased so that when the active adapter holds funds and the campaign's available exceeds idle,
+    ///      the amount exceeds idle — forcing the divest-during-release branch. Solvency guarantees
+    ///      `amount <= poolValue = idle + deployed`, so the divest always covers (no revert).
+    function release(uint256 seed, uint256 amount) external countCall {
+        uint256 n = seenCampaigns.length;
+        if (n == 0) return; // nothing donated yet
+        bytes32 id = seenCampaigns[seed % n];
+        if (id == bytes32(0)) return; // general fund: the controller rejects id 0
+
+        if (!_handlerRegistered[id]) {
+            releaseController.registerCampaign(id, IReleaseController.ReleaseType.PARAMETRIC);
+            _handlerRegistered[id] = true;
+        }
+        if (!releaseController.canRelease(id)) {
+            releaseController.fire(id, "fuzz");
+        }
+
+        uint256 available = pool.donatedByCampaign(id) - pool.releasedByCampaign(id);
+        if (available == 0) return; // fully released already
+
+        // Bias so the divest-during-release branch is PROVABLY exercised (not merely probable): if idle
+        // base alone could cover the payout, deploy the surplus (at a 0 buffer) into the active adapter
+        // first, pushing idle below `available` so the release must pull from the adapter. Direct pool
+        // calls (handler is owner) — not the countCall'd actions — so no ghost/coverage pollution.
+        uint256 idle = usdc.balanceOf(address(pool));
+        if (idle >= available) {
+            // Deploy the surplus so the release must divest — but SAVE/RESTORE the buffer so this does
+            // not permanently pin minLiquidityBufferBps to 0 and silently dilute the full-range buffer
+            // coverage that commit 964958d guarantees (investIdle already ran at 0, leaving idle ~0).
+            uint16 savedBuffer = pool.minLiquidityBufferBps();
+            pool.setBufferBps(0);
+            pool.investIdle();
+            pool.setBufferBps(savedBuffer);
+            idle = usdc.balanceOf(address(pool));
+        }
+
+        uint256 deployed = _activeDeployed();
+        if (deployed > 0 && available > idle) {
+            amount = idle + 1 + (seed % (available - idle)); // in (idle, available] → forces a divest
+        } else {
+            amount = bound(amount, 1, available);
+        }
+
+        uint256 supplyBefore = pool.totalSupply();
+        pool.releaseTranche(id, amount, BENEFICIARY);
+
+        ghost_releasedSum += supplyBefore - pool.totalSupply(); // measured drop, not the arg
+        if (deployed > _activeDeployed()) ghost_releasesFromDeployed++; // drew from a deployed adapter
     }
 
     function seenCampaignsLength() external view returns (uint256) {
