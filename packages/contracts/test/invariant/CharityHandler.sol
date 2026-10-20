@@ -196,8 +196,13 @@ contract CharityHandler is CommonBase, StdCheats, StdUtils {
         // calls (handler is owner) — not the countCall'd actions — so no ghost/coverage pollution.
         uint256 idle = usdc.balanceOf(address(pool));
         if (idle >= available) {
+            // Deploy the surplus so the release must divest — but SAVE/RESTORE the buffer so this does
+            // not permanently pin minLiquidityBufferBps to 0 and silently dilute the full-range buffer
+            // coverage that commit 964958d guarantees (investIdle already ran at 0, leaving idle ~0).
+            uint16 savedBuffer = pool.minLiquidityBufferBps();
             pool.setBufferBps(0);
             pool.investIdle();
+            pool.setBufferBps(savedBuffer);
             idle = usdc.balanceOf(address(pool));
         }
 
