@@ -133,7 +133,7 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
     event ModeChanged(bool halal);
 
     /// @notice Emitted on an emergency adapter replacement that bypasses the funded-check.
-    event AdapterEmergencyReplaced(bool halal, address indexed oldAdapter, address indexed newAdapter);
+    event AdapterEmergencyReplaced(address indexed oldAdapter, address indexed newAdapter, bool halal);
 
     /// @param asset_ The base stablecoin (mUSDC, 6 decimals) — the ERC4626 asset.
     /// @param swap_ The swap adapter converting non-base donations into `asset_`.
@@ -353,7 +353,7 @@ contract CharityPool is ERC4626, Ownable2Step, ReentrancyGuardTransient {
             emit StandardAdapterUpdated(address(old), address(a));
             standardAdapter = a;
         }
-        emit AdapterEmergencyReplaced(halal, address(old), address(a));
+        emit AdapterEmergencyReplaced(address(old), address(a), halal);
     }
 
     /// @dev Pull up to `need` base from the active adapter back to the pool. Internal: only

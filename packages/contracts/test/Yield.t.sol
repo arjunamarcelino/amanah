@@ -115,7 +115,7 @@ contract YieldTest is Test {
     event Invested(address indexed adapter, uint256 assets);
     event ModeChanged(bool halal);
     event StandardAdapterUpdated(address indexed oldAdapter, address indexed newAdapter);
-    event AdapterEmergencyReplaced(bool halal, address indexed oldAdapter, address indexed newAdapter);
+    event AdapterEmergencyReplaced(address indexed oldAdapter, address indexed newAdapter, bool halal);
     event SukukYieldAccrued(uint256 amount);
 
     function setUp() public {
@@ -388,7 +388,7 @@ contract YieldTest is Test {
         vm.expectEmit(true, true, false, true, address(pool));
         emit StandardAdapterUpdated(address(bricked), address(healthy));
         vm.expectEmit(true, true, false, true, address(pool));
-        emit AdapterEmergencyReplaced(false, address(bricked), address(healthy));
+        emit AdapterEmergencyReplaced(address(bricked), address(healthy), false);
         pool.emergencyReplaceAdapter(false, healthy);
 
         assertEq(address(pool.standardAdapter()), address(healthy), "adapter swapped");
