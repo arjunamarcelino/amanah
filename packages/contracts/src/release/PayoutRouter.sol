@@ -136,11 +136,14 @@ contract PayoutRouter is IPayoutRouter, Ownable2Step, ReentrancyGuardTransient {
     }
 
     /// @notice Disburse a parked tranche to its stamped beneficiary with the AI routing decision.
-    /// @dev Owner-gated, `nonReentrant`, CEI (mark consumed before transfer). Caller args MUST match the
-    ///      pool-stamped record — the router cannot pay a different payee/amount than was released.
+    /// @dev Owner-gated, `nonReentrant`, CEI (mark consumed before transfer). The binding is the stamped
+    ///      record: the transfer and `Routed` event always use `pending[payoutId].beneficiary`/`.amount`,
+    ///      so the router can never pay a payee/amount the pool did not release. The `beneficiary`/
+    ///      `usdcAmount` args are therefore an OPERATOR CONFIRMATION (defense-in-depth against a wrong
+    ///      `payoutId`), not the security boundary — a mismatch reverts `PayoutMismatch`.
     /// @param payoutId The pending payout to consume.
-    /// @param beneficiary Must equal the stamped beneficiary.
-    /// @param usdcAmount Must equal the stamped amount.
+    /// @param beneficiary Confirmation — must equal the stamped beneficiary (authoritative value is the record).
+    /// @param usdcAmount Confirmation — must equal the stamped amount (authoritative value is the record).
     /// @param rail The settlement rail chosen by the operator/AI.
     /// @param feeBpsCovered Platform-covered fee in bps (recorded only).
     /// @param rationale Free-form routing justification (recorded on-chain).
