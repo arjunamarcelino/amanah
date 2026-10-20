@@ -13,6 +13,8 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// 84532 = Base Sepolia; canonical in packages/shared/src/chain.ts (CHAIN_ID). Kept as a
+// literal here because this generator runs before @amanah/shared is built (no import).
 const CHAIN_ID = 84532;
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));

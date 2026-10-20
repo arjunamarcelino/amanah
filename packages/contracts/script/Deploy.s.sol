@@ -31,6 +31,7 @@ contract Deploy is Script {
 
     function run() external {
         // Guard: never broadcast to, or write a 84532-labeled ledger for, the wrong chain.
+        // 84532 = Base Sepolia; canonical in packages/shared/src/chain.ts (CHAIN_ID).
         require(block.chainid == 84532, "Deploy: wrong chain (expected Base Sepolia 84532)");
 
         uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
