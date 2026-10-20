@@ -88,6 +88,18 @@ $ forge verify-contract --chain 84532 --watch \
     --constructor-args $(cast abi-encode "constructor(string,string)" "Mock USDC" "mUSDC")
 ```
 
+### Security posture (testnet-only)
+
+This deployment is deliberately testnet-grade and **must not be carried to mainnet as-is**:
+
+- **Single-EOA ownership (SPOF).** The deployer key is the perpetual owner of every
+  `Ownable`/`Ownable2Step` contract's privileged setters (adapters, router, mode). Compromise
+  of that one key = full control. Before any mainnet/real-value deploy, migrate ownership to a
+  multisig/Safe (and ideally a timelock on admin setters).
+- **Permissionless mint.** `MockStablecoin.mint` is open to anyone, so the guarded "funds" are
+  valueless faucet tokens — which is what bounds the SPOF risk on testnet. A real deployment
+  uses real assets and this guarantee disappears.
+
 ### Cast
 
 ```shell
