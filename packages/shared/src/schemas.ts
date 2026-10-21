@@ -26,31 +26,31 @@ export const CreateCampaignSchema = z
   .strict();
 export type CreateCampaign = z.infer<typeof CreateCampaignSchema>;
 
-export const CampaignResponseSchema = z.object({
-  campaignId: Bytes32Schema,
-  type: CampaignType,
-  cause: z.string(),
-  name: z.string().nullable(),
-  country: z.string().nullable(),
-  releaseType: ReleaseType,
-  recipientOrg: z.string().nullable(),
-  active: z.boolean(),
-  registeredOnChain: z.boolean(),
-  createdAt: z.string(),
-});
-export type CampaignResponse = z.infer<typeof CampaignResponseSchema>;
+// Response contracts are plain types (not runtime zod) — nothing re-validates a
+// response, so only the type is consumed (by the service mappers + the web app).
+export type CampaignResponse = {
+  campaignId: string;
+  type: CampaignType;
+  cause: string;
+  name: string | null;
+  country: string | null;
+  releaseType: ReleaseType;
+  recipientOrg: string | null;
+  active: boolean;
+  registeredOnChain: boolean;
+  createdAt: string;
+};
 
 // ------------------------------- Rail ----------------------------------------
-export const RailResponseSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  country: z.string(),
-  feeBps: z.number().int(),
-  liquidity: z.string(),
-  etaMinutes: z.number().int(),
-  active: z.boolean(),
-});
-export type RailResponse = z.infer<typeof RailResponseSchema>;
+export type RailResponse = {
+  id: string;
+  name: string;
+  country: string;
+  feeBps: number;
+  liquidity: string;
+  etaMinutes: number;
+  active: boolean;
+};
 
 // ----------------------------- Donation --------------------------------------
 export const CreateDonationSchema = z
@@ -70,20 +70,19 @@ export const CreateDonationSchema = z
 export type CreateDonation = z.infer<typeof CreateDonationSchema>;
 
 // consentHash is intentionally ABSENT — never returned by the API.
-export const DonationResponseSchema = z.object({
-  txHash: TxHashSchema,
-  logIndex: z.number().int(),
-  blockNumber: z.string().nullable(),
-  donor: AddressSchema,
-  campaignId: Bytes32Schema,
-  stablecoin: AddressSchema,
-  amountIn: DecimalStringSchema,
-  baseOut: DecimalStringSchema,
-  status: DonationStatus,
-  createdAt: z.string(),
-  confirmedAt: z.string().nullable(),
-});
-export type DonationResponse = z.infer<typeof DonationResponseSchema>;
+export type DonationResponse = {
+  txHash: string;
+  logIndex: number;
+  blockNumber: string | null;
+  donor: string;
+  campaignId: string;
+  stablecoin: string;
+  amountIn: string;
+  baseOut: string;
+  status: DonationStatus;
+  createdAt: string;
+  confirmedAt: string | null;
+};
 
 // ------------------------------ Payout ---------------------------------------
 export const CreatePayoutSchema = z
@@ -100,34 +99,32 @@ export const CreatePayoutSchema = z
   .strict();
 export type CreatePayout = z.infer<typeof CreatePayoutSchema>;
 
-export const PayoutResponseSchema = z.object({
-  payoutId: Bytes32Schema,
-  campaignId: Bytes32Schema,
-  beneficiary: AddressSchema,
-  usdcAmount: DecimalStringSchema,
-  rail: z.string().nullable(),
-  feeBpsCovered: z.number().int().nullable(),
-  rationale: z.string().nullable(),
-  fallbackUsed: z.boolean().nullable(),
-  status: PayoutStatus,
-  unlockTime: z.string().nullable(),
-  releasedTxHash: TxHashSchema.nullable(),
-  routedTxHash: TxHashSchema.nullable(),
-  createdAt: z.string(),
-});
-export type PayoutResponse = z.infer<typeof PayoutResponseSchema>;
+export type PayoutResponse = {
+  payoutId: string;
+  campaignId: string;
+  beneficiary: string;
+  usdcAmount: string;
+  rail: string | null;
+  feeBpsCovered: number | null;
+  rationale: string | null;
+  fallbackUsed: boolean | null;
+  status: PayoutStatus;
+  unlockTime: string | null;
+  releasedTxHash: string | null;
+  routedTxHash: string | null;
+  createdAt: string;
+};
 
 // ------------------------------ Ledger ---------------------------------------
-export const LedgerEntrySchema = z.object({
-  kind: z.enum(["donation", "payout", "lifecycle"]),
-  eventName: z.string(),
-  blockNumber: z.string().nullable(),
-  logIndex: z.number().int().nullable(),
-  txHash: TxHashSchema.nullable(),
-  campaignId: Bytes32Schema.nullable(),
-  campaignName: z.string().nullable(),
-  status: z.string(),
-  payload: z.record(z.string(), z.unknown()),
-  createdAt: z.string(),
-});
-export type LedgerEntry = z.infer<typeof LedgerEntrySchema>;
+export type LedgerEntry = {
+  kind: "donation" | "payout" | "lifecycle";
+  eventName: string;
+  blockNumber: string | null;
+  logIndex: number | null;
+  txHash: string | null;
+  campaignId: string | null;
+  campaignName: string | null;
+  status: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+};
