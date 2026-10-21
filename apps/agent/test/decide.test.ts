@@ -45,6 +45,11 @@ describe("decideOffRamp", () => {
     const res = await decideOffRamp({ ...req, candidates: [rail("Dup", 1), rail("Dup", 2)] }, deps);
     expect(res).toEqual({ ok: false, reason: "duplicate" });
   });
+  it("rejects supplied candidates whose country doesn't match the request", async () => {
+    const { deps } = makeDeps();
+    const res = await decideOffRamp({ ...req, candidates: [rail("Wise", 30, { country: "US" })] }, deps);
+    expect(res).toEqual({ ok: false, reason: "country_mismatch" });
+  });
   it("propagates RailsUpstreamError without catching", async () => {
     const { deps } = makeDeps(async () => {
       throw new RailsUpstreamError("down");

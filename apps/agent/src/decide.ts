@@ -29,7 +29,18 @@ export type DecideResult =
  */
 export async function decideOffRamp(req: RouteRequest, deps: DecideDeps): Promise<DecideResult> {
   const { amountUsd, country } = req;
-  const candidates = req.candidates ?? (await deps.fetchRails(country));
+  let candidates: RailResponse[];
+  if (req.candidates) {
+    // Caller-supplied candidates must be for the requested country — otherwise the agent's
+    // decision stops being traceable to the right rail set. (Fetched rails are already
+    // country-scoped by the api, so this check applies only to the supplied path.)
+    if (req.candidates.some((c) => c.country !== country)) {
+      return { ok: false, reason: "country_mismatch" };
+    }
+    candidates = req.candidates;
+  } else {
+    candidates = await deps.fetchRails(country);
+  }
   const prep = prepareCandidates(candidates);
   if (!prep.ok) return { ok: false, reason: prep.reason };
   const result = await deps.route({ amountUsd, country, candidates: prep.candidates });

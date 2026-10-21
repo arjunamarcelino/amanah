@@ -20,10 +20,16 @@ const CLIENT_ERROR_TEXT: Record<number, string> = {
   429: "Too Many Requests",
 };
 
-// Candidate-rejection reason → human message (status is 422 for both).
-const REJECTION_MESSAGE: Record<RouteRejectionReason, string> = {
-  empty: "No candidate rails",
-  duplicate: "Duplicate rail names",
+// Candidate-rejection reason → HTTP response. Semantic "can't process" cases are 422;
+// a country mismatch is malformed input (400).
+const REJECTION: Record<RouteRejectionReason, { code: number; error: string; message: string }> = {
+  empty: { code: 422, error: "Unprocessable Entity", message: "No candidate rails" },
+  duplicate: { code: 422, error: "Unprocessable Entity", message: "Duplicate rail names" },
+  country_mismatch: {
+    code: 400,
+    error: "Bad Request",
+    message: "Candidate country does not match the request country",
+  },
 };
 
 export interface AppDeps {
@@ -88,11 +94,8 @@ export async function buildApp(
         route: deps.route,
       });
       if (!decision.ok) {
-        return reply.code(422).send({
-          statusCode: 422,
-          error: "Unprocessable Entity",
-          message: REJECTION_MESSAGE[decision.reason],
-        });
+        const r = REJECTION[decision.reason];
+        return reply.code(r.code).send({ statusCode: r.code, error: r.error, message: r.message });
       }
 
       const { result, candidateCount } = decision;

@@ -109,6 +109,22 @@ describe("POST /route — rejections (router never called)", () => {
     });
     expect(res.statusCode).toBe(422);
   });
+  it("400 when a supplied candidate's country doesn't match the request", async () => {
+    const { app, route } = await makeApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/route",
+      headers: auth,
+      payload: {
+        ...body,
+        candidates: [
+          { id: "x", name: "Wise", country: "US", feeBps: 30, liquidity: "high", etaMinutes: 10, active: true },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(route).not.toHaveBeenCalled();
+  });
   it("502 when the rails upstream fails", async () => {
     const { app, route, fetchRails } = await makeApp();
     fetchRails.mockRejectedValueOnce(new RailsUpstreamError("down"));

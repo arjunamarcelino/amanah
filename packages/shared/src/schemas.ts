@@ -111,7 +111,7 @@ export type RouteResponse = {
 
 // Why a route request was rejected before reaching the model. Shared so the HTTP handler
 // and a future MCP tool map the same named reasons to their own transport (status / isError).
-export type RouteRejectionReason = "empty" | "duplicate";
+export type RouteRejectionReason = "empty" | "duplicate" | "country_mismatch";
 
 // ----------------------------- Donation --------------------------------------
 export const CreateDonationSchema = z
