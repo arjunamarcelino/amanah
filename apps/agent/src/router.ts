@@ -1,7 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import type { RailResponse, RouteResponse, FallbackReason } from "@amanah/shared";
+import type {
+  RailResponse,
+  RouteResponse,
+  FallbackReason,
+  RouteRejectionReason,
+} from "@amanah/shared";
 import { MAX_CANDIDATES } from "./constants.js";
 
 const FALLBACK_RATIONALE =
@@ -51,7 +56,7 @@ const byFeeThenName = (a: RailResponse, b: RailResponse): number =>
  *  future MCP tool reuses it verbatim and maps the failure reason to its own protocol. */
 export function prepareCandidates(
   rails: RailResponse[],
-): { ok: true; candidates: RailResponse[] } | { ok: false; reason: "empty" | "duplicate" } {
+): { ok: true; candidates: RailResponse[] } | { ok: false; reason: RouteRejectionReason } {
   const active = rails.filter((r) => r.active);
   if (active.length === 0) return { ok: false, reason: "empty" };
   if (new Set(active.map((r) => r.name)).size !== active.length) {

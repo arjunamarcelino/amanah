@@ -109,6 +109,10 @@ export type RouteResponse = {
   fallbackReason?: FallbackReason;
 };
 
+// Why a route request was rejected before reaching the model. Shared so the HTTP handler
+// and a future MCP tool map the same named reasons to their own transport (status / isError).
+export type RouteRejectionReason = "empty" | "duplicate";
+
 // ----------------------------- Donation --------------------------------------
 export const CreateDonationSchema = z
   .object({

@@ -1,9 +1,14 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from "fastify";
 import rateLimit from "@fastify/rate-limit";
-import { RouteRequestSchema, type RailResponse, type RouteResponse } from "@amanah/shared";
-import { prepareCandidates } from "./router.js";
+import {
+  RouteRequestSchema,
+  type RailResponse,
+  type RouteResponse,
+  type RouteRejectionReason,
+} from "@amanah/shared";
 import { RailsUpstreamError } from "./rails-client.js";
+import { decideOffRamp } from "./decide.js";
 
 // Generic reason phrases for client-error statuses Fastify/plugins may raise, so the error
 // envelope never surfaces a framework-internal message string.
@@ -13,6 +18,12 @@ const CLIENT_ERROR_TEXT: Record<number, string> = {
   413: "Payload Too Large",
   422: "Unprocessable Entity",
   429: "Too Many Requests",
+};
+
+// Candidate-rejection reason → human message (status is 422 for both).
+const REJECTION_MESSAGE: Record<RouteRejectionReason, string> = {
+  empty: "No candidate rails",
+  duplicate: "Duplicate rail names",
 };
 
 export interface AppDeps {
@@ -69,26 +80,29 @@ export async function buildApp(
           issues: parsed.error.issues.map((i) => ({ path: i.path, message: i.message })),
         });
       }
-      const { amountUsd, country } = parsed.data;
-
-      // fetchRails throws RailsUpstreamError (statusCode 502) → handled by setErrorHandler.
-      const fetched = parsed.data.candidates ?? (await deps.fetchRails(country));
-
-      const prep = prepareCandidates(fetched);
-      if (!prep.ok) {
-        const message = prep.reason === "empty" ? "No candidate rails" : "Duplicate rail names";
-        return reply.code(422).send({ statusCode: 422, error: "Unprocessable Entity", message });
+      const startedAt = performance.now();
+      // decideOffRamp owns the transport-agnostic orchestration (resolve → prepare → route);
+      // fetchRails inside it may throw RailsUpstreamError → 502 via setErrorHandler.
+      const decision = await decideOffRamp(parsed.data, {
+        fetchRails: deps.fetchRails,
+        route: deps.route,
+      });
+      if (!decision.ok) {
+        return reply.code(422).send({
+          statusCode: 422,
+          error: "Unprocessable Entity",
+          message: REJECTION_MESSAGE[decision.reason],
+        });
       }
 
-      const startedAt = performance.now();
-      const result = await deps.route({ amountUsd, country, candidates: prep.candidates });
+      const { result, candidateCount } = decision;
       // Observability without PII: no raw amountUsd, no full candidate set, no body.
       req.log.info(
         {
           pathServed: result.fallbackUsed ? "fallback" : "model",
           fallbackReason: result.fallbackReason,
           chosenRail: result.chosenRail,
-          candidateCount: prep.candidates.length,
+          candidateCount,
           routeMs: Math.round(performance.now() - startedAt),
         },
         "route decision",
