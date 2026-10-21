@@ -7,6 +7,10 @@ import { MAX_CANDIDATES } from "./constants.js";
 const FALLBACK_RATIONALE =
   "Chose the lowest-fee option so more of your donation reaches the recipient.";
 const MAX_RATIONALE_CHARS = 500;
+// Output cap. Kept well above the ~125-token rationale because adaptive thinking shares
+// this budget (effort:low → shallow), but far below the old 2048 so a degenerate
+// completion can't run up worst-case generation latency/cost.
+const MAX_OUTPUT_TOKENS = 1024;
 
 /** Drop ASCII control characters (codepoint < 0x20, plus DEL 0x7F) from untrusted model
  *  text — strips newlines/escape sequences without touching normal punctuation. */
@@ -104,7 +108,7 @@ export async function routeOffRamp(
     const res = await client.messages.parse(
       {
         model: "claude-opus-4-8",
-        max_tokens: 2048,
+        max_tokens: MAX_OUTPUT_TOKENS,
         thinking: { type: "adaptive" },
         output_config: { effort: "low", format: zodOutputFormat(RouteOutputSchema) },
         messages: [{ role: "user", content: buildPrompt(input, candidates) }],
