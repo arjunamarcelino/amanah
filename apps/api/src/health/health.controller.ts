@@ -1,9 +1,15 @@
 import { Controller, Get, ServiceUnavailableException } from "@nestjs/common";
 import { PrismaService } from "../core/prisma/prisma.service";
 
+const ORPHAN_TTL_MS = 60_000;
+
 @Controller("health")
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
+
+  // Cache the (full-scan) orphan anti-join so frequent liveness probes don't each
+  // pay for it — recompute at most once per TTL.
+  private orphanCache: { value: number; at: number } | null = null;
 
   @Get()
   async check() {
@@ -14,7 +20,7 @@ export class HealthController {
     }
 
     const cursor = await this.prisma.indexerCursor.findFirst({ orderBy: { updatedAt: "desc" } });
-    const orphanDonationCampaigns = await this.countOrphanDonationCampaigns();
+    const orphanDonationCampaigns = await this.cachedOrphanCount();
 
     return {
       status: "ok",
@@ -31,6 +37,16 @@ export class HealthController {
       // Donations whose campaignId has no Campaign row (FK is non-enforced on purpose).
       orphanDonationCampaigns,
     };
+  }
+
+  private async cachedOrphanCount(): Promise<number> {
+    const now = Date.now();
+    if (this.orphanCache && now - this.orphanCache.at < ORPHAN_TTL_MS) {
+      return this.orphanCache.value;
+    }
+    const value = await this.countOrphanDonationCampaigns();
+    this.orphanCache = { value, at: now };
+    return value;
   }
 
   private async countOrphanDonationCampaigns(): Promise<number> {
