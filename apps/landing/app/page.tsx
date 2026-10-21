@@ -1,10 +1,29 @@
+import { Wordmark } from "@/components/wordmark";
+import { Hero } from "@/components/sections/hero";
+import { Problem } from "@/components/sections/problem";
+import { Causes } from "@/components/sections/causes";
+import { Features } from "@/components/sections/features";
+import { WhyWeb3 } from "@/components/sections/why-web3";
+import { Compliance } from "@/components/sections/compliance";
+import { Footer } from "@/components/sections/footer";
+
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-4 p-8 text-center">
-      <h1 className="text-4xl font-bold tracking-tight">Amanah</h1>
-      <p className="text-lg text-gray-600">
-        Transparent, on-chain charitable disaster relief. Coming soon.
-      </p>
-    </main>
+    <>
+      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-[69rem] items-center px-[clamp(1.25rem,5vw,3rem)]">
+          <Wordmark />
+        </div>
+      </header>
+      <main>
+        <Hero />
+        <Problem />
+        <Causes />
+        <Features />
+        <WhyWeb3 />
+        <Compliance />
+      </main>
+      <Footer />
+    </>
   );
 }
