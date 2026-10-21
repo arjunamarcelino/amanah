@@ -47,15 +47,23 @@ export interface PendingDonationInput {
   consentHash: string;
 }
 
-/** API optimistic write. Never touches a non-pending row (one-way ratchet). */
+/**
+ * API optimistic write. Never touches a non-pending row (one-way ratchet), and
+ * is a no-op once the tx has a confirmed row (the NOT EXISTS guard) so a late POST
+ * can't resurrect a pending duplicate of an already-confirmed donation. The
+ * optimistic row is posted at `logIndex ?? 0`; the indexer later fuses it by txHash
+ * (see confirmDonation) and corrects the real on-chain logIndex.
+ */
 export function upsertPendingDonation(db: Executor, i: PendingDonationInput): Promise<number> {
   const logIndex = i.logIndex ?? 0;
   return db.$executeRaw`
     INSERT INTO "DonationLog"
       ("id","txHash","logIndex","donor","campaignId","stablecoin","amountIn","baseOut","consentHash","status","createdAt")
-    VALUES
-      (${randomUUID()}, ${i.txHash}, ${logIndex}, ${i.donor}, ${i.campaignId}, ${i.stablecoin},
-       ${i.amountIn}::numeric, ${i.baseOut}::numeric, ${i.consentHash}, 'pending', now())
+    SELECT ${randomUUID()}, ${i.txHash}, ${logIndex}, ${i.donor}, ${i.campaignId}, ${i.stablecoin},
+       ${i.amountIn}::numeric, ${i.baseOut}::numeric, ${i.consentHash}, 'pending', now()
+    WHERE NOT EXISTS (
+      SELECT 1 FROM "DonationLog" c WHERE c."txHash" = ${i.txHash} AND c."status" = 'confirmed'
+    )
     ON CONFLICT ("txHash","logIndex") DO UPDATE SET
       "donor" = EXCLUDED."donor",
       "campaignId" = EXCLUDED."campaignId",
@@ -80,12 +88,42 @@ export interface ConfirmDonationInput {
 }
 
 /**
- * Indexer confirm. Flips a matching pending row to confirmed, OR inserts directly
- * as confirmed when the donation was sent outside the web app. Idempotent: the
- * WHERE guard + COALESCE(confirmedAt) make a replay a true no-op.
+ * Indexer confirm. Fuses the optimistic pending row into the confirmed row:
+ *
+ *  1. UPDATE the (single, lowest-logIndex) pending row for this txHash, correcting
+ *     it to the REAL on-chain logIndex and flipping it to confirmed. The optimistic
+ *     POST almost never knows the real logIndex (it posts 0), and a real donation
+ *     tx emits ERC-20/swap logs before Donated, so a plain ON CONFLICT(txHash,logIndex)
+ *     would never match — this fuse-by-txHash is what actually ratchets the row.
+ *     The NOT EXISTS guard prevents colliding with an already-confirmed sibling.
+ *  2. If no pending row was fused (donation sent outside the web app, or already
+ *     fused), INSERT directly as confirmed, idempotent on replay via ON CONFLICT.
  */
-export function confirmDonation(db: Executor, i: ConfirmDonationInput): Promise<number> {
-  return db.$executeRaw`
+export async function confirmDonation(db: Executor, i: ConfirmDonationInput): Promise<void> {
+  const fused = await db.$executeRaw`
+    UPDATE "DonationLog" SET
+      "status" = 'confirmed',
+      "logIndex" = ${i.logIndex},
+      "blockNumber" = ${i.blockNumber},
+      "donor" = ${i.donor},
+      "campaignId" = ${i.campaignId},
+      "stablecoin" = ${i.stablecoin},
+      "amountIn" = ${i.amountIn}::numeric,
+      "baseOut" = ${i.baseOut}::numeric,
+      "consentHash" = ${i.consentHash},
+      "confirmedAt" = COALESCE("confirmedAt", now())
+    WHERE "id" = (
+      SELECT "id" FROM "DonationLog"
+      WHERE "txHash" = ${i.txHash} AND "status" = 'pending'
+      ORDER BY "logIndex" ASC LIMIT 1
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM "DonationLog" c WHERE c."txHash" = ${i.txHash} AND c."status" = 'confirmed'
+    )
+  `;
+  if (fused > 0) return;
+
+  await db.$executeRaw`
     INSERT INTO "DonationLog"
       ("id","txHash","logIndex","blockNumber","donor","campaignId","stablecoin","amountIn","baseOut","consentHash","status","createdAt","confirmedAt")
     VALUES
@@ -94,12 +132,6 @@ export function confirmDonation(db: Executor, i: ConfirmDonationInput): Promise<
     ON CONFLICT ("txHash","logIndex") DO UPDATE SET
       "status" = 'confirmed',
       "blockNumber" = EXCLUDED."blockNumber",
-      "donor" = EXCLUDED."donor",
-      "campaignId" = EXCLUDED."campaignId",
-      "stablecoin" = EXCLUDED."stablecoin",
-      "amountIn" = EXCLUDED."amountIn",
-      "baseOut" = EXCLUDED."baseOut",
-      "consentHash" = EXCLUDED."consentHash",
       "confirmedAt" = COALESCE("DonationLog"."confirmedAt", now())
     WHERE "DonationLog"."status" <> 'confirmed'
   `;
