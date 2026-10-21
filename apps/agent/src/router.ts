@@ -33,6 +33,8 @@ const RouteOutputSchema = z.object({
   chosenRail: z.string(),
   rationale: z.string(),
 });
+// Hoisted: the schema is static, so convert to the SDK format once at module load.
+const ROUTE_OUTPUT_FORMAT = zodOutputFormat(RouteOutputSchema);
 
 const byFeeThenName = (a: RailResponse, b: RailResponse): number =>
   a.feeBps - b.feeBps || a.name.localeCompare(b.name);
@@ -110,7 +112,7 @@ export async function routeOffRamp(
         model: "claude-opus-4-8",
         max_tokens: MAX_OUTPUT_TOKENS,
         thinking: { type: "adaptive" },
-        output_config: { effort: "low", format: zodOutputFormat(RouteOutputSchema) },
+        output_config: { effort: "low", format: ROUTE_OUTPUT_FORMAT },
         messages: [{ role: "user", content: buildPrompt(input, candidates) }],
       },
       { timeout: opts.timeoutMs },
