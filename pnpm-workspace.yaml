@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Single-source version pins so every package resolves the SAME physical install.
+# Critical for zod: nestjs-zod relies on `instanceof z.ZodType`, which only holds
+# when api, indexer and @amanah/shared share one zod instance.
+catalog:
+  zod: ^4.0.0
+  viem: ^2.21.0

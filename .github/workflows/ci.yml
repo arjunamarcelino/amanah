@@ -21,8 +21,8 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Build + lint (contracts build/test run in the contracts job)
-        run: pnpm turbo run build lint --filter=!@amanah/contracts
+      - name: Build + lint + test + check:exports (contracts run in the contracts job)
+        run: pnpm turbo run build lint test check:exports --filter=!@amanah/contracts
 
   contracts:
     runs-on: ubuntu-latest

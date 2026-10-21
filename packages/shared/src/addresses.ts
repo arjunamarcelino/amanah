@@ -26,3 +26,6 @@ export const ADDRESSES = {
     PayoutRouter: "0xC3F5Efd3128a61CC65f6d3B1237b7423D3082bDA",
   },
 } as const satisfies Record<number, Record<ContractAddressKey, Address>>;
+
+/** Block the contracts were deployed at — the offchain indexer backfill start. */
+export const START_BLOCK = 48377014;

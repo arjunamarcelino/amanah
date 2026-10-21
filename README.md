@@ -11,6 +11,7 @@ apps/
   web/       @amanah/web      — Next.js dApp (donor flow, console, ledger)
   landing/   @amanah/landing  — marketing site (static)
   api/       @amanah/api      — NestJS REST API, offchain operational data only
+  indexer/   @amanah/indexer  — viem worker mirroring on-chain events into Postgres
   agent/     @amanah/agent    — Fastify AI off-ramp router (Claude)
 packages/
   contracts/ @amanah/contracts — Foundry (Solidity) smart contracts
