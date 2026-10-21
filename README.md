@@ -36,4 +36,4 @@ cd packages/contracts && forge build && forge test
 
 ## Deployments (TBD)
 
-Docker on a VPS (not Vercel). Each app ships its own Dockerfile; `docker-compose.yml` orchestrates all services + Postgres behind a Caddy reverse proxy (subdomains for landing / app / api / agent). URLs to be filled in once provisioned.
+Docker on a VPS (not Vercel). Each app ships its own Dockerfile; `docker-compose.yml` orchestrates all services + Postgres behind a Caddy reverse proxy (subdomains for landing / app / api). The off-ramp agent is **internal-only** — reached by api/web over the compose network behind a shared-secret bearer gate (`AGENT_SHARED_SECRET`), never publicly proxied, since every `/route` call makes a paid Claude request. URLs to be filled in once provisioned.
