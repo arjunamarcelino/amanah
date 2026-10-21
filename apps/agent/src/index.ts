@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import closeWithGrace from "close-with-grace";
 import { config } from "./config.js";
-import { CLAUDE_TIMEOUT_MS, RAILS_FETCH_TIMEOUT_MS } from "./constants.js";
+import { CLAUDE_TIMEOUT_MS, RAILS_FETCH_TIMEOUT_MS, SHUTDOWN_MARGIN_MS } from "./constants.js";
 import { buildApp } from "./app.js";
 import { fetchRails } from "./rails-client.js";
 import { routeOffRamp } from "./router.js";
@@ -24,9 +24,10 @@ const app = await buildApp(
   { logger: { redact: ["req.headers.authorization", "*.apiKey", "*.api_key"] } },
 );
 
-// delay ≥ worst-case handler (rails 5s + claude 15s = 20s with maxRetries:0) so SIGTERM
-// drains an in-flight routing decision instead of killing it mid-inference.
-closeWithGrace({ delay: CLAUDE_TIMEOUT_MS + 5_000 }, async ({ err }) => {
+// delay > worst-case handler (rails + claude, with maxRetries:0) + margin, so SIGTERM
+// drains an in-flight routing decision instead of killing it mid-inference under load.
+const SHUTDOWN_DELAY_MS = RAILS_FETCH_TIMEOUT_MS + CLAUDE_TIMEOUT_MS + SHUTDOWN_MARGIN_MS;
+closeWithGrace({ delay: SHUTDOWN_DELAY_MS }, async ({ err }) => {
   if (err) app.log.error({ err }, "shutdown after error");
   await app.close();
 });
