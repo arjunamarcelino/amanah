@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
+import type { Campaign } from "@amanah/db";
 import { CampaignsService } from "../src/campaigns/campaigns.service";
+import type { PrismaService } from "../src/core/prisma/prisma.service";
 
-const dbRow = (campaignId: string) => ({
+// Typed as Campaign so a model-shape drift fails this test.
+const dbRow = (campaignId: string): Campaign => ({
   id: "c1",
   campaignId,
   type: "disaster",
@@ -19,7 +22,7 @@ const dbRow = (campaignId: string) => ({
 function makeService() {
   const executeRaw = vi.fn(async () => 1);
   const findUnique = vi.fn(async (args: { where: { campaignId: string } }) => dbRow(args.where.campaignId));
-  const prisma = { $executeRaw: executeRaw, campaign: { findUnique } } as never;
+  const prisma = { $executeRaw: executeRaw, campaign: { findUnique } } as unknown as PrismaService;
   return { service: new CampaignsService(prisma), executeRaw, findUnique };
 }
 

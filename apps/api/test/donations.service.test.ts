@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { Prisma } from "@amanah/db";
+import { Prisma, type DonationLog } from "@amanah/db";
 import { toDonationResponse } from "../src/donations/donations.service";
 
-const row = {
+// Typed as DonationLog (not `as never`) so a model-shape drift fails this test.
+const row: DonationLog = {
   id: "d1",
   txHash: "0xabc",
   logIndex: 0,
@@ -20,13 +21,13 @@ const row = {
 
 describe("toDonationResponse", () => {
   it("NEVER leaks consentHash", () => {
-    const res = toDonationResponse(row as never);
+    const res = toDonationResponse(row);
     expect(res).not.toHaveProperty("consentHash");
     expect(JSON.stringify(res)).not.toContain("secretcommitment");
   });
 
   it("serializes Decimal and bigint as exact strings", () => {
-    const res = toDonationResponse(row as never);
+    const res = toDonationResponse(row);
     expect(res.amountIn).toBe("1000000");
     expect(res.baseOut).toBe("999999");
     expect(res.blockNumber).toBe("48377014");
