@@ -14,26 +14,15 @@
 // Prisma.TransactionClient (the indexer wraps a whole block-range chunk in one tx).
 
 import { randomUUID } from "node:crypto";
-import type { PrismaClient, Prisma, PayoutStatus } from "./generated/client";
+import type { PrismaClient, Prisma } from "./generated/client";
 
 /** A PrismaClient or an interactive-transaction client — both expose $executeRaw. */
 export type Executor = Pick<PrismaClient, "$executeRaw"> | Prisma.TransactionClient;
 
-/**
- * Pure mirror of the SQL `status` CASE. Single source of truth for the derived
- * payout status; the raw statements below compute the same from the fact columns.
- * Rank: pending < released < routed; cancelled is terminal.
- */
-export function derivePayoutStatus(facts: {
-  releasedTxHash: string | null;
-  routedTxHash: string | null;
-  cancelledAt: Date | null;
-}): PayoutStatus {
-  if (facts.cancelledAt !== null) return "cancelled";
-  if (facts.routedTxHash !== null) return "routed";
-  if (facts.releasedTxHash !== null) return "released";
-  return "pending";
-}
+// NOTE: payout `status` is derived entirely by the SQL CASE expressions in
+// applyTrancheReleased/applyRouted/applyPendingCancelled below and read from the
+// stored column. There is deliberately no TS mirror — a parallel copy would only
+// risk silently drifting from the SQL (it couldn't verify it).
 
 // ----------------------------- Donations -------------------------------------
 
