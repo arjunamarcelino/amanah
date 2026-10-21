@@ -124,6 +124,8 @@ export async function routeOffRamp(
       {
         model: "claude-opus-4-8",
         max_tokens: MAX_OUTPUT_TOKENS,
+        // Intentional pairing: adaptive lets Claude decide when to think; effort:low keeps
+        // it shallow for this single-pick decision (both are valid together on opus-4-8).
         thinking: { type: "adaptive" },
         output_config: { effort: "low", format: ROUTE_OUTPUT_FORMAT },
         messages: [{ role: "user", content: buildPrompt(input, candidates) }],
