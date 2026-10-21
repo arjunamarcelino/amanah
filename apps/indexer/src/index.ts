@@ -22,7 +22,8 @@ async function main(): Promise<void> {
   while (!shuttingDown) {
     try {
       const head = await publicClient.getBlockNumber();
-      const safeHead = head - config.confirmations; // reorg bound
+      // reorg bound, clamped so a very fresh chain can't underflow to a negative bigint
+      const safeHead = head > config.confirmations ? head - config.confirmations : 0n;
       if (safeHead >= from) {
         await backfill(from, safeHead, handleChunk);
         from = safeHead + 1n;

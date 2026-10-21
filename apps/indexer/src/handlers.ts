@@ -5,6 +5,7 @@ import {
   applyTrancheReleased,
   confirmDonation,
   upsertCampaignChainState,
+  upsertPendingPayout,
 } from "@amanah/db";
 import { normalizeHex, releaseTypeFromOrdinal } from "@amanah/shared";
 import { prisma } from "./db.js";
@@ -112,6 +113,18 @@ async function projectTypedRow(tx: Prisma.TransactionClient, log: IndexerLog): P
       });
       break;
 
+    case "PendingSet":
+      // Create a pending payout row so a later PendingCancelled (which carries no
+      // beneficiary/amount) always has a row to transition. No-op if the row is
+      // already released/routed (upsertPendingPayout only fills a pending row).
+      await upsertPendingPayout(tx, {
+        payoutId: argHex(args, "payoutId"),
+        campaignId: argHex(args, "campaignId"),
+        beneficiary: argHex(args, "beneficiary"),
+        usdcAmount: argBig(args, "amount").toString(),
+      });
+      break;
+
     case "PendingCancelled":
       await applyPendingCancelled(tx, argHex(args, "payoutId"));
       break;
@@ -125,8 +138,8 @@ async function projectTypedRow(tx: Prisma.TransactionClient, log: IndexerLog): P
       break;
 
     default:
-      // Lifecycle (TriggerFired/MilestoneApproved/TriggerRevoked), config and
-      // PendingSet events are captured in EventIndex only — no typed projection.
+      // Lifecycle (TriggerFired/MilestoneApproved/TriggerRevoked) and config
+      // events are captured in EventIndex only — no typed projection.
       break;
   }
 }
