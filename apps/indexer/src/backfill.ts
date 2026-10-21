@@ -4,7 +4,11 @@ import { config } from "./config.js";
 import { WATCHED_ADDRESSES, EVENT_ABIS } from "./contracts.js";
 import { halve, isRangeOrResultCap, nextChunkEnd, regrow } from "./chunker.js";
 
-export type IndexerLog = Log<bigint, number, false>;
+// getLogs with `events` decodes matched logs, attaching eventName + args.
+export type IndexerLog = Log<bigint, number, false> & {
+  eventName?: string;
+  args?: Record<string, unknown>;
+};
 
 /** Called once per processed chunk (even when `logs` is empty, so the cursor advances). */
 export type ChunkHandler = (logs: IndexerLog[], toBlock: bigint) => Promise<void>;
