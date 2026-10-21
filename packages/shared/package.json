@@ -24,12 +24,16 @@
     "dist"
   ],
   "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "check:exports": "attw --pack . && publint",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -38,7 +42,9 @@
   },
   "devDependencies": {
     "@amanah/config": "workspace:*",
+    "@arethetypeswrong/cli": "^0.18.1",
     "eslint": "^9.17.0",
+    "publint": "^0.3.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"

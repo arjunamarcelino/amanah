@@ -56,6 +56,14 @@ describe("campaignIdFromSlug", () => {
   it("differs per slug", () => {
     expect(campaignIdFromSlug("a")).not.toBe(campaignIdFromSlug("b"));
   });
+
+  // Locked vector — MUST match the Solidity keccak256(bytes("ph-typhoon-2025"))
+  // asserted in packages/contracts/test/SlugParity.t.sol (cross-language parity).
+  it("matches the on-chain keccak256 preimage (locked vector)", () => {
+    expect(campaignIdFromSlug("ph-typhoon-2025")).toBe(
+      "0xbf7a34a4229c6d591cdbe7c0bb1287e840a73126b5758d58ae14f270ab9913d2",
+    );
+  });
 });
 
 describe("ReleaseType ordinal mapping", () => {
