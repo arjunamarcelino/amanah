@@ -1,6 +1,12 @@
 import type { Prisma } from "@amanah/db";
-import { confirmDonation } from "@amanah/db";
-import { normalizeHex } from "@amanah/shared";
+import {
+  applyPendingCancelled,
+  applyRouted,
+  applyTrancheReleased,
+  confirmDonation,
+  upsertCampaignChainState,
+} from "@amanah/db";
+import { normalizeHex, releaseTypeFromOrdinal } from "@amanah/shared";
 import { prisma } from "./db.js";
 import { commitCursor } from "./cursor.js";
 import { isWatchedAddress } from "./contracts.js";
@@ -46,8 +52,46 @@ async function projectTypedRow(tx: Prisma.TransactionClient, log: IndexerLog): P
         consentHash: normalizeHex(String(args.consentHash)),
       });
       break;
+
+    case "TrancheReleased":
+      await applyTrancheReleased(tx, {
+        payoutId: normalizeHex(String(args.payoutId)),
+        campaignId: normalizeHex(String(args.campaignId)),
+        beneficiary: normalizeHex(String(args.beneficiary)),
+        usdcAmount: String(args.usdcAmount),
+        unlockTime: args.unlockTime as bigint,
+        releasedTxHash: normalizeHex(String(log.transactionHash)),
+      });
+      break;
+
+    case "Routed":
+      await applyRouted(tx, {
+        payoutId: normalizeHex(String(args.payoutId)),
+        campaignId: normalizeHex(String(args.campaignId)),
+        beneficiary: normalizeHex(String(args.beneficiary)),
+        usdcAmount: String(args.usdcAmount),
+        rail: String(args.rail),
+        feeBpsCovered: Number(args.feeBpsCovered),
+        rationale: String(args.rationale),
+        routedTxHash: normalizeHex(String(log.transactionHash)),
+      });
+      break;
+
+    case "PendingCancelled":
+      await applyPendingCancelled(tx, normalizeHex(String(args.payoutId)));
+      break;
+
+    case "CampaignRegistered":
+      await upsertCampaignChainState(tx, {
+        campaignId: normalizeHex(String(args.campaignId)),
+        releaseType: releaseTypeFromOrdinal(Number(args.releaseType)),
+        stubLabel: `on-chain ${String(args.campaignId).slice(0, 10)}`,
+      });
+      break;
+
     default:
-      // Non-donation events are captured in EventIndex; typed projection in C17b.
+      // Lifecycle (TriggerFired/MilestoneApproved/TriggerRevoked), config and
+      // PendingSet events are captured in EventIndex only — no typed projection.
       break;
   }
 }
