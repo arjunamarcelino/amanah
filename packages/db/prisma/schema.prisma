@@ -21,6 +21,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// NOTE: partial indexes (ON <table>(createdAt) WHERE status='pending') and the
+// amount >= 0 CHECK constraints cannot be expressed in Prisma PSL — they live only
+// in prisma/migrations/20261021000000_init/migration.sql (and are reapplied by
+// `prisma migrate reset`). If you recreate the schema from scratch, re-add them.
+
 /// Mirrors the on-chain IReleaseController.ReleaseType enum (ordinal order).
 enum ReleaseType {
   PARAMETRIC

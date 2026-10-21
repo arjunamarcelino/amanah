@@ -11,6 +11,10 @@ import { CampaignType, ReleaseType, DonationStatus, PayoutStatus } from "./enums
 // blockNumber, confirmedAt, registeredOnChain, released/routed txHashes) so a
 // client can never mass-assign its way past the confirmed-ratchet. Services
 // hard-code status='pending' on every POST path.
+//
+// NOTE: free-text fields (cause/name/recipientOrg/rationale) are validated for
+// shape/length only and stored verbatim. The web app MUST escape them on render —
+// combined with the unauthenticated write surface, they are a stored-XSS vector.
 
 // ----------------------------- Campaign --------------------------------------
 export const CreateCampaignSchema = z

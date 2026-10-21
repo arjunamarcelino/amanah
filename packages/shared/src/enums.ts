@@ -9,9 +9,10 @@ export const ReleaseType = z.enum(["PARAMETRIC", "MILESTONE"]);
 export type ReleaseType = z.infer<typeof ReleaseType>;
 
 /**
- * Index MUST match the Solidity enum's ordinal order. `as const satisfies`
- * makes a drift from the string-union a COMPILE error — so reordering the
- * Solidity enum can't silently mislabel every campaign.
+ * Index MUST match the Solidity enum's ordinal order. `as const satisfies` only
+ * checks MEMBERSHIP, not order — a reorder still compiles. The ordinal order is
+ * instead pinned by a runtime test (RELEASE_TYPE_LABEL equals the expected array)
+ * and the TS/Foundry keccak parity tests; keep those in sync with the contract.
  */
 export const RELEASE_TYPE_LABEL = [
   "PARAMETRIC",
