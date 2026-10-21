@@ -1,6 +1,6 @@
-import { Injectable } from "@nestjs/common";
-import { normalizeHex, type CampaignResponse, type CreateCampaign } from "@amanah/shared";
-import type { Campaign } from "@amanah/db";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { CampaignType, normalizeHex, type CampaignResponse, type CreateCampaign } from "@amanah/shared";
+import { upsertCampaignMetadata, type Campaign } from "@amanah/db";
 import { PrismaService } from "../core/prisma/prisma.service";
 import { toIso } from "../common/map";
 
@@ -17,25 +17,25 @@ export class CampaignsService {
   }
 
   /**
-   * Offchain metadata only — never registers on-chain. The `update` branch writes
-   * metadata exclusively, so it never clobbers the indexer-owned `registeredOnChain`
-   * / `active` columns.
+   * Offchain metadata only — never registers on-chain. Routed through the
+   * fill-when-absent repository upsert so an unauthenticated POST with a known
+   * (public) campaignId cannot overwrite a campaign's existing descriptive fields,
+   * never clobbers the indexer-owned registeredOnChain/releaseType, and always
+   * activates (active=true) regardless of whether an indexer stub pre-created the row.
    */
   async create(input: CreateCampaign): Promise<CampaignResponse> {
     const campaignId = normalizeHex(input.campaignId);
-    const metadata = {
+    await upsertCampaignMetadata(this.prisma, {
+      campaignId,
       type: input.type,
       cause: input.cause,
       name: input.name,
       country: input.country,
       releaseType: input.releaseType,
       recipientOrg: input.recipientOrg,
-    };
-    const row = await this.prisma.campaign.upsert({
-      where: { campaignId },
-      update: metadata,
-      create: { campaignId, ...metadata, active: true },
     });
+    const row = await this.prisma.campaign.findUnique({ where: { campaignId } });
+    if (!row) throw new NotFoundException("campaign not found after write");
     return toCampaignResponse(row);
   }
 }
@@ -43,7 +43,9 @@ export class CampaignsService {
 export function toCampaignResponse(c: Campaign): CampaignResponse {
   return {
     campaignId: c.campaignId,
-    type: c.type as CampaignResponse["type"],
+    // `type` is a free-form String column; validate at the boundary with a safe
+    // fallback rather than an unchecked cast (stub/legacy rows may be off-catalog).
+    type: CampaignType.catch("general").parse(c.type),
     cause: c.cause,
     name: c.name,
     country: c.country,

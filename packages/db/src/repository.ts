@@ -273,3 +273,42 @@ export function upsertCampaignChainState(db: Executor, i: CampaignChainStateInpu
       "updatedAt" = now()
   `;
 }
+
+export interface CampaignMetadataInput {
+  campaignId: string;
+  type: string;
+  cause: string;
+  name: string;
+  country: string;
+  releaseType: "PARAMETRIC" | "MILESTONE";
+  recipientOrg: string;
+}
+
+/**
+ * API campaign-metadata write (unauthenticated). FILL-WHEN-ABSENT: on conflict it
+ * only sets descriptive fields that are still null and never overwrites a field
+ * already set — so a POST with a known (public) campaignId can't deface a
+ * legitimate campaign's name/recipientOrg. `releaseType` is COALESCE'd (chain-owned;
+ * never overwritten), `registeredOnChain` is left to the indexer, and `active` is
+ * set true because an API write is the activation signal (fixes the "stub created
+ * active=false before metadata" ordering case). NOT-NULL `type`/`cause` are
+ * first-writer-wins via COALESCE.
+ */
+export function upsertCampaignMetadata(db: Executor, i: CampaignMetadataInput): Promise<number> {
+  return db.$executeRaw`
+    INSERT INTO "Campaign"
+      ("id","campaignId","type","cause","name","country","releaseType","recipientOrg","active","registeredOnChain","createdAt","updatedAt")
+    VALUES
+      (${randomUUID()}, ${i.campaignId}, ${i.type}, ${i.cause}, ${i.name}, ${i.country},
+       ${i.releaseType}::"ReleaseType", ${i.recipientOrg}, true, false, now(), now())
+    ON CONFLICT ("campaignId") DO UPDATE SET
+      "type" = COALESCE("Campaign"."type", EXCLUDED."type"),
+      "cause" = COALESCE("Campaign"."cause", EXCLUDED."cause"),
+      "name" = COALESCE("Campaign"."name", EXCLUDED."name"),
+      "country" = COALESCE("Campaign"."country", EXCLUDED."country"),
+      "releaseType" = COALESCE("Campaign"."releaseType", EXCLUDED."releaseType"),
+      "recipientOrg" = COALESCE("Campaign"."recipientOrg", EXCLUDED."recipientOrg"),
+      "active" = true,
+      "updatedAt" = now()
+  `;
+}

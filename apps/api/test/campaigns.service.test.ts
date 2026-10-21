@@ -1,52 +1,53 @@
 import { describe, it, expect, vi } from "vitest";
 import { CampaignsService } from "../src/campaigns/campaigns.service";
 
+const dbRow = (campaignId: string) => ({
+  id: "c1",
+  campaignId,
+  type: "disaster",
+  cause: "Typhoon relief",
+  name: "PH Typhoon",
+  country: "PH",
+  releaseType: "PARAMETRIC",
+  recipientOrg: "Relief Org",
+  active: true,
+  registeredOnChain: false,
+  createdAt: new Date("2026-10-21T00:00:00Z"),
+  updatedAt: new Date("2026-10-21T00:00:00Z"),
+});
+
 function makeService() {
-  const upsert = vi.fn(async (args: { create: Record<string, unknown> }) => ({
-    id: "c1",
-    campaignId: args.create.campaignId,
-    type: "disaster",
-    cause: "x",
-    name: "x",
-    country: "PH",
-    releaseType: "PARAMETRIC",
-    recipientOrg: "org",
-    active: true,
-    registeredOnChain: false,
-    createdAt: new Date("2026-10-21T00:00:00Z"),
-    updatedAt: new Date("2026-10-21T00:00:00Z"),
-  }));
-  const prisma = { campaign: { upsert } } as never;
-  return { service: new CampaignsService(prisma), upsert };
+  const executeRaw = vi.fn(async () => 1);
+  const findUnique = vi.fn(async (args: { where: { campaignId: string } }) => dbRow(args.where.campaignId));
+  const prisma = { $executeRaw: executeRaw, campaign: { findUnique } } as never;
+  return { service: new CampaignsService(prisma), executeRaw, findUnique };
 }
 
-describe("CampaignsService.create", () => {
-  const base = {
-    campaignId: "0x" + "A".repeat(64), // mixed-case input
-    type: "disaster" as const,
-    cause: "Typhoon relief",
-    name: "PH Typhoon",
-    country: "PH",
-    releaseType: "PARAMETRIC" as const,
-    recipientOrg: "Relief Org",
-  };
+const base = {
+  campaignId: "0x" + "A".repeat(64), // mixed-case input
+  type: "disaster" as const,
+  cause: "Typhoon relief",
+  name: "PH Typhoon",
+  country: "PH",
+  releaseType: "PARAMETRIC" as const,
+  recipientOrg: "Relief Org",
+};
 
-  it("lowercases campaignId before writing", async () => {
-    const { service, upsert } = makeService();
+describe("CampaignsService.create", () => {
+  it("lowercases campaignId before the write + read-back", async () => {
+    const { service, findUnique } = makeService();
     await service.create(base);
-    const arg = upsert.mock.calls[0]![0] as { where: { campaignId: string } };
+    const arg = findUnique.mock.calls[0]![0] as { where: { campaignId: string } };
     expect(arg.where.campaignId).toBe("0x" + "a".repeat(64));
   });
 
-  it("never writes indexer-owned fields on update", async () => {
-    const { service, upsert } = makeService();
+  it("writes through the fill-when-absent repository (raw upsert)", async () => {
+    const { service, executeRaw } = makeService();
     await service.create(base);
-    const arg = upsert.mock.calls[0]![0] as { update: Record<string, unknown> };
-    expect(arg.update).not.toHaveProperty("registeredOnChain");
-    expect(arg.update).not.toHaveProperty("active");
+    expect(executeRaw).toHaveBeenCalledOnce();
   });
 
-  it("returns an ISO createdAt string (no Date leak)", async () => {
+  it("returns an ISO createdAt string (no Date leak) and surfaces registeredOnChain", async () => {
     const { service } = makeService();
     const res = await service.create(base);
     expect(res.createdAt).toBe("2026-10-21T00:00:00.000Z");
