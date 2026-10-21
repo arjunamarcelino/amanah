@@ -1,7 +1,15 @@
 // Amanah offchain operational data — Prisma schema.
-// Source of truth for money stays on-chain; this DB holds operational data only
-// (pool metadata, disaster catalog, rail candidates, cached event index, decision logs).
-// Models land in later prompts; this is an empty scaffold — DO NOT run migrations yet.
+//
+// The on-chain contracts are the SOURCE OF TRUTH for money. This database holds
+// OFFCHAIN operational data only — campaign presentation metadata, an off-ramp
+// rail catalog, and a cached, time-ordered MIRROR of on-chain events for the
+// glass-box ledger. It never custodies funds and never stores authoritative
+// balances (those come from chain reads in the web app).
+//
+// Amounts are raw uint256 base units stored as Decimal(78,0) — never BigInt
+// (Postgres bigint overflows at ~9.2e18; uint256 max is ~1.15e77). All hex
+// values are stored lowercased (see @amanah/shared normalizeHex) so unique keys
+// dedupe correctly.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,4 +19,138 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+/// Mirrors the on-chain IReleaseController.ReleaseType enum (ordinal order).
+enum ReleaseType {
+  PARAMETRIC
+  MILESTONE
+}
+
+/// DonationLog lifecycle. `expired` is set by the auto-expire sweep.
+enum DonationStatus {
+  pending
+  confirmed
+  expired
+}
+
+/// PayoutDecision lifecycle. DERIVED from the write-once fact columns by the
+/// @amanah/db repository (never mutated independently by event arrival order).
+enum PayoutStatus {
+  pending
+  released
+  routed
+  cancelled
+}
+
+/// Campaign presentation metadata, keyed by the on-chain campaignId (bytes32).
+/// `active` is an OFFCHAIN display flag the indexer never writes; the indexer
+/// owns `registeredOnChain` (set on CampaignRegistered). Rows may also be
+/// created as stubs by the indexer for a campaignId with no API metadata yet
+/// (name/country/recipientOrg null in that case).
+model Campaign {
+  id                String      @id @default(cuid())
+  campaignId        String      @unique
+  type              String // charity cause catalog (validated by zod CampaignType)
+  cause             String
+  name              String?
+  country           String?
+  releaseType       ReleaseType
+  recipientOrg      String?
+  active            Boolean     @default(false)
+  registeredOnChain Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([type])
+}
+
+/// Off-ramp rail catalog (candidates surfaced to the agent/web). Offchain only.
+model Rail {
+  id         String   @id @default(cuid())
+  name       String
+  country    String
+  feeBps     Int // basis points (unified fee unit)
+  liquidity  String // display-only magnitude
+  etaMinutes Int
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([name, country])
+  @@index([country, active])
+}
+
+/// Cache/index of on-chain Donated events, plus optimistic (pending) rows posted
+/// by the web app before confirmation. Keyed by (txHash, logIndex) — one tx can
+/// emit multiple Donated events.
+model DonationLog {
+  id          String         @id @default(cuid())
+  txHash      String
+  logIndex    Int            @default(0)
+  blockNumber BigInt? // null until confirmed
+  donor       String
+  campaignId  String // bytes32; 0x00..00 = general/unattributed fund
+  stablecoin  String
+  amountIn    Decimal        @db.Decimal(78, 0)
+  baseOut     Decimal        @db.Decimal(78, 0)
+  consentHash String // opaque bytes32 — NEVER returned by the API, never logged
+  status      DonationStatus @default(pending)
+  createdAt   DateTime       @default(now())
+  confirmedAt DateTime? // COALESCE write-once by the indexer
+
+  @@unique([txHash, logIndex])
+  @@index([campaignId, status])
+}
+
+/// Payout routing decision, folded by payoutId across TWO separate on-chain txs:
+/// TrancheReleased (CharityPool) then Routed (PayoutRouter). Plus optimistic
+/// (pending) rows from the agent/owner. Status is derived from the write-once
+/// fact columns; released/routed txHashes, beneficiary and usdcAmount are
+/// write-once (COALESCE) so out-of-order/replayed events cannot corrupt them.
+model PayoutDecision {
+  id             String       @id @default(cuid())
+  payoutId       String       @unique
+  campaignId     String
+  beneficiary    String
+  usdcAmount     Decimal      @db.Decimal(78, 0)
+  rail           String? // set once by Routed
+  feeBpsCovered  Int? // set once by Routed (recorded, not deducted)
+  rationale      String? // set once by Routed
+  fallbackUsed   Boolean? // optimistic POST only
+  status         PayoutStatus @default(pending)
+  unlockTime     BigInt? // from TrancheReleased (unix seconds)
+  releasedTxHash String? // set once by TrancheReleased
+  routedTxHash   String? // set once by Routed
+  cancelledAt    DateTime? // set once by PendingCancelled
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([campaignId, status])
+}
+
+/// Raw, append-only mirror of EVERY indexed on-chain event — the glass-box audit
+/// trail and the indexer's replay record. uint256 values inside payloadJson are
+/// stored as strings (JSON numbers lose precision above 2^53).
+model EventIndex {
+  id          BigInt   @id @default(autoincrement())
+  eventName   String
+  blockNumber BigInt
+  txHash      String
+  logIndex    Int
+  campaignId  String? // extracted for per-campaign ledger filtering
+  payloadJson Json     @db.JsonB
+  createdAt   DateTime @default(now())
+
+  @@unique([txHash, logIndex])
+  @@index([blockNumber, logIndex])
+  @@index([campaignId, blockNumber, logIndex])
+}
+
+/// Indexer resume point. Advanced in the SAME transaction as the event rows for
+/// each processed chunk (including zero-event ranges).
+model IndexerCursor {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  lastBlock BigInt
+  updatedAt DateTime @updatedAt
 }
