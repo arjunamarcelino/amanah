@@ -39,6 +39,10 @@ const ADDRESS_KEYS = [
   "PayoutRouter",
 ];
 
+// Non-address metadata keys allowed in the ledger (excluded from the ADDRESS_KEYS
+// reverse-guard). startBlock = the indexer backfill start, emitted as START_BLOCK.
+const META_KEYS = ["startBlock"];
+
 // Contracts whose ABIs we export (one MockStablecoin ABI covers all three token addresses).
 // Each lives in out/<name>.sol/<name>.json.
 const ABI_CONTRACTS = [
@@ -82,10 +86,20 @@ for (const key of ADDRESS_KEYS) {
 }
 // The loop above catches keys in ADDRESS_KEYS missing from the ledger; this catches the
 // reverse — a contract added to Deploy.s.sol's ledger but not to ADDRESS_KEYS, which would
-// otherwise be silently dropped from addresses.ts with no error anywhere.
-const extraKeys = Object.keys(ledger).filter((k) => !ADDRESS_KEYS.includes(k));
+// otherwise be silently dropped from addresses.ts with no error anywhere. META_KEYS
+// (non-address metadata like startBlock) are allowed through.
+const extraKeys = Object.keys(ledger).filter(
+  (k) => !ADDRESS_KEYS.includes(k) && !META_KEYS.includes(k),
+);
 if (extraKeys.length) {
   fail(`${ledgerPath} has keys not in ADDRESS_KEYS: ${extraKeys.join(", ")} — add them to the codegen list`);
+}
+
+// startBlock: validate BEFORE interpolating (committed, human-editable file). Emit as a
+// numeric literal — never a string — so a crafted value can't inject TypeScript.
+const startBlock = ledger.startBlock;
+if (!Number.isInteger(startBlock) || startBlock <= 0) {
+  fail(`invalid "startBlock" in ${ledgerPath}: ${JSON.stringify(startBlock)} — expected a positive integer`);
 }
 
 const unionLines = ADDRESS_KEYS.map((k) => `  | "${k}"`).join("\n");
@@ -98,7 +112,9 @@ const addressesTs =
   `export type ContractAddressKey =\n${unionLines};\n\n` +
   `export const ADDRESSES = {\n` +
   `  [CHAIN_ID]: {\n${addrLines}\n  },\n` +
-  `} as const satisfies Record<number, Record<ContractAddressKey, Address>>;\n`;
+  `} as const satisfies Record<number, Record<ContractAddressKey, Address>>;\n\n` +
+  `/** Block the contracts were deployed at — the offchain indexer backfill start. */\n` +
+  `export const START_BLOCK = ${startBlock};\n`;
 
 writeFileSync(join(sharedSrc, "addresses.ts"), addressesTs);
 

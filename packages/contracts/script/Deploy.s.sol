@@ -111,7 +111,10 @@ contract Deploy is Script {
         vm.serializeAddress(o, "MockYieldVault", address(stdVault));
         vm.serializeAddress(o, "MockHalalVault", address(halalVault));
         vm.serializeAddress(o, "ReleaseController", address(rc));
-        string memory json = vm.serializeAddress(o, "PayoutRouter", address(router));
+        vm.serializeAddress(o, "PayoutRouter", address(router));
+        // Backfill start for the offchain indexer (mirrored into @amanah/shared as START_BLOCK
+        // by export-shared.mjs). Must be the last serialize* call: it returns the full JSON.
+        string memory json = vm.serializeUint(o, "startBlock", block.number);
         vm.writeJson(json, "./deployments/84532.json");
     }
 }
