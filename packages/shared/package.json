@@ -4,18 +4,29 @@
   "private": true,
   "description": "Shared zod schemas, types, chain constants, ABIs and addresses.",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsc -p tsconfig.json --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist"
@@ -23,6 +34,7 @@
   "devDependencies": {
     "@amanah/config": "workspace:*",
     "eslint": "^9.17.0",
+    "tsup": "^8.3.5",
     "typescript": "^5.7.3"
   }
 }
