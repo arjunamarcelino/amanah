@@ -51,7 +51,20 @@ export async function backfill(
       throw err;
     }
 
-    await handle(logs, end);
+    // Shrink on handler/DB failure too — a dense range can blow the interactive
+    // transaction timeout, which is NOT a getLogs cap error. handle() is one
+    // transaction (all-or-nothing), so retrying the same range is idempotent.
+    // At a single-block floor the error propagates loudly rather than looping.
+    try {
+      await handle(logs, end);
+    } catch (err) {
+      if (step > 1n) {
+        step = halve(step);
+        cleanRuns = 0;
+        continue;
+      }
+      throw err;
+    }
     from = end + 1n;
 
     if (++cleanRuns >= REGROW_AFTER_CLEAN) {

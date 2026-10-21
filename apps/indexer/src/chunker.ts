@@ -22,12 +22,10 @@ export function regrow(step: bigint, max: bigint): bigint {
 export function isRangeOrResultCap(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
   return (
-    msg.includes("range") ||
+    msg.includes("range") || // also covers "block range"
     msg.includes("too many results") ||
-    msg.includes("more than") ||
+    msg.includes("more than") || // also covers "query returned more than"
     msg.includes("10000") ||
-    msg.includes("block range") ||
-    msg.includes("limit exceeded") ||
-    msg.includes("query returned more than")
+    msg.includes("limit exceeded")
   );
 }
