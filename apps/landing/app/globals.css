@@ -1,3 +1,81 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* Warm editorial, light-only palette. HSL channel triplets (shadcn contract).
+     Ratios are computed WCAG relative-luminance values on paper (#faf7f0). */
+  :root {
+    color-scheme: light;
+
+    --background: 40 50% 96%; /* #faf7f0 warm paper */
+    --foreground: 24 14% 11%; /* warm ink — 16.8:1 */
+    --foreground-soft: 26 12% 26%; /* lead/subcopy — 9.2:1 (never fake with opacity) */
+
+    --card: 44 56% 98%;
+    --card-foreground: 24 14% 11%;
+    --popover: 44 56% 98%;
+    --popover-foreground: 24 14% 11%;
+
+    --primary: 144 61% 20%; /* #14532d deep pine — 8.5:1 */
+    --primary-foreground: 40 50% 97%; /* 8.2:1 on pine */
+
+    --secondary: 40 32% 91%;
+    --secondary-foreground: 144 45% 16%;
+
+    --muted: 40 30% 90%;
+    --muted-foreground: 28 9% 34%; /* #5f564f — 6.7:1 paper / 6.0:1 on muted */
+
+    --accent: 144 28% 89%;
+    --accent-foreground: 144 52% 15%;
+
+    --destructive: 8 62% 42%;
+    --destructive-foreground: 40 50% 97%;
+
+    --border: 40 24% 85%;
+    --input: 36 18% 76%; /* 3.1:1 for real control borders */
+    --ring: 144 61% 24%;
+
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+    font-optical-sizing: auto;
+  }
+}
+
+@layer base {
+  /* Scroll-reveal: final state is the DEFAULT so content is fully legible with JS
+     disabled. The hidden start state is scoped to `html.js`, applied only once the
+     client marks JS active; motion is purely additive. Reveal flips [data-show]. */
+  [data-reveal] {
+    transition:
+      opacity 560ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  html.js [data-reveal]:not([data-show]) {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal] {
+      transition: none;
+    }
+    html.js [data-reveal]:not([data-show]) {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
