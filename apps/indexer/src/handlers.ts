@@ -35,57 +35,92 @@ export function handleChunk(logs: IndexerLog[], toBlock: bigint): Promise<void> 
   );
 }
 
-/** Typed projections. C17a handles Donated; C17b extends this with payouts/campaign/lifecycle. */
+// Validating extractors — a missing/renamed arg (ABI drift, event-name collision,
+// a non-strict log) throws loudly here, so the chunk tx rolls back and the backfill
+// shrinks to a single block and surfaces it, rather than persisting NaN/"undefined".
+function argStr(args: Record<string, unknown>, k: string): string {
+  const v = args[k];
+  if (typeof v !== "string") throw new Error(`event arg "${k}" missing or not a string`);
+  return v;
+}
+function argHex(args: Record<string, unknown>, k: string): string {
+  return normalizeHex(argStr(args, k));
+}
+function argBig(args: Record<string, unknown>, k: string): bigint {
+  const v = args[k];
+  if (typeof v !== "bigint") throw new Error(`event arg "${k}" missing or not a bigint`);
+  return v;
+}
+function argUint(args: Record<string, unknown>, k: string): number {
+  const v = args[k];
+  if (typeof v === "bigint") return Number(v);
+  if (typeof v === "number") return v;
+  throw new Error(`event arg "${k}" missing or not numeric`);
+}
+function txHashOf(log: IndexerLog): string {
+  if (typeof log.transactionHash !== "string") throw new Error("log missing transactionHash");
+  return normalizeHex(log.transactionHash);
+}
+function blockOf(log: IndexerLog): bigint {
+  if (typeof log.blockNumber !== "bigint") throw new Error("log missing blockNumber");
+  return log.blockNumber;
+}
+function logIndexOf(log: IndexerLog): number {
+  if (typeof log.logIndex !== "number") throw new Error("log missing logIndex");
+  return log.logIndex;
+}
+
+/** Typed projections. Each coercion is validated (see extractors above). */
 async function projectTypedRow(tx: Prisma.TransactionClient, log: IndexerLog): Promise<void> {
   const args = (log.args ?? {}) as Record<string, unknown>;
   switch (log.eventName) {
     case "Donated":
       await confirmDonation(tx, {
-        txHash: normalizeHex(String(log.transactionHash)),
-        logIndex: log.logIndex ?? 0,
-        blockNumber: log.blockNumber ?? 0n,
-        donor: normalizeHex(String(args.donor)),
-        campaignId: normalizeHex(String(args.campaignId)),
-        stablecoin: normalizeHex(String(args.stablecoin)),
-        amountIn: String(args.amountIn),
-        baseOut: String(args.baseOut),
-        consentHash: normalizeHex(String(args.consentHash)),
+        txHash: txHashOf(log),
+        logIndex: logIndexOf(log),
+        blockNumber: blockOf(log),
+        donor: argHex(args, "donor"),
+        campaignId: argHex(args, "campaignId"),
+        stablecoin: argHex(args, "stablecoin"),
+        amountIn: argBig(args, "amountIn").toString(),
+        baseOut: argBig(args, "baseOut").toString(),
+        consentHash: argHex(args, "consentHash"),
       });
       break;
 
     case "TrancheReleased":
       await applyTrancheReleased(tx, {
-        payoutId: normalizeHex(String(args.payoutId)),
-        campaignId: normalizeHex(String(args.campaignId)),
-        beneficiary: normalizeHex(String(args.beneficiary)),
-        usdcAmount: String(args.usdcAmount),
-        unlockTime: args.unlockTime as bigint,
-        releasedTxHash: normalizeHex(String(log.transactionHash)),
+        payoutId: argHex(args, "payoutId"),
+        campaignId: argHex(args, "campaignId"),
+        beneficiary: argHex(args, "beneficiary"),
+        usdcAmount: argBig(args, "usdcAmount").toString(),
+        unlockTime: argBig(args, "unlockTime"),
+        releasedTxHash: txHashOf(log),
       });
       break;
 
     case "Routed":
       await applyRouted(tx, {
-        payoutId: normalizeHex(String(args.payoutId)),
-        campaignId: normalizeHex(String(args.campaignId)),
-        beneficiary: normalizeHex(String(args.beneficiary)),
-        usdcAmount: String(args.usdcAmount),
-        rail: String(args.rail),
-        feeBpsCovered: Number(args.feeBpsCovered),
-        rationale: String(args.rationale),
-        routedTxHash: normalizeHex(String(log.transactionHash)),
+        payoutId: argHex(args, "payoutId"),
+        campaignId: argHex(args, "campaignId"),
+        beneficiary: argHex(args, "beneficiary"),
+        usdcAmount: argBig(args, "usdcAmount").toString(),
+        rail: argStr(args, "rail"),
+        feeBpsCovered: argUint(args, "feeBpsCovered"),
+        rationale: argStr(args, "rationale"),
+        routedTxHash: txHashOf(log),
       });
       break;
 
     case "PendingCancelled":
-      await applyPendingCancelled(tx, normalizeHex(String(args.payoutId)));
+      await applyPendingCancelled(tx, argHex(args, "payoutId"));
       break;
 
     case "CampaignRegistered":
       await upsertCampaignChainState(tx, {
-        campaignId: normalizeHex(String(args.campaignId)),
-        releaseType: releaseTypeFromOrdinal(Number(args.releaseType)),
-        stubLabel: `on-chain ${String(args.campaignId).slice(0, 10)}`,
+        campaignId: argHex(args, "campaignId"),
+        releaseType: releaseTypeFromOrdinal(argUint(args, "releaseType")),
+        stubLabel: `on-chain ${argHex(args, "campaignId").slice(0, 10)}`,
       });
       break;
 
