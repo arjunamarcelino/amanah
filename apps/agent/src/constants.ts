@@ -5,6 +5,9 @@ export const RAILS_PATH = "/rails"; // apps/api has no global prefix (verified)
 export const CLAUDE_TIMEOUT_MS = 15_000;
 export const RAILS_FETCH_TIMEOUT_MS = 5_000;
 export const MAX_CANDIDATES = 25; // top-N trim (token / schema-cost guard)
+// Upper bound on rails accepted from the api fetch — a runaway upstream becomes a clean
+// 502 instead of an unbounded array sorted on the event loop. Generous vs real responses.
+export const MAX_UPSTREAM_RAILS = 200;
 // Headroom added to the worst-case handler wall-clock when sizing the shutdown drain, to
 // absorb SIGTERM-arrival skew, response serialization, and event-loop lag under load.
 export const SHUTDOWN_MARGIN_MS = 3_000;

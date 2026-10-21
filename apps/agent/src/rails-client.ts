@@ -1,5 +1,5 @@
 import { RailResponseSchema, type RailResponse } from "@amanah/shared";
-import { RAILS_PATH } from "./constants.js";
+import { RAILS_PATH, MAX_UPSTREAM_RAILS } from "./constants.js";
 
 /** A genuine upstream failure (network / non-2xx / bad shape) — distinct from a Claude
  *  failure, which falls back. Carries the HTTP status the route should surface. */
@@ -27,7 +27,7 @@ export async function fetchRails(
   if (!res.ok) {
     throw new RailsUpstreamError(`rails fetch returned ${res.status}`);
   }
-  const parsed = RailResponseSchema.array().safeParse(await res.json());
+  const parsed = RailResponseSchema.array().max(MAX_UPSTREAM_RAILS).safeParse(await res.json());
   if (!parsed.success) {
     throw new RailsUpstreamError("rails response shape invalid");
   }

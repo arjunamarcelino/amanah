@@ -50,6 +50,12 @@ describe("fetchRails", () => {
     await expect(fetchRails("http://api:4000", "PH", 1000)).rejects.toBeInstanceOf(RailsUpstreamError);
   });
 
+  it("throws RailsUpstreamError when the upstream returns too many rails", async () => {
+    const many = Array.from({ length: 201 }, (_, i) => ({ ...rail, id: `r${i}`, name: `rail-${i}` }));
+    stubFetch(async () => new Response(JSON.stringify(many), { status: 200 }));
+    await expect(fetchRails("http://api:4000", "PH", 1000)).rejects.toBeInstanceOf(RailsUpstreamError);
+  });
+
   it("url-encodes the country in the query", async () => {
     const spy = vi.fn(async () => new Response(JSON.stringify([]), { status: 200 }));
     vi.stubGlobal("fetch", spy);
