@@ -68,8 +68,13 @@ services:
       dockerfile: docker/agent.Dockerfile
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      # Internal-only: reached by api/web over the compose network, never via Caddy.
+      API_URL: http://api:4000
+      AGENT_SHARED_SECRET: ${AGENT_SHARED_SECRET:?set AGENT_SHARED_SECRET in .env}
     expose:
       - "5000"
+    depends_on:
+      - api
 
   caddy:
     image: caddy:2-alpine
