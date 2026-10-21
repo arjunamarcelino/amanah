@@ -1,11 +1,12 @@
 import { Module } from "@nestjs/common";
 import { CoreModule } from "./core/core.module";
 import { CampaignsModule } from "./campaigns/campaigns.module";
+import { RailsModule } from "./rails/rails.module";
 import { HealthController } from "./health/health.controller";
 
 // Wiring only — cross-cutting providers live in CoreModule, resources in feature modules.
 @Module({
-  imports: [CoreModule, CampaignsModule],
+  imports: [CoreModule, CampaignsModule, RailsModule],
   controllers: [HealthController],
 })
 export class AppModule {}
