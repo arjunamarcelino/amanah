@@ -1,16 +1,16 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Cron, CronExpression } from "@nestjs/schedule";
+import { expirePendingDonations, expirePendingPayouts } from "@amanah/db";
 import { PrismaService } from "../core/prisma/prisma.service";
 import type { Env } from "../core/config/env.schema";
 
 /**
- * Expires optimistic donation rows that never got a matching on-chain event, so
- * spoofed/dropped-tx rows self-clean and are dropped from the confirmed/default
- * view. Served by the partial index on (createdAt) WHERE status='pending', so
- * this stays O(pending), not a full-table scan.
- *
- * Only DonationLog has an `expired` state; a confirmed row is never touched (the
+ * Expires optimistic donation AND payout rows that never got a matching on-chain
+ * event, so spoofed/dropped-tx rows self-clean and drop out of the confirmed/default
+ * views. Routed through the @amanah/db repository (the single writer of the money
+ * tables) and served by the partial indexes on (createdAt) WHERE status='pending',
+ * so each stays O(pending). A confirmed/released row is never touched (the
  * WHERE status='pending' guard), so a confirm landing mid-sweep is safe.
  */
 @Injectable()
@@ -26,11 +26,11 @@ export class ExpirySweepService {
   async sweep(): Promise<number> {
     const ttlMin = this.config.get("PENDING_TTL_MIN", { infer: true });
     const cutoff = new Date(Date.now() - ttlMin * 60_000);
-    const { count } = await this.prisma.donationLog.updateMany({
-      where: { status: "pending", createdAt: { lt: cutoff } },
-      data: { status: "expired" },
-    });
-    if (count > 0) this.logger.log(`expired ${count} stale pending donation(s)`);
-    return count;
+    const donations = await expirePendingDonations(this.prisma, cutoff);
+    const payouts = await expirePendingPayouts(this.prisma, cutoff);
+    if (donations + payouts > 0) {
+      this.logger.log(`expired ${donations} pending donation(s), ${payouts} pending payout(s)`);
+    }
+    return donations + payouts;
   }
 }

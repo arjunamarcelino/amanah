@@ -41,6 +41,7 @@ enum PayoutStatus {
   released
   routed
   cancelled
+  expired
 }
 
 /// Campaign presentation metadata, keyed by the on-chain campaignId (bytes32).

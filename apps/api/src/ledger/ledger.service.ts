@@ -31,6 +31,7 @@ export class LedgerService {
         take: limit,
       }),
       this.prisma.payoutDecision.findMany({
+        where: { status: { not: "expired" } },
         orderBy: [{ updatedAt: "desc" }],
         take: limit,
       }),
@@ -142,6 +143,7 @@ const PAYOUT_EVENT_NAME: Record<PayoutDecision["status"], string> = {
   released: "TrancheReleased",
   routed: "Routed",
   cancelled: "PendingCancelled",
+  expired: "PayoutExpired",
 };
 
 function lifecycleEntry(l: EventIndex, campaignName: string | null): LedgerEntry {

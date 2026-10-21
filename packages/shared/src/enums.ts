@@ -52,5 +52,8 @@ export const PayoutStatus = z.enum([
   "released",
   "routed",
   "cancelled",
+  // Set by the auto-expire sweep for optimistic payout intents that never
+  // received an on-chain TrancheReleased/Routed (not an on-chain fact).
+  "expired",
 ]);
 export type PayoutStatus = z.infer<typeof PayoutStatus>;

@@ -8,7 +8,7 @@ CREATE TYPE "ReleaseType" AS ENUM ('PARAMETRIC', 'MILESTONE');
 CREATE TYPE "DonationStatus" AS ENUM ('pending', 'confirmed', 'expired');
 
 -- CreateEnum
-CREATE TYPE "PayoutStatus" AS ENUM ('pending', 'released', 'routed', 'cancelled');
+CREATE TYPE "PayoutStatus" AS ENUM ('pending', 'released', 'routed', 'cancelled', 'expired');
 
 -- CreateTable
 CREATE TABLE "Campaign" (

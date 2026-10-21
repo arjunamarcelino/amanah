@@ -3,9 +3,10 @@
 // Prisma's `upsert` runs its `update` branch UNCONDITIONALLY, so a late optimistic
 // POST would downgrade a `confirmed` row back to `pending`. The ratchet + the
 // write-once payout state machine therefore live here as raw
-// `INSERT ... ON CONFLICT ... DO UPDATE ... WHERE` statements. These are the ONLY
-// code paths that write DonationLog / PayoutDecision / Campaign.registeredOnChain,
-// and BOTH the API (optimistic) and the indexer (confirmed) call them.
+// `INSERT ... ON CONFLICT ... DO UPDATE ... WHERE` statements. These (plus the
+// expire* sweeps below) are the ONLY code paths that write DonationLog /
+// PayoutDecision / Campaign metadata; BOTH the API (optimistic) and the indexer
+// (confirmed) call them.
 //
 // Atomicity: `ON CONFLICT DO UPDATE ... WHERE` is a single statement; Postgres
 // row-locks the conflicting tuple until commit, so READ COMMITTED is sufficient —
@@ -310,5 +311,23 @@ export function upsertCampaignMetadata(db: Executor, i: CampaignMetadataInput): 
       "recipientOrg" = COALESCE("Campaign"."recipientOrg", EXCLUDED."recipientOrg"),
       "active" = true,
       "updatedAt" = now()
+  `;
+}
+
+// -------------------------------- Sweeps -------------------------------------
+
+/** Expire optimistic pending donations older than `cutoff` (served by the partial index). */
+export function expirePendingDonations(db: Executor, cutoff: Date): Promise<number> {
+  return db.$executeRaw`
+    UPDATE "DonationLog" SET "status" = 'expired'
+    WHERE "status" = 'pending' AND "createdAt" < ${cutoff}
+  `;
+}
+
+/** Expire optimistic pending payouts older than `cutoff` (unconfirmed intents that never routed). */
+export function expirePendingPayouts(db: Executor, cutoff: Date): Promise<number> {
+  return db.$executeRaw`
+    UPDATE "PayoutDecision" SET "status" = 'expired'::"PayoutStatus", "updatedAt" = now()
+    WHERE "status" = 'pending' AND "createdAt" < ${cutoff}
   `;
 }

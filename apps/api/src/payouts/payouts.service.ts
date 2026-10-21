@@ -28,7 +28,10 @@ export class PayoutsService {
   }
 
   async findAll(): Promise<PayoutResponse[]> {
-    const rows = await this.prisma.payoutDecision.findMany({ orderBy: { createdAt: "desc" } });
+    const rows = await this.prisma.payoutDecision.findMany({
+      where: { status: { not: "expired" } },
+      orderBy: { createdAt: "desc" },
+    });
     return rows.map(toPayoutResponse);
   }
 }
