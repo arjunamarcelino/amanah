@@ -143,6 +143,15 @@ CREATE UNIQUE INDEX "EventIndex_txHash_logIndex_key" ON "EventIndex"("txHash", "
 -- CreateIndex
 CREATE UNIQUE INDEX "IndexerCursor_name_key" ON "IndexerCursor"("name");
 
+-- CreateIndex
+CREATE INDEX "DonationLog_createdAt_idx" ON "DonationLog"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "PayoutDecision_updatedAt_idx" ON "PayoutDecision"("updatedAt");
+
+-- CreateIndex
+CREATE INDEX "EventIndex_eventName_blockNumber_logIndex_idx" ON "EventIndex"("eventName", "blockNumber", "logIndex");
+
 -- Hand-added (Prisma PSL cannot express these):
 
 -- Partial indexes keep the auto-expire sweep O(pending) instead of a full table

@@ -101,6 +101,7 @@ model DonationLog {
 
   @@unique([txHash, logIndex])
   @@index([campaignId, status])
+  @@index([createdAt]) // /ledger + /donations order by createdAt
 }
 
 /// Payout routing decision, folded by payoutId across TWO separate on-chain txs:
@@ -127,6 +128,7 @@ model PayoutDecision {
   updatedAt      DateTime     @updatedAt
 
   @@index([campaignId, status])
+  @@index([updatedAt]) // /ledger orders payouts by updatedAt
 }
 
 /// Raw, append-only mirror of EVERY indexed on-chain event — the glass-box audit
@@ -145,6 +147,7 @@ model EventIndex {
   @@unique([txHash, logIndex])
   @@index([blockNumber, logIndex])
   @@index([campaignId, blockNumber, logIndex])
+  @@index([eventName, blockNumber, logIndex]) // /ledger lifecycle-event filter+order
 }
 
 /// Indexer resume point. Advanced in the SAME transaction as the event rows for
