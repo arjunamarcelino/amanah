@@ -6,8 +6,9 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: amanah
-      # Strong password from the host .env; falls back to a dev default locally.
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-amanah}
+      # Required from the host .env — compose fails fast rather than booting with a
+      # weak, repo-known default.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}
       POSTGRES_DB: amanah
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -40,7 +41,9 @@ services:
       context: .
       dockerfile: docker/api.Dockerfile
     environment:
-      DATABASE_URL: postgresql://amanah:${POSTGRES_PASSWORD:-amanah}@postgres:5432/amanah?connection_limit=10
+      # connection_limit=10: each /ledger request fans out ~3 concurrent queries,
+      # so ~3 concurrent ledger requests approach the pool ceiling — raise for load.
+      DATABASE_URL: postgresql://amanah:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/amanah?connection_limit=10
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
     expose:
       - "4000"
@@ -52,7 +55,7 @@ services:
       context: .
       dockerfile: docker/indexer.Dockerfile
     environment:
-      DATABASE_URL: postgresql://amanah:${POSTGRES_PASSWORD:-amanah}@postgres:5432/amanah?connection_limit=3
+      DATABASE_URL: postgresql://amanah:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/amanah?connection_limit=3
       BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}
       INDEXER_CONFIRMATIONS: ${INDEXER_CONFIRMATIONS:-15}
     # Worker: no HTTP port.
