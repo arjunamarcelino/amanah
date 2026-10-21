@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { RouteRequestSchema, type RailResponse, type RouteResponse } from "@amanah/shared";
@@ -17,10 +17,11 @@ export interface AppDeps {
 }
 
 function constantTimeEq(a: string, b: string): boolean {
-  const ba = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ba.length !== bb.length) return false;
-  return timingSafeEqual(ba, bb);
+  // Hash both to a fixed 32-byte width first, so neither the comparison nor an early
+  // length-mismatch branch leaks the secret's length via timing.
+  const ha = createHash("sha256").update(a).digest();
+  const hb = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ha, hb);
 }
 
 export async function buildApp(
