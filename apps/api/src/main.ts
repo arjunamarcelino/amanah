@@ -2,6 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { ConfigService } from "@nestjs/config";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { json } from "express";
+import helmet from "helmet";
 import { AppModule } from "./app.module";
 import type { Env } from "./core/config/env.schema";
 
@@ -15,6 +16,7 @@ async function bootstrap(): Promise<void> {
   // address and collapses to a single shared bucket.
   app.set("trust proxy", 1);
 
+  app.use(helmet());
   app.use(json({ limit: config.get("BODY_LIMIT", { infer: true }) }));
 
   app.enableCors({
