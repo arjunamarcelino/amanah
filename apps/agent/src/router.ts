@@ -12,15 +12,23 @@ const MAX_RATIONALE_CHARS = 500;
 // completion can't run up worst-case generation latency/cost.
 const MAX_OUTPUT_TOKENS = 1024;
 
-/** Drop ASCII control characters (codepoint < 0x20, plus DEL 0x7F) from untrusted model
- *  text — strips newlines/escape sequences without touching normal punctuation. */
-function sanitizeRationale(text: string): string {
+/** Remove ASCII control characters (codepoint < 0x20, plus DEL 0x7F) from untrusted text.
+ *  This is a PROMPT-INTEGRITY guard — it stops client-supplied data from injecting newlines
+ *  or fake delimiters into the prompt — NOT output/XSS safety (it leaves C1/bidi/zero-width
+ *  chars alone; rendering layers must still escape). */
+function stripControlChars(text: string): string {
   let out = "";
   for (const ch of text) {
     const code = ch.codePointAt(0) ?? 0;
     if (code >= 0x20 && code !== 0x7f) out += ch;
   }
-  return out.slice(0, MAX_RATIONALE_CHARS);
+  return out;
+}
+
+/** Sanitize the model's rationale: strip control chars, then clamp by CODE POINT so a
+ *  trailing astral character can't be split into a lone surrogate at the 500-char boundary. */
+function sanitizeRationale(text: string): string {
+  return [...stripControlChars(text)].slice(0, MAX_RATIONALE_CHARS).join("");
 }
 
 /** Narrow port — only the one SDK method the router uses, so tests pass a trivial fake
@@ -66,8 +74,13 @@ export function lowestFeeFallback(candidates: RailResponse[], reason: FallbackRe
 }
 
 function buildPrompt(input: { amountUsd: number; country: string }, candidates: RailResponse[]): string {
+  // Strip control chars from client-suppliable fields so a crafted name/liquidity can't
+  // inject newlines or a fake </candidates> delimiter into the prompt.
   const table = candidates
-    .map((c) => `- ${c.name} | fee ${c.feeBps} bps | liquidity ${c.liquidity} | ETA ${c.etaMinutes} min`)
+    .map(
+      (c) =>
+        `- ${stripControlChars(c.name)} | fee ${c.feeBps} bps | liquidity ${stripControlChars(c.liquidity)} | ETA ${c.etaMinutes} min`,
+    )
     .join("\n");
   return [
     "You are a humanitarian off-ramp router. A donor is sending aid and we must pick the single",
