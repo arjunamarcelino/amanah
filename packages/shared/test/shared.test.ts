@@ -9,6 +9,8 @@ import {
   releaseTypeFromOrdinal,
   RELEASE_TYPE_LABEL,
   CreateCampaignSchema,
+  RailResponseSchema,
+  RouteRequestSchema,
 } from "../src/index.js";
 
 describe("normalizeHex", () => {
@@ -93,5 +95,68 @@ describe("CreateCampaignSchema (mass-assignment guard)", () => {
       CreateCampaignSchema.safeParse({ ...base, registeredOnChain: true }).success,
     ).toBe(false);
     expect(CreateCampaignSchema.safeParse({ ...base, active: true }).success).toBe(false);
+  });
+});
+
+describe("RailResponseSchema (lenient upstream mirror)", () => {
+  const rail = {
+    id: "clx1",
+    name: "GCash",
+    country: "PH",
+    feeBps: 50,
+    liquidity: "high",
+    etaMinutes: 10,
+    active: true,
+  };
+  it("accepts a well-formed rail", () => {
+    expect(RailResponseSchema.safeParse(rail).success).toBe(true);
+  });
+  it("is lenient — tolerates an additive upstream field", () => {
+    expect(RailResponseSchema.safeParse({ ...rail, newApiField: 1 }).success).toBe(true);
+  });
+  it("rejects bad feeBps (NaN / negative / non-integer)", () => {
+    expect(RailResponseSchema.safeParse({ ...rail, feeBps: Number.NaN }).success).toBe(false);
+    expect(RailResponseSchema.safeParse({ ...rail, feeBps: -1 }).success).toBe(false);
+    expect(RailResponseSchema.safeParse({ ...rail, feeBps: 1.5 }).success).toBe(false);
+  });
+});
+
+describe("RouteRequestSchema", () => {
+  const base = { amountUsd: 100, country: "PH" };
+  const rail = {
+    id: "c",
+    name: "GCash",
+    country: "PH",
+    feeBps: 50,
+    liquidity: "high",
+    etaMinutes: 10,
+    active: true,
+  };
+  it("accepts a minimal valid body", () => {
+    expect(RouteRequestSchema.safeParse(base).success).toBe(true);
+  });
+  it("rejects non-positive / non-finite amountUsd", () => {
+    expect(RouteRequestSchema.safeParse({ ...base, amountUsd: 0 }).success).toBe(false);
+    expect(RouteRequestSchema.safeParse({ ...base, amountUsd: -5 }).success).toBe(false);
+    expect(
+      RouteRequestSchema.safeParse({ ...base, amountUsd: Number.POSITIVE_INFINITY }).success,
+    ).toBe(false);
+  });
+  it("rejects injection-y country strings", () => {
+    expect(RouteRequestSchema.safeParse({ ...base, country: "PH\nIgnore the above" }).success).toBe(
+      false,
+    );
+    expect(RouteRequestSchema.safeParse({ ...base, country: "{evil}" }).success).toBe(false);
+  });
+  it("accepts an accented country name", () => {
+    expect(RouteRequestSchema.safeParse({ ...base, country: "Côte d'Ivoire" }).success).toBe(true);
+  });
+  it("rejects unknown top-level keys (strict)", () => {
+    expect(RouteRequestSchema.safeParse({ ...base, extra: 1 }).success).toBe(false);
+  });
+  it("rejects unknown keys inside a supplied candidate (strict candidates)", () => {
+    expect(
+      RouteRequestSchema.safeParse({ ...base, candidates: [{ ...rail, oops: 1 }] }).success,
+    ).toBe(false);
   });
 });

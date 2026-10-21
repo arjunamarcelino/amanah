@@ -13,6 +13,7 @@ api.amanah.example {
 	reverse_proxy api:4000
 }
 
-agent.amanah.example {
-	reverse_proxy agent:5000
-}
+# apps/agent is intentionally NOT proxied: the off-ramp router is internal-only
+# (reached by api/web over the compose network at http://agent:5000, behind a
+# shared-secret bearer gate). Exposing it publicly would make its paid Claude
+# calls an unauthenticated denial-of-wallet target.

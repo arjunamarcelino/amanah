@@ -56,6 +56,63 @@ export type RailResponse = {
   active: boolean;
 };
 
+// Runtime validator mirroring RailResponse. Lenient (.strip, the zod default) so an
+// additive field on the api's GET /rails response never turns a real response into a
+// 502; the POST /route body uses a `.strict()` clone (see RouteRequestSchema) to reject
+// unknown keys on client-supplied candidates.
+export const RailResponseSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().min(1).max(100),
+  country: z.string().min(2).max(64),
+  feeBps: z.number().int().nonnegative().max(65535), // .int() also rejects NaN/Infinity
+  liquidity: z.string().max(64),
+  etaMinutes: z.number().int().nonnegative(),
+  active: z.boolean(),
+});
+
+// Compile-time guard (erased at build): if RailResponseSchema and RailResponse ever
+// drift apart in either direction, `_RailMirror` stops compiling.
+type _Expect<T extends true> = T;
+type _Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type _RailMirror = _Expect<_Equal<z.infer<typeof RailResponseSchema>, RailResponse>>;
+
+// --------------------------- Off-ramp routing --------------------------------
+// Why a fallback happened, coarse enough for a caller/agent to decide retry vs escalate:
+// "unavailable" (Claude error/timeout → retryable) · "refusal"/"invalid_output" (escalate).
+export type FallbackReason = "unavailable" | "refusal" | "invalid_output";
+
+export const RouteRequestSchema = z
+  .object({
+    amountUsd: z.number().positive().finite().max(1_000_000_000),
+    // Length matches the repo country convention; the charset blocks prompt-injection
+    // control/markup characters while allowing ISO codes and accented country names.
+    // NOT upper-cased — forwarded verbatim to the api's exact-match /rails query.
+    country: z
+      .string()
+      .trim()
+      .min(2)
+      .max(64)
+      .regex(/^[\p{L} .'-]+$/u),
+    // Client-supplied candidates are strict (reject unknown keys); 50 is an abuse bound.
+    candidates: z.array(RailResponseSchema.strict()).max(50).optional(),
+  })
+  .strict();
+export type RouteRequest = z.infer<typeof RouteRequestSchema>;
+
+// Response contract is a plain type (repo convention — nothing re-validates a response).
+export type RouteResponse = {
+  chosenRail: string;
+  feeBps: number;
+  rationale: string;
+  fallbackUsed: boolean;
+  fallbackReason?: FallbackReason;
+};
+
+// Why a route request was rejected before reaching the model. Shared so the HTTP handler
+// and a future MCP tool map the same named reasons to their own transport (status / isError).
+export type RouteRejectionReason = "empty" | "duplicate" | "country_mismatch";
+
 // ----------------------------- Donation --------------------------------------
 export const CreateDonationSchema = z
   .object({
