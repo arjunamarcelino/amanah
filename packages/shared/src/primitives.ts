@@ -9,9 +9,9 @@ import { z } from "zod";
  * `@@unique([txHash,logIndex])` / `payoutId` / `campaignId` keys silently fail
  * to dedupe and the pending→confirmed ratchet breaks.
  */
-export function normalizeHex(input: string): string {
+export function normalizeHex(input: string): `0x${string}` {
   const s = input.trim().toLowerCase();
-  return s.startsWith("0x") ? s : `0x${s}`;
+  return (s.startsWith("0x") ? s : `0x${s}`) as `0x${string}`;
 }
 
 /** Max uint256 = 2^256 − 1 (a 78-digit number). */

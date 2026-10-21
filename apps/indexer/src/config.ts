@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { CHAIN_ID, START_BLOCK } from "@amanah/shared";
+import { CHAIN_ID, DEFAULT_RPC_URL, START_BLOCK } from "@amanah/shared";
 
 function required(key: string): string {
   const v = process.env[key];
@@ -9,7 +9,7 @@ function required(key: string): string {
 
 export const config = {
   chainId: CHAIN_ID,
-  rpcUrl: process.env.BASE_SEPOLIA_RPC_URL ?? "https://sepolia.base.org",
+  rpcUrl: process.env.BASE_SEPOLIA_RPC_URL ?? DEFAULT_RPC_URL,
   databaseUrl: required("DATABASE_URL"),
   /** Backfill start (deploy block from @amanah/shared), overridable for tests/replays. */
   startBlock: BigInt(process.env.INDEXER_START_BLOCK ?? String(START_BLOCK)),

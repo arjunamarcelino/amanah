@@ -13,16 +13,16 @@ const a = ADDRESSES[CHAIN_ID];
 // The three event-emitting contracts the indexer mirrors (lowercased for the
 // getLogs address filter and for rejecting out-of-set logs).
 export const WATCHED_ADDRESSES: `0x${string}`[] = [
-  normalizeHex(a.CharityPool) as `0x${string}`,
-  normalizeHex(a.PayoutRouter) as `0x${string}`,
-  normalizeHex(a.ReleaseController) as `0x${string}`,
+  normalizeHex(a.CharityPool),
+  normalizeHex(a.PayoutRouter),
+  normalizeHex(a.ReleaseController),
 ];
 
 const WATCHED_SET = new Set(WATCHED_ADDRESSES);
 
 /** True if a decoded log came from one of our contracts (RPC-integrity guard). */
 export function isWatchedAddress(address: string): boolean {
-  return WATCHED_SET.has(normalizeHex(address) as `0x${string}`);
+  return WATCHED_SET.has(normalizeHex(address));
 }
 
 function pickEvents(abi: readonly unknown[]): AbiEvent[] {
