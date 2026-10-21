@@ -189,12 +189,24 @@ importers:
   packages/db:
     dependencies:
       '@prisma/client':
-        specifier: ^6.2.1
+        specifier: ^6.13.0
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
     devDependencies:
+      '@amanah/config':
+        specifier: workspace:*
+        version: link:../config
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.7.0)
       prisma:
-        specifier: ^6.2.1
+        specifier: ^6.13.0
         version: 6.19.3(typescript@5.9.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.15
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
