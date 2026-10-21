@@ -3,6 +3,17 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from "fastif
 import rateLimit from "@fastify/rate-limit";
 import { RouteRequestSchema, type RailResponse, type RouteResponse } from "@amanah/shared";
 import { prepareCandidates } from "./router.js";
+import { RailsUpstreamError } from "./rails-client.js";
+
+// Generic reason phrases for client-error statuses Fastify/plugins may raise, so the error
+// envelope never surfaces a framework-internal message string.
+const CLIENT_ERROR_TEXT: Record<number, string> = {
+  400: "Bad Request",
+  401: "Unauthorized",
+  413: "Payload Too Large",
+  422: "Unprocessable Entity",
+  429: "Too Many Requests",
+};
 
 export interface AppDeps {
   /** Narrow ports — app.ts depends on neither the Anthropic SDK nor the router internals,
@@ -87,20 +98,19 @@ export async function buildApp(
   );
 
   app.setErrorHandler((err, req, reply) => {
-    const e = err as { statusCode?: number; name?: string; message?: string };
-    const status = e.statusCode ?? 500;
-    if (status < 500) {
-      // client errors incl. 429 from rate-limit — safe to surface as-is
-      return reply
-        .code(status)
-        .send({ statusCode: status, error: e.name ?? "Error", message: e.message ?? "Error" });
-    }
-    if (status === 502) {
+    if (err instanceof RailsUpstreamError) {
       return reply
         .code(502)
         .send({ statusCode: 502, error: "Bad Gateway", message: "Upstream rails unavailable" });
     }
-    // Never leak internals on a true 500.
+    const status = (err as { statusCode?: number }).statusCode;
+    if (typeof status === "number" && status >= 400 && status < 500) {
+      // Client errors Fastify/plugins raise (e.g. 429 rate-limit, 413 oversized body) —
+      // surface the status with a generic phrase, never the framework-internal string.
+      const text = CLIENT_ERROR_TEXT[status] ?? "Client Error";
+      return reply.code(status).send({ statusCode: status, error: text, message: text });
+    }
+    // Anything else: log server-side, return an opaque 500 (never leak internals).
     req.log.error({ err }, "unhandled error");
     return reply
       .code(500)
