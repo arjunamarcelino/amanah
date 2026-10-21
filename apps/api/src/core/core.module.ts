@@ -1,12 +1,11 @@
 import { Global, Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_PIPE } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { ZodValidationPipe } from "nestjs-zod";
 import { validateEnv } from "./config/env.schema";
 import { PrismaExceptionFilter } from "./filters/prisma-exception.filter";
-import { SerializeGuardInterceptor } from "./interceptors/serialize-guard.interceptor";
 import { PrismaModule } from "./prisma/prisma.module";
 
 // Cross-cutting providers, available app-wide. Keeps AppModule to wiring only.
@@ -23,7 +22,6 @@ import { PrismaModule } from "./prisma/prisma.module";
     { provide: APP_PIPE, useClass: ZodValidationPipe },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_FILTER, useClass: PrismaExceptionFilter },
-    { provide: APP_INTERCEPTOR, useClass: SerializeGuardInterceptor },
   ],
   exports: [PrismaModule],
 })
