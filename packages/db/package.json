@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@amanah/config": "workspace:*",
+    "@amanah/shared": "workspace:*",
     "@types/node": "^22.10.5",
     "dotenv": "^16.4.7",
     "eslint": "^9.17.0",
