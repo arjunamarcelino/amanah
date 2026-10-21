@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { normalizeHex, type CreateDonation, type DonationResponse } from "@amanah/shared";
 import { upsertPendingDonation, type DonationLog } from "@amanah/db";
 import { PrismaService } from "../core/prisma/prisma.service";
@@ -26,7 +26,7 @@ export class DonationsService {
     const row = await this.prisma.donationLog.findUnique({
       where: { txHash_logIndex: { txHash, logIndex } },
     });
-    if (!row) throw new NotFoundException("donation not found after write");
+    if (!row) throw new InternalServerErrorException("donation not found after write");
     return toDonationResponse(row);
   }
 

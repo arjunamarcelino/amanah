@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { normalizeHex, type CreatePayout, type PayoutResponse } from "@amanah/shared";
 import { upsertPendingPayout, type PayoutDecision } from "@amanah/db";
 import { PrismaService } from "../core/prisma/prisma.service";
@@ -23,7 +23,7 @@ export class PayoutsService {
       fallbackUsed: input.fallbackUsed ?? null,
     });
     const row = await this.prisma.payoutDecision.findUnique({ where: { payoutId } });
-    if (!row) throw new NotFoundException("payout not found after write");
+    if (!row) throw new InternalServerErrorException("payout not found after write");
     return toPayoutResponse(row);
   }
 

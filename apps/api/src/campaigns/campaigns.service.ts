@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { CampaignType, normalizeHex, type CampaignResponse, type CreateCampaign } from "@amanah/shared";
 import { upsertCampaignMetadata, type Campaign } from "@amanah/db";
 import { PrismaService } from "../core/prisma/prisma.service";
@@ -35,7 +35,7 @@ export class CampaignsService {
       recipientOrg: input.recipientOrg,
     });
     const row = await this.prisma.campaign.findUnique({ where: { campaignId } });
-    if (!row) throw new NotFoundException("campaign not found after write");
+    if (!row) throw new InternalServerErrorException("campaign not found after write");
     return toCampaignResponse(row);
   }
 }
