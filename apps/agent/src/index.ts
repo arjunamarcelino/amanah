@@ -1,7 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import closeWithGrace from "close-with-grace";
+import pLimit from "p-limit";
 import { config } from "./config.js";
-import { CLAUDE_TIMEOUT_MS, RAILS_FETCH_TIMEOUT_MS, SHUTDOWN_MARGIN_MS } from "./constants.js";
+import {
+  CLAUDE_TIMEOUT_MS,
+  RAILS_FETCH_TIMEOUT_MS,
+  SHUTDOWN_MARGIN_MS,
+  MAX_CONCURRENT_CLAUDE_CALLS,
+} from "./constants.js";
 import { buildApp } from "./app.js";
 import { fetchRails } from "./rails-client.js";
 import { routeOffRamp } from "./router.js";
@@ -11,15 +17,20 @@ import { routeOffRamp } from "./router.js";
 // timeout is the true bound and the deterministic fallback fires fast.
 const anthropic = new Anthropic({ apiKey: config.anthropicApiKey, maxRetries: 0 });
 
+// Bound concurrent paid Claude calls per instance; excess requests queue.
+const claudeLimit = pLimit(MAX_CONCURRENT_CLAUDE_CALLS);
+
 const app = await buildApp(
   {
     sharedSecret: config.agentSharedSecret,
     fetchRails: (country) => fetchRails(config.apiUrl, country, RAILS_FETCH_TIMEOUT_MS),
     route: (input) =>
-      routeOffRamp(input, anthropic, {
-        timeoutMs: CLAUDE_TIMEOUT_MS,
-        onFallback: (reason, cause) => app.log.warn({ reason, cause }, "routing fallback"),
-      }),
+      claudeLimit(() =>
+        routeOffRamp(input, anthropic, {
+          timeoutMs: CLAUDE_TIMEOUT_MS,
+          onFallback: (reason, cause) => app.log.warn({ reason, cause }, "routing fallback"),
+        }),
+      ),
   },
   { logger: { redact: ["req.headers.authorization", "*.apiKey", "*.api_key"] } },
 );

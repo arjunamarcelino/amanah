@@ -20,6 +20,7 @@
     "close-with-grace": "^2.5.0",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
+    "p-limit": "^7.3.3",
     "zod": "catalog:"
   },
   "devDependencies": {

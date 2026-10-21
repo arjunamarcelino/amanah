@@ -11,3 +11,6 @@ export const MAX_UPSTREAM_RAILS = 200;
 // Headroom added to the worst-case handler wall-clock when sizing the shutdown drain, to
 // absorb SIGTERM-arrival skew, response serialization, and event-loop lag under load.
 export const SHUTDOWN_MARGIN_MS = 3_000;
+// Cap on concurrent (paid) Claude calls per instance. A request burst queues rather than
+// firing N simultaneous Opus calls that could trip the account rate limit → all-fallback.
+export const MAX_CONCURRENT_CLAUDE_CALLS = 8;
