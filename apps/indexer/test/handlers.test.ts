@@ -17,10 +17,12 @@ describe("serializeArgs", () => {
     expect(out.none).toBeNull();
   });
 
-  it("rejects nested non-primitive values via the shared payload schema", () => {
-    expect(() => serializeArgs({ nested: { a: 1 } as unknown as string })).not.toThrow();
-    // String(obj) coerces to "[object Object]" — still a string, schema-valid.
-    const out = serializeArgs({ nested: { a: 1 } as unknown as string });
-    expect(typeof out.nested).toBe("string");
+  it("JSON-stringifies non-primitive args (preserving nested bigints)", () => {
+    const out = serializeArgs({
+      tuple: [1n, "x"] as unknown as string,
+      struct: { amount: 2n } as unknown as string,
+    });
+    expect(out.tuple).toBe('["1","x"]');
+    expect(out.struct).toBe('{"amount":"2"}');
   });
 });

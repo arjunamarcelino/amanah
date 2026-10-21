@@ -11,7 +11,11 @@ export function serializeArgs(args: Record<string, unknown>): EventIndexPayload 
     if (typeof v === "bigint") out[k] = v.toString();
     else if (v === null || typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
       out[k] = v;
-    } else out[k] = String(v);
+    } else {
+      // Arrays/tuples/structs (e.g. decoded struct args) -> JSON, preserving nested
+      // bigints as strings, rather than a lossy String() => "[object Object]".
+      out[k] = JSON.stringify(v, (_k, val) => (typeof val === "bigint" ? val.toString() : val));
+    }
   }
   return EventIndexPayloadSchema.parse(out);
 }
