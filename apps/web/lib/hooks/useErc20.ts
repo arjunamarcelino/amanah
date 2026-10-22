@@ -30,8 +30,9 @@ export function useErc20(token: Address | undefined, owner: Address | undefined)
   });
 
   return {
-    balance: balance.data as bigint | undefined,
-    allowance: allowance.data as bigint | undefined,
+    // Types inferred from the `as const` MockStablecoinAbi — no cast needed.
+    balance: balance.data,
+    allowance: allowance.data,
     async refetch() {
       await Promise.all([balance.refetch(), allowance.refetch()]);
     },
