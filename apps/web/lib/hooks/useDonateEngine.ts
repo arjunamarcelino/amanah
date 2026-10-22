@@ -8,9 +8,9 @@ import {
   CharityPoolAbi,
   MockStablecoinAbi,
   buildConsentHash,
+  parseDonatedEvent,
 } from "@amanah/shared";
 import type { Address, Hex } from "viem";
-import { parseDonatedEvent } from "@/lib/donations";
 import { txErrorMessage } from "@/lib/txError";
 import { sendAndConfirm, type TxPhase } from "@/lib/tx";
 

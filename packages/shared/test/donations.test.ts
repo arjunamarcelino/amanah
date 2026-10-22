@@ -7,8 +7,7 @@ import {
   type Hex,
   type TransactionReceipt,
 } from "viem";
-import { CharityPoolAbi } from "@amanah/shared";
-import { parseDonatedEvent } from "@/lib/donations";
+import { CharityPoolAbi, parseDonatedEvent } from "../src/index.js";
 
 const pool = ("0x" + "9".repeat(40)) as Address;
 const donor = ("0x" + "1".repeat(40)) as Address;

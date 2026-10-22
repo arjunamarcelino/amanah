@@ -1,16 +1,19 @@
-import { parseEventLogs, type Address, type Hex, type TransactionReceipt } from "viem";
-import { CharityPoolAbi } from "@amanah/shared";
+import { parseEventLogs } from "viem";
+import type { Address, Hex, TransactionReceipt } from "viem";
+import { CharityPoolAbi } from "./abis/index.js";
 
 export type DonatedEvent = { baseOut: bigint; logIndex: number };
 
 /**
  * Extract the `Donated` event from a mined receipt — the authoritative source of
- * `baseOut` and the real `logIndex` (a tx return value isn't in a receipt).
+ * `baseOut` and the real `logIndex` (a tx return value isn't in a receipt). Lives in
+ * shared so the client and indexer decode it the same way (same family as
+ * buildDonationPayload / buildConsentHash).
  *
  * Returns null when the event is absent (caller shows success-without-POST).
- * Pre-filters to the CharityPool address (never trusts log index 0). When
- * `expected` is supplied, asserts the decoded fields equal the submitted args —
- * defends against a lying/MITM RPC and catches any arg desync (S-3).
+ * Pre-filters to the pool address (never trusts log index 0). When `expected` is
+ * supplied, asserts the decoded fields equal the submitted args — defends against a
+ * lying/MITM RPC and catches any arg desync.
  */
 export function parseDonatedEvent(
   receipt: TransactionReceipt,
