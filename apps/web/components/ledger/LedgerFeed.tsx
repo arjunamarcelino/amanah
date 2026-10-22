@@ -24,11 +24,13 @@ export function LedgerFeed() {
     queryKey: ["ledger", "api"],
     queryFn: () => getLedger(100),
     refetchInterval: POLL_MS,
+    retry: 1, // root client defaults to 3; avoid hammering the public RPC/API on a blip
   });
   const chainQuery = useQuery({
     queryKey: ["ledger", "chain"],
     queryFn: () => fetchChainEvents(),
     refetchInterval: POLL_MS,
+    retry: 1,
   });
 
   const api: LedgerEntry[] = apiQuery.data ?? [];

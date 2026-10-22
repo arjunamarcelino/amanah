@@ -29,44 +29,15 @@ const publicClient = createPublicClient({
   batch: { multicall: true },
 });
 
-// --- chunked scan ---------------------------------------------------------------
+// --- windowed, resumable chain scan ---------------------------------------------
 // A single wide getLogs from START_BLOCK (~millions of blocks) exceeds the public RPC's
-// ~10k range cap and fails. Scan in bounded windows, halving on a range/result-cap error.
-function isRangeOrResultCap(err: unknown): boolean {
-  const m = String((err as Error | undefined)?.message ?? "").toLowerCase();
-  return (
-    m.includes("range") ||
-    m.includes("limit") ||
-    m.includes("more than") ||
-    m.includes("too large") ||
-    m.includes("10000")
-  );
-}
-
-async function scanRange<T>(
-  fetchWindow: (from: bigint, to: bigint) => Promise<T[]>,
-  from: bigint,
-  to: bigint,
-  initialStep = 9_000n,
-): Promise<T[]> {
-  const out: T[] = [];
-  let cursor = from;
-  let step = initialStep;
-  while (cursor <= to) {
-    const end = cursor + step - 1n < to ? cursor + step - 1n : to;
-    try {
-      out.push(...(await fetchWindow(cursor, end)));
-      cursor = end + 1n;
-    } catch (err) {
-      if (isRangeOrResultCap(err) && step > 1n) {
-        step = step / 2n;
-        continue;
-      }
-      throw err;
-    }
-  }
-  return out;
-}
+// ~10k range cap, so we scan fixed 9k-block windows behind an incremental cursor. The
+// cursor + decoded cache persist to localStorage (amortized once per browser), and the
+// scan is RESUMABLE: a failed window keeps prior progress and returns what we have
+// (never throws → no react-query retry-storm re-scanning from START_BLOCK), and the next
+// poll continues from the cursor.
+const WINDOW = 9_000n;
+const LS_KEY = `amanah.ledger.chain.${CHAIN_ID}`;
 
 function lifecycleRow(
   eventName: string,
@@ -90,87 +61,130 @@ function lifecycleRow(
 }
 
 async function scanInvested(from: bigint, to: bigint): Promise<LedgerEntry[]> {
-  const logs = await scanRange(
-    (f, t) =>
-      publicClient.getContractEvents({
-        abi: CharityPoolAbi,
-        address: A.CharityPool,
-        eventName: "Invested",
-        fromBlock: f,
-        toBlock: t,
-        strict: true,
-      }),
-    from,
-    to,
-  );
+  const logs = await publicClient.getContractEvents({
+    abi: CharityPoolAbi,
+    address: A.CharityPool,
+    eventName: "Invested",
+    fromBlock: from,
+    toBlock: to,
+    strict: true,
+  });
   return logs.map((l) =>
     lifecycleRow("Invested", l.args.assets, l.blockNumber!, l.logIndex!, l.transactionHash!),
   );
 }
 
 async function scanStandardYield(from: bigint, to: bigint): Promise<LedgerEntry[]> {
-  const logs = await scanRange(
-    (f, t) =>
-      publicClient.getContractEvents({
-        abi: MockYieldVaultAbi,
-        address: A.MockYieldVault,
-        eventName: "YieldAccrued",
-        fromBlock: f,
-        toBlock: t,
-        strict: true,
-      }),
-    from,
-    to,
-  );
+  const logs = await publicClient.getContractEvents({
+    abi: MockYieldVaultAbi,
+    address: A.MockYieldVault,
+    eventName: "YieldAccrued",
+    fromBlock: from,
+    toBlock: to,
+    strict: true,
+  });
   return logs.map((l) =>
     lifecycleRow("YieldAccrued", l.args.amount, l.blockNumber!, l.logIndex!, l.transactionHash!),
   );
 }
 
 async function scanHalalYield(from: bigint, to: bigint): Promise<LedgerEntry[]> {
-  const logs = await scanRange(
-    (f, t) =>
-      publicClient.getContractEvents({
-        abi: MockHalalVaultAbi,
-        address: A.MockHalalVault,
-        eventName: "SukukYieldAccrued",
-        fromBlock: f,
-        toBlock: t,
-        strict: true,
-      }),
-    from,
-    to,
-  );
+  const logs = await publicClient.getContractEvents({
+    abi: MockHalalVaultAbi,
+    address: A.MockHalalVault,
+    eventName: "SukukYieldAccrued",
+    fromBlock: from,
+    toBlock: to,
+    strict: true,
+  });
   return logs.map((l) =>
     lifecycleRow("SukukYieldAccrued", l.args.amount, l.blockNumber!, l.logIndex!, l.transactionHash!),
   );
 }
 
-// Incremental cursor: cold-scan once from START_BLOCK, then only new blocks per poll.
-let cursor: bigint | null = null;
-let cache: LedgerEntry[] = [];
-
-/** Fetch the three un-indexed chain events, growing an in-memory cache incrementally. */
-export async function fetchChainEvents(): Promise<LedgerEntry[]> {
-  const head = await publicClient.getBlockNumber();
-  const safeHead = head > REORG_BUFFER ? head - REORG_BUFFER : head;
-  const from = cursor === null ? BigInt(START_BLOCK) : cursor + 1n;
-  if (from <= safeHead) {
-    const [invested, std, halal] = await Promise.all([
-      scanInvested(from, safeHead),
-      scanStandardYield(from, safeHead),
-      scanHalalYield(from, safeHead),
-    ]);
-    cache = [...cache, ...invested, ...std, ...halal];
-    cursor = safeHead;
-  }
-  return cache;
+async function scanWindow(from: bigint, to: bigint): Promise<LedgerEntry[]> {
+  const [invested, std, halal] = await Promise.all([
+    scanInvested(from, to),
+    scanStandardYield(from, to),
+    scanHalalYield(from, to),
+  ]);
+  return [...invested, ...std, ...halal];
 }
 
-/** Reset the module cache (tests / manual refresh). */
+let cursor: bigint | null = null;
+let cache: LedgerEntry[] = [];
+let inflight: Promise<LedgerEntry[]> | null = null;
+let hydrated = false;
+
+function hydrateFromStorage(): void {
+  if (hydrated || typeof window === "undefined") return;
+  hydrated = true;
+  try {
+    const raw = window.localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as { cursor?: string; cache?: LedgerEntry[] };
+    if (parsed.cursor) cursor = BigInt(parsed.cursor);
+    if (Array.isArray(parsed.cache)) cache = parsed.cache;
+  } catch {
+    // corrupt/unsupported cache — fall back to a cold scan
+  }
+}
+
+function persist(): void {
+  if (typeof window === "undefined" || cursor === null) return;
+  try {
+    window.localStorage.setItem(LS_KEY, JSON.stringify({ cursor: cursor.toString(), cache }));
+  } catch {
+    // quota/serialization — non-fatal
+  }
+}
+
+/** Fetch the three un-indexed chain events, growing a persisted cache incrementally.
+ * Concurrent callers share one in-flight scan (the invariant is enforced here, not
+ * assumed from react-query's dedup). */
+export async function fetchChainEvents(): Promise<LedgerEntry[]> {
+  if (inflight) return inflight;
+  hydrateFromStorage();
+  inflight = (async () => {
+    const head = await publicClient.getBlockNumber();
+    const safeHead = head > REORG_BUFFER ? head - REORG_BUFFER : head;
+    let from = cursor === null ? BigInt(START_BLOCK) : cursor + 1n;
+    while (from <= safeHead) {
+      const to = from + WINDOW - 1n < safeHead ? from + WINDOW - 1n : safeHead;
+      let rows: LedgerEntry[];
+      try {
+        rows = await scanWindow(from, to);
+      } catch (err) {
+        // Resumable: keep progress, stop this round; the next poll resumes from `cursor`.
+        console.error("[ledger] chain scan window failed; will resume next poll", err);
+        break;
+      }
+      cache = cache.concat(rows);
+      cursor = to;
+      from = to + 1n;
+    }
+    persist();
+    return cache;
+  })();
+  try {
+    return await inflight;
+  } finally {
+    inflight = null;
+  }
+}
+
+/** Reset the in-memory + persisted cache (tests / manual refresh). */
 export function resetChainEventsCache(): void {
   cursor = null;
   cache = [];
+  hydrated = false;
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(LS_KEY);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 // --- pure merge + display helpers (unit-tested) ---------------------------------
