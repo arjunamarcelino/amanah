@@ -24,9 +24,6 @@ export function DonateSuccess({ txHash, ledgerPending }: { txHash: Hex; ledgerPe
         View transaction on BaseScan
       </a>
       <div className="flex flex-wrap gap-2 pt-1">
-        <Link href="/ledger">
-          <Button variant="outline">View the ledger</Button>
-        </Link>
         <Link href="/">
           <Button>Back to campaigns</Button>
         </Link>
