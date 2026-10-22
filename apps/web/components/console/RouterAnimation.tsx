@@ -5,9 +5,7 @@ import { Badge } from "@amanah/ui/badge";
 import type { RailResponse, RouteResponse } from "@amanah/shared";
 import { RailCard } from "./RailCard";
 import { matchesChosen } from "@/lib/console/railMatch";
-
-type Phase = "idle" | "thinking" | "decided" | "fallback";
-type RailCardState = "idle" | "thinking" | "chosen" | "dimmed" | "fallbackChosen";
+import type { RouterPhase, RailCardState } from "./routerTypes";
 
 function isChosen(rail: RailResponse, chosen: RouteResponse | undefined): boolean {
   return chosen !== undefined && matchesChosen(rail, chosen.chosenRail);
@@ -15,7 +13,7 @@ function isChosen(rail: RailResponse, chosen: RouteResponse | undefined): boolea
 
 function cardStateFor(
   rail: RailResponse,
-  phase: Phase,
+  phase: RouterPhase,
   chosen: RouteResponse | undefined,
 ): RailCardState {
   switch (phase) {
@@ -37,7 +35,7 @@ export function RouterAnimation({
   accruedCoversFee,
 }: {
   candidates: RailResponse[];
-  phase: Phase;
+  phase: RouterPhase;
   chosen?: RouteResponse;
   accruedCoversFee?: boolean;
 }) {

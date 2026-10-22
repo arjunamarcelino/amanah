@@ -6,6 +6,7 @@ import {
   PayoutRouterAbi,
   ADDRESSES,
   CHAIN_ID,
+  txUrl,
   type RailResponse,
   type RouteResponse,
 } from "@amanah/shared";
@@ -13,18 +14,16 @@ import { Button } from "@amanah/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
 import { TxStatus } from "@/components/TxStatus";
 import { RouterAnimation } from "./RouterAnimation";
+import type { RouterPhase } from "./routerTypes";
 import { useOwnerWrite } from "@/lib/console/useOwnerWrite";
 import { useConsoleSession } from "@/lib/console/session";
 import { getRails, postPayout } from "@/lib/api";
 import { postRoute } from "@/lib/agent";
-import { txUrl } from "@amanah/shared";
 import { findChosenRail, lowestFeeRail } from "@/lib/console/railMatch";
+import { sleep } from "@/lib/sleep";
 
 const ROUTER = ADDRESSES[CHAIN_ID].PayoutRouter;
 const MIN_THINKING_MS = 700;
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-type Phase = "idle" | "thinking" | "decided" | "fallback";
 
 // The AI-router step: fetch candidate rails → ask the agent (via the same-origin proxy) →
 // animate the decision → recordAndPay the ACTUAL released values from the session → log it.
@@ -40,7 +39,7 @@ export function RoutePayoutCard({
 }) {
   const session = useConsoleSession();
   const { run, writeContractAsync, phase: txPhase, error: txError, txHash, pending } = useOwnerWrite();
-  const [phase, setPhase] = useState<Phase>("idle");
+  const [phase, setPhase] = useState<RouterPhase>("idle");
   const [candidates, setCandidates] = useState<RailResponse[]>([]);
   const [chosen, setChosen] = useState<RouteResponse | undefined>();
   const [routeError, setRouteError] = useState<string | null>(null);
@@ -66,10 +65,12 @@ export function RoutePayoutCard({
     try {
       const rails = await getRails(country);
       setCandidates(rails);
+      // Non-authoritative agent context only (the on-chain pay uses the usdcAmount bigint);
+      // precision-safe because RouteRequestSchema caps amountUsd at 1e9.
       const amountUsd = Number(formatUnits(payout.usdcAmount, 6));
       const [resp] = await Promise.all([
         postRoute({ amountUsd, country, candidates: rails }),
-        delay(MIN_THINKING_MS), // keep the "thinking" beat visible even on a fast response
+        sleep(MIN_THINKING_MS), // keep the "thinking" beat visible even on a fast response
       ]);
 
       // Constrain the recorded rail to an OFFERED candidate: match by name/id, else fall

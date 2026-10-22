@@ -2,8 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import type { RailResponse } from "@amanah/shared";
-
-type RailCardState = "idle" | "thinking" | "chosen" | "dimmed" | "fallbackChosen";
+import type { RailCardState } from "./routerTypes";
 
 // Complete, literal Tailwind class strings per state so the JIT compiler sees every
 // class at build time. NEVER interpolate rail fields into a className.

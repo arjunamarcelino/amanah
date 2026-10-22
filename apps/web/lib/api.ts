@@ -10,6 +10,7 @@ import {
   type LedgerEntry,
 } from "@amanah/shared";
 import { ENV } from "./env";
+import { sleep } from "./sleep";
 
 // Operational-data client for the NestJS API (HTTP; no app->app import). Types
 // come from @amanah/shared. Responses are unvalidated plain types by repo
@@ -60,8 +61,6 @@ export type PostOutcome =
 
 /** @deprecated use PostOutcome */
 export type PostDonationOutcome = PostOutcome;
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * POST /donations — optimistic, idempotent on (txHash, logIndex). NEVER throws:
