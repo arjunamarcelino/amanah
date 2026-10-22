@@ -1,21 +1,17 @@
 import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
+import { Eyebrow } from "@/components/eyebrow";
 import { FeeBar } from "@/components/fee-bar";
 
 export function Problem() {
   return (
     <Section id="problem" labelledBy="problem-title">
       <Reveal>
-        <div className="mb-5 flex items-center gap-3">
-          <span aria-hidden className="h-px w-6 bg-primary" />
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-            The problem
-          </span>
-        </div>
+        <Eyebrow>The problem</Eyebrow>
 
         <h2
           id="problem-title"
-          className="max-w-[20ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
+          className="mt-5 max-w-[20ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
         >
           Too much good money disappears in the middle.
         </h2>

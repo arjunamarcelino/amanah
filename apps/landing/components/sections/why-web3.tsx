@@ -1,5 +1,6 @@
 import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
+import { Eyebrow } from "@/components/eyebrow";
 import { cn } from "@amanah/ui/lib/utils";
 
 const points = [
@@ -21,12 +22,7 @@ export function WhyWeb3() {
   return (
     <Section id="why-web3" labelledBy="why-web3-title">
       <Reveal>
-        <div className="flex items-center gap-3">
-          <span className="h-px w-8 bg-border" aria-hidden="true" />
-          <span className="text-sm font-medium tracking-wide text-muted-foreground">
-            Why it needs Web3
-          </span>
-        </div>
+        <Eyebrow>Why it needs Web3</Eyebrow>
 
         <h2
           id="why-web3-title"

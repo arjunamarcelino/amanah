@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
-import { cn } from "@amanah/ui/lib/utils";
+import { Eyebrow } from "@/components/eyebrow";
 
 type Feature = {
   index: string;
@@ -36,12 +36,7 @@ const features: Feature[] = [
 export function Features() {
   return (
     <Section id="features" labelledBy="features-title">
-      <div className="flex items-center gap-3">
-        <span aria-hidden="true" className="h-px w-8 bg-border" />
-        <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          What you get
-        </span>
-      </div>
+      <Eyebrow>What you get</Eyebrow>
 
       <h2
         id="features-title"
@@ -55,9 +50,7 @@ export function Features() {
           {features.map((feature) => (
             <div
               key={feature.index}
-              className={cn(
-                "flex flex-col rounded-xl border border-border bg-card p-6",
-              )}
+              className="flex flex-col rounded-xl border border-border bg-card p-6"
             >
               <span className="font-serif italic text-2xl text-primary/70">
                 {feature.index}

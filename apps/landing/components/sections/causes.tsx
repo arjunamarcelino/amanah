@@ -1,5 +1,6 @@
 import { Reveal } from "@/components/reveal";
 import { Section } from "@/components/section";
+import { Eyebrow } from "@/components/eyebrow";
 import { Card, CardContent } from "@amanah/ui/card";
 import { cn } from "@amanah/ui/lib/utils";
 
@@ -43,12 +44,7 @@ const causes: Cause[] = [
 export function Causes() {
   return (
     <Section id="causes" labelledBy="causes-title">
-      <div className="flex items-center gap-3">
-        <span aria-hidden="true" className="h-px w-8 bg-border" />
-        <span className="text-sm font-medium tracking-wide text-primary">
-          Where your giving goes
-        </span>
-      </div>
+      <Eyebrow>Where your giving goes</Eyebrow>
 
       <h2
         id="causes-title"

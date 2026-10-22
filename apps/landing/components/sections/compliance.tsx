@@ -1,12 +1,10 @@
 import { Section } from "@/components/section";
+import { Eyebrow } from "@/components/eyebrow";
 
 export function Compliance() {
   return (
     <Section id="compliance" labelledBy="compliance-title">
-      <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-        <span aria-hidden="true" className="h-px w-8 bg-border" />
-        Good to know
-      </div>
+      <Eyebrow>Good to know</Eyebrow>
       <h2 id="compliance-title" className="mt-4 text-xl font-medium tracking-tight">
         The small print.
       </h2>
