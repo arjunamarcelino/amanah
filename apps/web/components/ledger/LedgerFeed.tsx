@@ -7,6 +7,7 @@ import { fetchChainEvents, mergeLedger, ledgerKey } from "@/lib/ledger";
 import { LedgerRow } from "./LedgerRow";
 
 const POLL_MS = 12_000;
+const MAX_ROWS = 100; // cap the rendered feed so a long-open tab doesn't grow the DOM unbounded
 
 function SourceDot({ label, ok }: { label: string; ok: boolean }) {
   return (
@@ -35,7 +36,7 @@ export function LedgerFeed() {
 
   const api: LedgerEntry[] = apiQuery.data ?? [];
   const chain: LedgerEntry[] = chainQuery.data ?? [];
-  const rows = mergeLedger(api, chain);
+  const rows = mergeLedger(api, chain).slice(0, MAX_ROWS);
 
   const loading = apiQuery.isLoading && chainQuery.isLoading;
 
