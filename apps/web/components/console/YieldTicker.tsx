@@ -15,18 +15,16 @@ function toNumber(value: bigint | undefined): number {
 export const YieldTicker = memo(function YieldTicker({
   value,
   halalMode,
-  stale,
 }: {
   value: bigint | undefined;
   halalMode: boolean | undefined;
-  stale?: boolean;
 }) {
   const reduce = useReducedMotion();
   const target = toNumber(value);
   const [display, setDisplay] = useState(target);
 
   useEffect(() => {
-    if (reduce || stale) {
+    if (reduce) {
       setDisplay(target);
       return;
     }
@@ -36,9 +34,9 @@ export const YieldTicker = memo(function YieldTicker({
       onUpdate: setDisplay,
     });
     return () => controls.stop();
-  }, [target, reduce, stale]);
+  }, [target, reduce]);
 
-  const shown = (stale ? target : display).toLocaleString("en-US", {
+  const shown = display.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -55,19 +53,9 @@ export const YieldTicker = memo(function YieldTicker({
           </Badge>
         ) : null}
       </div>
-      <div
-        className={`font-serif text-4xl tabular-nums tracking-tight ${
-          stale ? "text-muted-foreground" : "text-foreground"
-        }`}
-      >
+      <div className="font-serif text-4xl tabular-nums tracking-tight text-foreground">
         <span aria-hidden className="mr-1 text-xl text-primary">▲</span>${shown}
       </div>
-      {stale ? (
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-foreground-soft/60 motion-safe:animate-pulse" />
-          Rebalancing — figure updates shortly
-        </span>
-      ) : null}
     </div>
   );
 });

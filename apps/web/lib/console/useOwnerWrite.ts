@@ -26,7 +26,6 @@ export type UseOwnerWrite = {
   error: string | null;
   txHash: Hex | null;
   pending: boolean;
-  reset: () => void;
 };
 
 export function useOwnerWrite(): UseOwnerWrite {
@@ -62,12 +61,6 @@ export function useOwnerWrite(): UseOwnerWrite {
     [publicClient],
   );
 
-  const reset = useCallback(() => {
-    setPhase("idle");
-    setError(null);
-    setTxHash(null);
-  }, []);
-
   return {
     run,
     writeContractAsync,
@@ -75,6 +68,5 @@ export function useOwnerWrite(): UseOwnerWrite {
     error,
     txHash,
     pending: phase === "signing" || phase === "mining",
-    reset,
   };
 }

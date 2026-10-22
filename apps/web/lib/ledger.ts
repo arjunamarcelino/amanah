@@ -173,20 +173,6 @@ export async function fetchChainEvents(): Promise<LedgerEntry[]> {
   }
 }
 
-/** Reset the in-memory + persisted cache (tests / manual refresh). */
-export function resetChainEventsCache(): void {
-  cursor = null;
-  cache = [];
-  hydrated = false;
-  if (typeof window !== "undefined") {
-    try {
-      window.localStorage.removeItem(LS_KEY);
-    } catch {
-      // ignore
-    }
-  }
-}
-
 // --- pure merge + display helpers (unit-tested) ---------------------------------
 
 /** Merge the API index with chain rows: dedup confirmed rows by (txHash, logIndex),
