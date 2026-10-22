@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
-import { Providers } from "@/lib/privy";
+import { QueryProvider } from "@/lib/query-provider";
 import "./globals.css";
 
 // Self-hosted from committed .woff2 (latin, variable) so the build needs no network.
@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${hanken.variable}`}>
       <body>
-        <Providers>{children}</Providers>
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );
