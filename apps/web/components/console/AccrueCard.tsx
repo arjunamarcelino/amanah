@@ -20,7 +20,7 @@ export function AccrueCard({
   const { run, writeContractAsync, phase, error, txHash, pending } = useOwnerWrite();
 
   async function onClick() {
-    const hash = await run(
+    const res = await run(
       () =>
         halalMode
           ? writeContractAsync({
@@ -39,7 +39,7 @@ export function AccrueCard({
             }),
       "Accrue yield failed",
     );
-    if (hash) onSuccess?.();
+    if (res) onSuccess?.();
   }
 
   return (

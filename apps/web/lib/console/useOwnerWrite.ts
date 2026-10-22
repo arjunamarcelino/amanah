@@ -2,10 +2,12 @@
 
 import { useCallback, useState } from "react";
 import { useWriteContract, usePublicClient } from "wagmi";
-import type { Hex } from "viem";
+import type { Hex, TransactionReceipt } from "viem";
 import { CHAIN_ID } from "@amanah/shared";
 import { sendAndConfirm, type TxPhase } from "../tx";
 import { txErrorMessage } from "../txError";
+
+export type OwnerWriteResult = { hash: Hex; receipt: TransactionReceipt };
 
 // Generic owner-write driver shared by every console action (accrue, invest, fire,
 // approve, release, setMode, recordAndPay). Wraps writeContractAsync in sendAndConfirm
@@ -15,8 +17,10 @@ import { txErrorMessage } from "../txError";
 // a time — no cross-card mutex needed).
 
 export type UseOwnerWrite = {
-  /** Build the write with wagmi's typed writeContractAsync, pass the thunk here. */
-  run: (write: () => Promise<Hex>, revertMessage: string) => Promise<Hex | null>;
+  /** Build the write with wagmi's typed writeContractAsync, pass the thunk here. Resolves
+   * to the confirmed { hash, receipt } (so callers can parse events without a second RPC
+   * round-trip) or null on failure. */
+  run: (write: () => Promise<Hex>, revertMessage: string) => Promise<OwnerWriteResult | null>;
   writeContractAsync: ReturnType<typeof useWriteContract>["writeContractAsync"];
   phase: TxPhase;
   error: string | null;
@@ -33,7 +37,7 @@ export function useOwnerWrite(): UseOwnerWrite {
   const [txHash, setTxHash] = useState<Hex | null>(null);
 
   const run = useCallback(
-    async (write: () => Promise<Hex>, revertMessage: string): Promise<Hex | null> => {
+    async (write: () => Promise<Hex>, revertMessage: string): Promise<OwnerWriteResult | null> => {
       if (!publicClient) {
         setPhase("error");
         setError("No RPC client for Base Sepolia");
@@ -43,12 +47,12 @@ export function useOwnerWrite(): UseOwnerWrite {
       setError(null);
       setTxHash(null);
       try {
-        const { hash } = await sendAndConfirm(publicClient, write, revertMessage, (h) => {
+        const { hash, receipt } = await sendAndConfirm(publicClient, write, revertMessage, (h) => {
           setTxHash(h);
           setPhase("mining");
         });
         setPhase("success");
-        return hash;
+        return { hash, receipt };
       } catch (e) {
         setError(txErrorMessage(e));
         setPhase("error");

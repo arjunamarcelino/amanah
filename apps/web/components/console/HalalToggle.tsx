@@ -26,7 +26,7 @@ export function HalalToggle({
 
   async function onToggle() {
     if (halalMode === undefined) return;
-    const hash = await run(
+    const res = await run(
       () =>
         writeContractAsync({
           address: POOL,
@@ -37,7 +37,7 @@ export function HalalToggle({
         }),
       "Switch mode failed",
     );
-    if (hash) onSuccess?.();
+    if (res) onSuccess?.();
   }
 
   return (

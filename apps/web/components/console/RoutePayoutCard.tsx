@@ -77,7 +77,7 @@ export function RoutePayoutCard({
       const matched = rails.find((r) => r.name === resp.chosenRail || r.id === resp.chosenRail);
       const feeBps = matched?.feeBps ?? resp.feeBps;
 
-      const hash = await run(
+      const res = await run(
         () =>
           writeContractAsync({
             address: ROUTER,
@@ -95,7 +95,7 @@ export function RoutePayoutCard({
           }),
         "Record & pay failed — payout args must match the released tranche.",
       );
-      if (!hash) return;
+      if (!res) return;
 
       await postPayout({
         payoutId: payout.payoutId,
@@ -107,7 +107,7 @@ export function RoutePayoutCard({
         rationale: resp.rationale,
         fallbackUsed: resp.fallbackUsed,
       });
-      session.setRouted(hash);
+      session.setRouted(res.hash);
       onRouted?.();
     } catch (e) {
       setRouteError(e instanceof Error ? e.message : "Routing failed");

@@ -1,7 +1,7 @@
 "use client";
 
+import { useState } from "react";
 import type { Hex } from "viem";
-import { usePublicClient } from "wagmi";
 import { CharityPoolAbi, ADDRESSES, CHAIN_ID, parseTrancheReleasedEvent } from "@amanah/shared";
 import { Button } from "@amanah/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
@@ -36,9 +36,9 @@ export function ReleaseTrancheCard({
   onReleased?: () => void;
 }) {
   const { run, writeContractAsync, phase, error, txHash, pending } = useOwnerWrite();
-  const publicClient = usePublicClient({ chainId: CHAIN_ID });
   const session = useConsoleSession();
   const preset = presetForSlug(slug);
+  const [parseError, setParseError] = useState<string | null>(null);
 
   if (!preset) {
     return (
@@ -53,29 +53,37 @@ export function ReleaseTrancheCard({
     );
   }
 
+  // Narrowed here (control-flow narrowing doesn't reach into the onRelease closure).
+  const { trancheAmount, beneficiary } = preset;
+
   async function onRelease() {
-    const hash = await run(
+    setParseError(null);
+    const res = await run(
       () =>
         writeContractAsync({
           address: POOL,
           abi: CharityPoolAbi,
           functionName: "releaseTranche",
-          args: [campaignId, preset!.trancheAmount, preset!.beneficiary],
+          args: [campaignId, trancheAmount, beneficiary],
           chainId: CHAIN_ID,
         }),
       "Release tranche failed",
     );
-    if (!hash || !publicClient) return;
-    const receipt = await publicClient.getTransactionReceipt({ hash });
-    const ev = parseTrancheReleasedEvent(receipt, POOL, { campaignId });
-    if (ev) {
-      session.setReleased({
-        payoutId: ev.payoutId,
-        campaignId: ev.campaignId,
-        beneficiary: ev.beneficiary,
-        usdcAmount: ev.usdcAmount,
-      });
+    if (!res) return;
+    // Parse the event from the already-confirmed receipt (no second RPC round-trip / race).
+    const ev = parseTrancheReleasedEvent(res.receipt, POOL, { campaignId });
+    if (!ev) {
+      setParseError(
+        "Tranche released, but the TrancheReleased event could not be read — refresh and retry routing.",
+      );
+      return;
     }
+    session.setReleased({
+      payoutId: ev.payoutId,
+      campaignId: ev.campaignId,
+      beneficiary: ev.beneficiary,
+      usdcAmount: ev.usdcAmount,
+    });
     onReleased?.();
   }
 
@@ -107,6 +115,7 @@ export function ReleaseTrancheCard({
         {!enabled && disabledReason && (
           <p className="text-xs text-muted-foreground">{disabledReason}</p>
         )}
+        {parseError && <p className="text-sm text-destructive">{parseError}</p>}
         <TxStatus phase={phase} error={error} txHash={txHash} pendingLabel="Releasing…" />
       </CardContent>
     </Card>

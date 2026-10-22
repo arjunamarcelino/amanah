@@ -45,7 +45,7 @@ export function ReleaseConditionCard({
   const title = isParametric ? "Parametric trigger" : "Milestone approval";
 
   async function onClick() {
-    const hash = await run(
+    const res = await run(
       () =>
         writeContractAsync({
           address: CONTROLLER,
@@ -56,7 +56,7 @@ export function ReleaseConditionCard({
         }),
       `${label} failed`,
     );
-    if (hash) onSuccess?.();
+    if (res) onSuccess?.();
   }
 
   return (
