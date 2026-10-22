@@ -1,7 +1,7 @@
 "use client";
 
 import { useReadContracts } from "wagmi";
-import type { Address, Hex } from "viem";
+import type { Hex } from "viem";
 import { CharityPoolAbi, ADDRESSES, CHAIN_ID } from "@amanah/shared";
 import { clampedYield } from "../yield";
 
@@ -19,7 +19,6 @@ export type CharityPoolReads = {
   poolValue: bigint | undefined;
   totalSupply: bigint | undefined;
   halalMode: boolean | undefined;
-  owner: Address | undefined;
   releaseDelay: bigint | undefined;
   donated: bigint | undefined;
   released: bigint | undefined;
@@ -42,7 +41,6 @@ export function useCharityPool(
       { address: POOL, abi: CharityPoolAbi, functionName: "poolValue", chainId: CHAIN_ID },
       { address: POOL, abi: CharityPoolAbi, functionName: "totalSupply", chainId: CHAIN_ID },
       { address: POOL, abi: CharityPoolAbi, functionName: "halalMode", chainId: CHAIN_ID },
-      { address: POOL, abi: CharityPoolAbi, functionName: "owner", chainId: CHAIN_ID },
       { address: POOL, abi: CharityPoolAbi, functionName: "releaseDelay", chainId: CHAIN_ID },
     ],
     query: { refetchInterval: opts?.refetchIntervalMs },
@@ -69,8 +67,16 @@ export function useCharityPool(
     query: { enabled: Boolean(campaignId), refetchInterval: opts?.refetchIntervalMs },
   });
 
-  const [poolValue, totalSupply, halalMode, owner, releaseDelay] = poolRead.data ?? [];
-  const [donated, released] = campaignRead.data ?? [];
+  // Use `?.[i]` (not `?? []`): the `?? []` fallback erases the `| undefined` from each
+  // element's type, defeating the null guards below.
+  const poolData = poolRead.data;
+  const poolValue = poolData?.[0];
+  const totalSupply = poolData?.[1];
+  const halalMode = poolData?.[2];
+  const releaseDelay = poolData?.[3];
+  const campaignData = campaignRead.data;
+  const donated = campaignData?.[0];
+  const released = campaignData?.[1];
 
   const accruedYield =
     poolValue !== undefined && totalSupply !== undefined
@@ -84,7 +90,6 @@ export function useCharityPool(
     poolValue,
     totalSupply,
     halalMode,
-    owner,
     releaseDelay,
     donated,
     released,
