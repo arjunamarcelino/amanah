@@ -15,6 +15,15 @@ export type AmountError =
 
 export type ParseAmountResult = { ok: true; value: bigint } | { ok: false; error: AmountError };
 
+/** Human-readable message per validation error code. */
+export const AMOUNT_ERROR_MESSAGE: Record<AmountError, string> = {
+  empty: "Enter an amount",
+  not_numeric: "Enter a valid number",
+  too_many_decimals: "At most 6 decimal places",
+  not_positive: "Amount must be greater than 0",
+  too_large: "Amount is too large",
+};
+
 /** Parse a user-typed amount into base units. No throwing — returns a union. */
 export function parseTokenAmount(input: string, decimals: number = DECIMALS): ParseAmountResult {
   const s = input.trim();
