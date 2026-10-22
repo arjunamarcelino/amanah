@@ -16,6 +16,7 @@ symptoms:
 tags: [nextjs, next15, app-router, privy, wagmi, viem, embedded-wallet, webpack, ignoreplugin, prerender, route-group, turbopack, base-sepolia, csp, bundle-size]
 related:
   - PR: https://github.com/arjunamarcelino/amanah/pull/9
+  - PR-second-config: https://github.com/arjunamarcelino/amanah/pull/10
   - commit-providers: 1b26d16
   - commit-route-group: 5566b59
   - commit-headers: 8d4e1a8
@@ -66,10 +67,15 @@ webpack: (config, { webpack }) => {
 },
 ```
 
-**Why it's safe:** the flow is embedded-wallet-only (no injected/Coinbase connector configured;
-`useWallets().find(w => w.walletClientType === 'privy')`), so the x402 payment path is never
-instantiated. Add a comment saying exactly that — if someone later adds a Coinbase/injected
-connector, the stub would resolve to an empty module and fail opaquely.
+**Why it's safe:** the x402 payment path lives in the Coinbase/Base connector, which the donor
+flow never instantiates (`useWallets().find(w => w.walletClientType === 'privy')`). Add a comment
+saying exactly that.
+
+**Update (PR #10):** the operator console later added a plain-wagmi `injected({ target: 'metaMask' })`
+config (see §6). A production `next build` confirmed `injected()` does **not** pull `@x402`/the
+Coinbase SDK, so the stub stays safe — the comment now says injected() is fine and that only a
+Coinbase/WalletConnect connector would require revisiting. So the original "revisit if any connector
+is added" warning was too broad: injected is clear; the Coinbase/x402 scope is the actual trigger.
 
 ## 2. PrivyProvider crashes static prerender when the app id is missing at build
 
@@ -141,6 +147,51 @@ bundle (module imports are eager). Provider nesting ends up `QueryClient (root) 
 - `defaultChain` must be included in `supportedChains` or Privy throws.
 - `ConnectedWallet.chainId` is **CAIP-2** (`"eip155:84532"`), not a number — parse before comparing to `CHAIN_ID`.
 
+## 6. A second, isolated injected-wallet config for an operator console (PR #10)
+
+A later feature (the owner/operator console) needed a **different** wallet persona — an injected
+MetaMask holding the contract-owner key, not the Privy embedded EOA. The pattern that worked: a
+**second** wagmi config in its own `(console)` route group, running alongside the donor Privy
+config without either leaking into the other's bundle.
+
+```ts
+// app/(console)/.../wagmi.ts — imports ONLY wagmi/viem, NEVER lib/wagmi.ts (which pulls Privy)
+import { createConfig, http, createStorage } from "wagmi";
+import { injected } from "wagmi/connectors";
+import { baseSepolia } from "viem/chains";
+
+export function createConsoleConfig() {
+  return createConfig({
+    chains: [baseSepolia],
+    connectors: [injected({ target: "metaMask" })],
+    multiInjectedProviderDiscovery: false,     // one deterministic connector, no EIP-6963 dupes
+    ssr: true,
+    storage: createStorage({ key: "wagmi.console", storage: /* window.localStorage client-side */ }),
+    batch: { multicall: true },
+    transports: { [baseSepolia.id]: http(ENV.rpcUrl, { batch: true }) },
+  });
+}
+```
+
+Pitfalls, in the order they bite:
+
+- **Storage-key collision (the silent one).** Both configs default to the localStorage key
+  `"wagmi"` and clobber each other's persisted connection state across the origin. Give the console
+  config a distinct `createStorage({ key: "wagmi.console" })`.
+- **Bundle isolation hinges on the import graph, not comments.** The console subtree must import
+  viem's `baseSepolia` + `wagmi/connectors` directly and **never** `lib/wagmi.ts` (which imports
+  `@privy-io/wagmi`). Verified by the build: `/console` = 316 kB vs `/donate` = 498 kB (no Privy).
+  A shared module that re-exports the Privy config would drag Privy back into the console chunk.
+- **`injected()` is safe under the §1 `IgnorePlugin`** — it does not resolve `@x402`/the Coinbase
+  SDK (confirmed by `next build`). Only a Coinbase/WalletConnect connector would.
+- **Determinism:** `multiInjectedProviderDiscovery: false` + `injected({ target: "metaMask" })`
+  avoids duplicate discovered connectors. Create the config once (`useState(createConsoleConfig)`)
+  and give the console subtree its own `QueryClient`.
+- **No manual `accountsChanged`/`chainChanged` listeners** — `useAccount`/`useChainId` already
+  re-render on them, so a fail-closed gate (`useReadContract('owner')` chain-pinned, compared with
+  `normalizeHex`, locked on pending/error) re-gates live for free when the operator switches
+  account or network.
+
 ## Related gotchas surfaced in the same work
 
 - **`turbo run build typecheck` races on `.next/types`.** A Next app's `typecheck` (`tsc --noEmit`)
@@ -162,6 +213,9 @@ bundle (module imports are eager). Provider nesting ends up `QueryClient (root) 
 - [ ] No `--turbopack` in dev/build scripts.
 - [ ] `embeddedWallets.ethereum.createOnLogin`; `defaultChain ∈ supportedChains`; parse CAIP-2 chainId.
 - [ ] Run `typecheck` separately from `build` in CI; add the `@/` alias to `vitest.config.ts`.
+- [ ] A second (e.g. injected-owner) wallet context → its own route group + wagmi config with a
+      distinct `createStorage({ key })`, `multiInjectedProviderDiscovery: false`, and NO import of
+      the Privy config module; verify the chunk stays Privy-free (§6).
 
 ## Cross-references
 
