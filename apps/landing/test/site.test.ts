@@ -29,10 +29,6 @@ describe("resolveAppUrl", () => {
     expect(resolveAppUrl("   ", "production")).toBe("https://app.amanah.help");
   });
 
-  it("never links to localhost in a production build", () => {
-    expect(resolveAppUrl(undefined, "production")).not.toContain("localhost");
-  });
-
   it("falls back to the web dev port outside production", () => {
     expect(resolveAppUrl(undefined, "development")).toBe("http://localhost:3000");
     expect(resolveAppUrl(undefined, undefined)).toBe("http://localhost:3000");
@@ -40,5 +36,10 @@ describe("resolveAppUrl", () => {
 
   it("throws on a malformed URL", () => {
     expect(() => resolveAppUrl("not-a-url", "production")).toThrow();
+  });
+
+  it("rejects non-http(s) schemes (e.g. javascript:, data:)", () => {
+    expect(() => resolveAppUrl("javascript:alert(1)", "production")).toThrow();
+    expect(() => resolveAppUrl("data:text/html,x", "production")).toThrow();
   });
 });

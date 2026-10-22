@@ -11,7 +11,12 @@ export function resolveAppUrl(rawEnv: string | undefined, nodeEnv: string | unde
   const url =
     fromEnv ||
     (nodeEnv === "production" ? "https://app.amanah.help" : "http://localhost:3000");
-  new URL(url); // validation side-effect — throws on a malformed value. Do not reassign.
+  // Throw at build on anything that isn't a valid http(s) URL. `new URL()` alone would
+  // happily accept `javascript:`/`data:` schemes, which must never become the CTA href.
+  const { protocol } = new URL(url);
+  if (protocol !== "https:" && protocol !== "http:") {
+    throw new Error(`NEXT_PUBLIC_APP_URL must be an http(s) URL, got: ${url}`);
+  }
   return url;
 }
 
