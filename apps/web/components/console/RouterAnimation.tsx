@@ -4,13 +4,13 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Badge } from "@amanah/ui/badge";
 import type { RailResponse, RouteResponse } from "@amanah/shared";
 import { RailCard } from "./RailCard";
+import { matchesChosen } from "@/lib/console/railMatch";
 
 type Phase = "idle" | "thinking" | "decided" | "fallback";
 type RailCardState = "idle" | "thinking" | "chosen" | "dimmed" | "fallbackChosen";
 
-function matchesChosen(rail: RailResponse, chosen: RouteResponse | undefined): boolean {
-  if (!chosen) return false;
-  return rail.name === chosen.chosenRail || rail.id === chosen.chosenRail;
+function isChosen(rail: RailResponse, chosen: RouteResponse | undefined): boolean {
+  return chosen !== undefined && matchesChosen(rail, chosen.chosenRail);
 }
 
 function cardStateFor(
@@ -24,9 +24,9 @@ function cardStateFor(
     case "thinking":
       return "thinking";
     case "decided":
-      return matchesChosen(rail, chosen) ? "chosen" : "dimmed";
+      return isChosen(rail, chosen) ? "chosen" : "dimmed";
     case "fallback":
-      return matchesChosen(rail, chosen) ? "fallbackChosen" : "dimmed";
+      return isChosen(rail, chosen) ? "fallbackChosen" : "dimmed";
   }
 }
 
