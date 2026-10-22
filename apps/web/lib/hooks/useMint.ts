@@ -5,7 +5,7 @@ import { useWriteContract, usePublicClient } from "wagmi";
 import { MockStablecoinAbi, CHAIN_ID } from "@amanah/shared";
 import type { Address, Hex } from "viem";
 import { txErrorMessage } from "@/lib/txError";
-import type { TxPhase } from "@/components/TxStatus";
+import { sendAndConfirm, type TxPhase } from "@/lib/tx";
 
 /** Mint flow for the public MockStablecoin faucet. Explicit per-step state machine. */
 export function useMint() {
@@ -18,20 +18,31 @@ export function useMint() {
   async function mint(token: Address, to: Address, amount: bigint) {
     setError(null);
     setTxHash(null);
+    // Check the RPC client BEFORE broadcasting — never submit a tx and then report
+    // "No RPC client" as a failure for a tx that actually mined.
+    if (!publicClient) {
+      setError("No RPC client");
+      setPhase("error");
+      return;
+    }
     setPhase("signing");
     try {
-      const hash = await writeContractAsync({
-        address: token,
-        abi: MockStablecoinAbi,
-        functionName: "mint",
-        args: [to, amount],
-        chainId: CHAIN_ID,
-      });
-      setTxHash(hash);
-      setPhase("mining");
-      if (!publicClient) throw new Error("No RPC client");
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      if (receipt.status !== "success") throw new Error("Mint transaction reverted");
+      await sendAndConfirm(
+        publicClient,
+        () =>
+          writeContractAsync({
+            address: token,
+            abi: MockStablecoinAbi,
+            functionName: "mint",
+            args: [to, amount],
+            chainId: CHAIN_ID,
+          }),
+        "Mint transaction reverted",
+        (hash) => {
+          setTxHash(hash);
+          setPhase("mining");
+        },
+      );
       setPhase("success");
     } catch (e) {
       setError(txErrorMessage(e));

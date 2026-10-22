@@ -12,10 +12,11 @@ import {
 import type { Address, Hex } from "viem";
 import { parseDonatedEvent } from "@/lib/donations";
 import { txErrorMessage } from "@/lib/txError";
+import { sendAndConfirm, type TxPhase } from "@/lib/tx";
 
 const POOL = ADDRESSES[CHAIN_ID].CharityPool;
 
-export type DonateStep = "idle" | "approving" | "donating" | "success" | "error";
+export type DonateStage = "approve" | "donate" | null;
 
 export type DonateResult = {
   txHash: Hex;
@@ -28,11 +29,15 @@ export type DonateResult = {
  * approve (exact, only if needed) -> donate -> parse Donated. The consentHash is
  * derived INLINE from the exact args passed to donate (S-1) — never from UI state.
  * Allowance is checked on every call so a retry after a mined approve skips it.
+ *
+ * Exposes a shared TxPhase (incl. "signing") + the current stage, so the UI can show
+ * the "confirm in your wallet" prompt for each of the (up to two) signatures.
  */
 export function useDonateEngine() {
   const publicClient = usePublicClient({ chainId: CHAIN_ID });
   const { writeContractAsync } = useWriteContract();
-  const [step, setStep] = useState<DonateStep>("idle");
+  const [phase, setPhase] = useState<TxPhase>("idle");
+  const [stage, setStage] = useState<DonateStage>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DonateResult | null>(null);
 
@@ -48,35 +53,45 @@ export function useDonateEngine() {
     setResult(null);
     if (!publicClient) {
       setError("No RPC client");
-      setStep("error");
+      setPhase("error");
       return null;
     }
     try {
       if (currentAllowance < amount) {
-        setStep("approving");
-        const approveHash = await writeContractAsync({
-          address: token,
-          abi: MockStablecoinAbi,
-          functionName: "approve",
-          args: [POOL, amount], // exact approve
-          chainId: CHAIN_ID,
-        });
-        const ar = await publicClient.waitForTransactionReceipt({ hash: approveHash });
-        if (ar.status !== "success") throw new Error("Approve transaction reverted");
+        setStage("approve");
+        setPhase("signing");
+        await sendAndConfirm(
+          publicClient,
+          () =>
+            writeContractAsync({
+              address: token,
+              abi: MockStablecoinAbi,
+              functionName: "approve",
+              args: [POOL, amount], // exact approve
+              chainId: CHAIN_ID,
+            }),
+          "Approve transaction reverted",
+          () => setPhase("mining"),
+        );
       }
 
       const consentHash = buildConsentHash({ campaignId, donor, stablecoin: token, amount });
 
-      setStep("donating");
-      const txHash = await writeContractAsync({
-        address: POOL,
-        abi: CharityPoolAbi,
-        functionName: "donate",
-        args: [campaignId, token, amount, consentHash],
-        chainId: CHAIN_ID,
-      });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-      if (receipt.status !== "success") throw new Error("Donation transaction reverted");
+      setStage("donate");
+      setPhase("signing");
+      const { hash, receipt } = await sendAndConfirm(
+        publicClient,
+        () =>
+          writeContractAsync({
+            address: POOL,
+            abi: CharityPoolAbi,
+            functionName: "donate",
+            args: [campaignId, token, amount, consentHash],
+            chainId: CHAIN_ID,
+          }),
+        "Donation transaction reverted",
+        () => setPhase("mining"),
+      );
 
       const donated = parseDonatedEvent(receipt, POOL, {
         campaignId,
@@ -85,20 +100,27 @@ export function useDonateEngine() {
         amount,
       });
       const res: DonateResult = {
-        txHash,
+        txHash: hash,
         consentHash,
         baseOut: donated?.baseOut,
         logIndex: donated?.logIndex,
       };
       setResult(res);
-      setStep("success");
+      setPhase("success");
       return res;
     } catch (e) {
       setError(txErrorMessage(e));
-      setStep("error");
+      setPhase("error");
       return null;
     }
   }
 
-  return { donate, step, error, result, pending: step === "approving" || step === "donating" };
+  return {
+    donate,
+    phase,
+    stage,
+    error,
+    result,
+    pending: phase === "signing" || phase === "mining",
+  };
 }

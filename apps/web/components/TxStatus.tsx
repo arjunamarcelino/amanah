@@ -2,8 +2,9 @@
 
 import { txUrl } from "@amanah/shared";
 import type { Hex } from "viem";
+import type { TxPhase } from "@/lib/tx";
 
-export type TxPhase = "idle" | "signing" | "mining" | "success" | "error";
+export type { TxPhase };
 
 export function TxStatus({
   phase,

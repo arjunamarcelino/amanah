@@ -169,7 +169,7 @@ function DonateForm({ campaignId }: { campaignId: Hex }) {
     }
   }
 
-  if (engine.step === "success" && engine.result) {
+  if (engine.phase === "success" && engine.result) {
     return <DonateSuccess txHash={engine.result.txHash} ledgerPending={ledgerPending} />;
   }
 
@@ -200,10 +200,10 @@ function DonateForm({ campaignId }: { campaignId: Hex }) {
           {engine.pending ? "Processing…" : `Donate ${coin}`}
         </Button>
         <TxStatus
-          phase={engine.step === "approving" || engine.step === "donating" ? "mining" : engine.step}
+          phase={engine.phase}
           error={engine.error}
           txHash={engine.result?.txHash ?? null}
-          pendingLabel={engine.step === "approving" ? "Approving spend…" : "Confirming donation…"}
+          pendingLabel={engine.stage === "approve" ? "Approving spend…" : "Confirming donation…"}
         />
       </CardContent>
     </Card>
