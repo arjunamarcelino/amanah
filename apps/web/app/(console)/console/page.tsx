@@ -34,6 +34,10 @@ function releaseDisabledReason(step: OperatorStep): string | undefined {
       return "Time-locked (T+N) — not yet unlocked.";
     case "fully_released":
       return "Fully released.";
+    case "can_route":
+      return "Tranche released — route the payout below.";
+    case "paid":
+      return "Payout complete.";
     default:
       return undefined;
   }
