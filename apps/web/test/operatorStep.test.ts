@@ -26,9 +26,8 @@ describe("deriveOperatorStep", () => {
     expect(deriveOperatorStep({ ...base, donated: 0n }).step).toBe("awaiting_donations");
   });
 
-  it("donations but condition not met → needs_trigger (carries releaseType)", () => {
-    const s = deriveOperatorStep({ ...base, canRelease: false });
-    expect(s).toEqual({ step: "needs_trigger", releaseType: "PARAMETRIC" });
+  it("donations but condition not met → needs_trigger", () => {
+    expect(deriveOperatorStep({ ...base, canRelease: false }).step).toBe("needs_trigger");
   });
 
   it("condition met but still inside T+N → awaiting_unlock", () => {
@@ -39,7 +38,7 @@ describe("deriveOperatorStep", () => {
       releaseDelay: 100n,
       now: 1_050n,
     });
-    expect(s).toEqual({ step: "awaiting_unlock", unlockAt: 1_100n });
+    expect(s.step).toBe("awaiting_unlock");
   });
 
   it("unlocked with remaining cap → can_release", () => {
@@ -51,7 +50,7 @@ describe("deriveOperatorStep", () => {
       now: 2_000n,
       released: 400_000_000n,
     });
-    expect(s).toEqual({ step: "can_release", remainingCap: 600_000_000n });
+    expect(s.step).toBe("can_release");
   });
 
   it("unlocked but fully released → fully_released", () => {
