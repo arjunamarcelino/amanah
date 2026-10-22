@@ -103,7 +103,10 @@ export function RoutePayoutCard({
           }),
         "Record & pay failed — payout args must match the released tranche.",
       );
-      if (!res) return;
+      if (!res) {
+        setPhase("idle"); // don't leave a success-looking "decided" state on a reverted pay
+        return;
+      }
 
       await postPayout({
         payoutId: payout.payoutId,
