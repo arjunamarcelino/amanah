@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useInView } from "@/lib/use-in-view";
 
 /**
  * Scroll-reveal wrapper. Frozen contract: { children, className? }.
  *
- * The revealed (final) state is the CSS default, so content is fully legible with JS
- * disabled or IntersectionObserver unavailable. Motion is additive — see globals.css
- * (`html.js [data-reveal]:not([data-show])`). Honors prefers-reduced-motion by showing
- * the final state immediately.
+ * The revealed (final) state is the CSS default (see globals.css), so content is fully
+ * legible with JS disabled, with IntersectionObserver unavailable, or under
+ * prefers-reduced-motion (a media query keeps `[data-reveal]` visible regardless of
+ * `data-show`). Motion is purely additive.
  */
 export function Reveal({
   children,
@@ -18,36 +18,10 @@ export function Reveal({
   children: ReactNode;
   className?: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce || !("IntersectionObserver" in window)) {
-      setShown(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setShown(true);
-            observer.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: 0.15, rootMargin: "0px 0px -10% 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  const { ref, inView } = useInView<HTMLDivElement>();
 
   return (
-    <div ref={ref} data-reveal data-show={shown || undefined} className={className}>
+    <div ref={ref} data-reveal data-show={inView || undefined} className={className}>
       {children}
     </div>
   );

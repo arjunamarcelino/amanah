@@ -1,71 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useInView } from "@/lib/use-in-view";
+
+// One-off chart shades for this figure only — intentionally outside the shadcn token
+// contract (they're data colours, not reusable UI-surface tokens): a de-emphasised sage
+// for "traditional delivered" and a muted taupe + hatch for the "lost" tail.
+const TRADITIONAL_FILL = "hsl(144 18% 42%)";
+const LOST_FILL = "hsl(34 10% 52%)";
+const LOST_HATCH = "hsl(34 12% 40%)";
+const GROW = "transform 900ms cubic-bezier(0.22,1,0.36,1)";
 
 /**
- * FeeBar — a scroll-triggered, two-bar comparison of how much of a donation is
- * actually delivered: traditional aid versus Amanah.
+ * FeeBar — a scroll-triggered, two-bar comparison of how much of a donation is actually
+ * delivered: traditional aid versus Amanah.
  *
- * Honest by construction: both bars share a single 0–100% track and the widths
- * encode the real figures (~95% vs ~100% delivered). The motion is additive and
- * compositor-only (transform / opacity). The FINAL filled state is the default,
- * so with JS disabled, no IntersectionObserver, or prefers-reduced-motion the
- * bars render full and correct. The bars are decorative (aria-hidden); the
- * labels, figures and captions are the accessible text equivalent.
+ * Honest by construction: both bars share a single 0–100% track and the widths encode the
+ * real figures (~95% vs ~100% delivered). The motion is additive and compositor-only
+ * (transform / opacity). The FINAL filled state is the default, so with JS disabled, no
+ * IntersectionObserver, or prefers-reduced-motion the bars render full and correct. The
+ * bars are decorative (aria-hidden); the labels, figures and captions are the accessible
+ * text equivalent.
  */
 export function FeeBar() {
-  // armed  -> JS has mounted (so we may hide, then animate)
-  // shown  -> scrolled into view (or shown immediately when motion is off)
-  const [armed, setArmed] = useState(false);
-  const [shown, setShown] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce || !("IntersectionObserver" in window) || !el) {
-      setArmed(true);
-      setShown(true);
-      return;
-    }
-
-    setArmed(true);
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setShown(true);
-            observer.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: 0.3, rootMargin: "0px 0px -10% 0px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // SSR / no-JS: armed=false -> scaleX(1) (full). JS: armed=true, shown=false ->
-  // scaleX(0), then grows to scaleX(1) on intersect.
-  const filled = !armed || shown;
+  const { ref, inView } = useInView<HTMLElement>({ threshold: 0.3 });
+  // `mounted` keeps the first client render matching SSR (bars full) so the page is
+  // correct with JS off; once mounted the bars may collapse and grow in on scroll-in.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const filled = !mounted || inView;
 
   return (
     <figure ref={ref} className="m-0">
-      <figcaption
-        style={{
-          position: "absolute",
-          width: 1,
-          height: 1,
-          padding: 0,
-          margin: -1,
-          overflow: "hidden",
-          clip: "rect(0 0 0 0)",
-          whiteSpace: "nowrap",
-          border: 0,
-        }}
-      >
+      <figcaption className="sr-only">
         Of each donation, traditional aid delivers about 92–97% and loses 3–8% to last-mile
         fees; Amanah delivers about 100%, losing roughly 0% in routing fees.
       </figcaption>
@@ -79,18 +46,15 @@ export function FeeBar() {
               3–8% lost
             </span>
           </div>
-          <div
-            aria-hidden="true"
-            className="flex h-11 w-full overflow-hidden rounded-md bg-muted"
-          >
+          <div aria-hidden="true" className="flex h-11 w-full overflow-hidden rounded-md bg-muted">
             <div
               className="h-full"
               style={{
                 width: "95%",
-                backgroundColor: "hsl(144 18% 42%)",
+                backgroundColor: TRADITIONAL_FILL,
                 transform: filled ? "scaleX(1)" : "scaleX(0)",
                 transformOrigin: "left",
-                transition: "transform 900ms cubic-bezier(0.22,1,0.36,1)",
+                transition: GROW,
               }}
             />
             <div style={{ width: 2 }} aria-hidden="true" />
@@ -98,9 +62,8 @@ export function FeeBar() {
               className="h-full rounded-r-md border border-border"
               style={{
                 width: "5%",
-                backgroundColor: "hsl(34 10% 52%)",
-                backgroundImage:
-                  "repeating-linear-gradient(135deg, transparent, transparent 4px, hsl(34 12% 40%) 4px, hsl(34 12% 40%) 5px)",
+                backgroundColor: LOST_FILL,
+                backgroundImage: `repeating-linear-gradient(135deg, transparent, transparent 4px, ${LOST_HATCH} 4px, ${LOST_HATCH} 5px)`,
                 opacity: filled ? 1 : 0,
                 transition: "opacity 400ms ease 150ms",
               }}
@@ -115,16 +78,13 @@ export function FeeBar() {
             <span className="text-sm font-semibold text-foreground">Amanah</span>
             <span className="tabular-nums text-sm font-medium text-foreground">~0% lost</span>
           </div>
-          <div
-            aria-hidden="true"
-            className="flex h-11 w-full overflow-hidden rounded-md bg-muted"
-          >
+          <div aria-hidden="true" className="flex h-11 w-full overflow-hidden rounded-md bg-muted">
             <div
               className="h-full w-full bg-primary"
               style={{
                 transform: filled ? "scaleX(1)" : "scaleX(0)",
                 transformOrigin: "left",
-                transition: "transform 900ms cubic-bezier(0.22,1,0.36,1)",
+                transition: GROW,
                 transitionDelay: "200ms",
               }}
             />
