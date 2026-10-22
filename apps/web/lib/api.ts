@@ -27,7 +27,7 @@ export async function getCampaigns(type?: string): Promise<CampaignResponse[]> {
 export type PostDonationOutcome =
   | { kind: "accepted" } // 202 / 2xx
   | { kind: "duplicate" } // 409 — already recorded (double-submit or indexer won)
-  | { kind: "deferred"; retryable: true; status?: number }; // 5xx / network / 4xx
+  | { kind: "deferred" }; // 5xx / network / 4xx — non-fatal; indexer reconciles
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -53,7 +53,7 @@ export async function postDonation(
       if (res.status === 202 || res.ok) return { kind: "accepted" };
       if (res.status === 409) return { kind: "duplicate" };
       if (res.status >= 400 && res.status < 500) {
-        return { kind: "deferred", retryable: true, status: res.status };
+        return { kind: "deferred" };
       }
       // 5xx falls through to retry
     } catch {
@@ -61,5 +61,5 @@ export async function postDonation(
     }
     if (attempt < retries) await sleep(baseMs * 2 ** attempt + Math.random() * 100);
   }
-  return { kind: "deferred", retryable: true };
+  return { kind: "deferred" };
 }
