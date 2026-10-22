@@ -1,9 +1,7 @@
 "use client";
 
 import { MockYieldVaultAbi, MockHalalVaultAbi, ADDRESSES, CHAIN_ID } from "@amanah/shared";
-import { Button } from "@amanah/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
-import { TxStatus } from "@/components/TxStatus";
+import { ActionCard } from "./ActionCard";
 import { useOwnerWrite } from "@/lib/console/useOwnerWrite";
 
 // Demo accrual rate in basis points — large enough that the ticker visibly moves.
@@ -43,20 +41,18 @@ export function AccrueCard({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-serif text-lg">Accrue yield</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <p className="text-sm text-foreground-soft">
-          Accrue {(DEMO_ACCRUE_BPS / 100).toFixed(2)}% on the {halalMode ? "halal (sukuk)" : "standard"} adapter.
-          If the ticker stays flat, invest idle funds first.
-        </p>
-        <Button className="w-fit" disabled={pending} onClick={onClick}>
-          {pending ? "Accruing…" : "Accrue yield"}
-        </Button>
-        <TxStatus phase={phase} error={error} txHash={txHash} pendingLabel="Accruing…" />
-      </CardContent>
-    </Card>
+    <ActionCard
+      title="Accrue yield"
+      description={`Accrue ${(DEMO_ACCRUE_BPS / 100).toFixed(2)}% on the ${
+        halalMode ? "halal (sukuk)" : "standard"
+      } adapter. If the ticker stays flat, invest idle funds first.`}
+      buttonLabel="Accrue yield"
+      pendingLabel="Accruing…"
+      pending={pending}
+      phase={phase}
+      error={error}
+      txHash={txHash}
+      onClick={onClick}
+    />
   );
 }
