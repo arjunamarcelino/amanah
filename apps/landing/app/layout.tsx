@@ -1,19 +1,23 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Fraunces, Hanken_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
+// Self-hosted from committed .woff2 (latin, variable) so the build needs no network —
+// see docker/landing.Dockerfile. Both are variable fonts covering the full weight range;
+// `font-optical-sizing: auto` (globals.css) drives Fraunces' opsz axis.
+const fraunces = localFont({
+  src: "./fonts/Fraunces-latin.woff2",
   display: "swap",
-  axes: ["opsz"],
+  weight: "100 900",
   variable: "--font-fraunces",
 });
 
-const hanken = Hanken_Grotesk({
-  subsets: ["latin"],
+const hanken = localFont({
+  src: "./fonts/HankenGrotesk-latin.woff2",
   display: "swap",
+  weight: "100 900",
   variable: "--font-sans",
 });
 
