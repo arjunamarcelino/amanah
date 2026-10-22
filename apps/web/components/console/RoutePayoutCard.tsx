@@ -18,6 +18,7 @@ import { useConsoleSession } from "@/lib/console/session";
 import { getRails, postPayout } from "@/lib/api";
 import { postRoute } from "@/lib/agent";
 import { txUrl } from "@amanah/shared";
+import { findChosenRail, lowestFeeRail } from "@/lib/console/railMatch";
 
 const ROUTER = ADDRESSES[CHAIN_ID].PayoutRouter;
 const MIN_THINKING_MS = 700;
@@ -70,12 +71,19 @@ export function RoutePayoutCard({
         postRoute({ amountUsd, country, candidates: rails }),
         delay(MIN_THINKING_MS), // keep the "thinking" beat visible even on a fast response
       ]);
-      setChosen(resp);
-      setPhase(resp.fallbackUsed ? "fallback" : "decided");
 
-      // Re-derive feeBps from the matched candidate (don't trust the round-tripped number).
-      const matched = rails.find((r) => r.name === resp.chosenRail || r.id === resp.chosenRail);
-      const feeBps = matched?.feeBps ?? resp.feeBps;
+      // Constrain the recorded rail to an OFFERED candidate: match by name/id, else fall
+      // back to the lowest-fee candidate. Never stamp an unverifiable free-text rail from
+      // the agent onto the chain or the public ledger. feeBps also comes from the candidate.
+      const matched = findChosenRail(rails, resp.chosenRail) ?? lowestFeeRail(rails);
+      if (!matched) {
+        setRouteError("No eligible rail to route to.");
+        setPhase("idle");
+        return;
+      }
+      const chosenResp: RouteResponse = { ...resp, chosenRail: matched.name, feeBps: matched.feeBps };
+      setChosen(chosenResp);
+      setPhase(chosenResp.fallbackUsed ? "fallback" : "decided");
 
       const res = await run(
         () =>
@@ -87,9 +95,9 @@ export function RoutePayoutCard({
               payout.payoutId,
               payout.beneficiary,
               payout.usdcAmount,
-              resp.chosenRail,
-              feeBps,
-              resp.rationale,
+              chosenResp.chosenRail,
+              chosenResp.feeBps,
+              chosenResp.rationale,
             ],
             chainId: CHAIN_ID,
           }),
@@ -102,10 +110,10 @@ export function RoutePayoutCard({
         campaignId: payout.campaignId,
         beneficiary: payout.beneficiary,
         usdcAmount: payout.usdcAmount.toString(),
-        rail: resp.chosenRail,
-        feeBpsCovered: feeBps,
-        rationale: resp.rationale,
-        fallbackUsed: resp.fallbackUsed,
+        rail: chosenResp.chosenRail,
+        feeBpsCovered: chosenResp.feeBps,
+        rationale: chosenResp.rationale,
+        fallbackUsed: chosenResp.fallbackUsed,
       });
       session.setRouted(res.hash);
       onRouted?.();
