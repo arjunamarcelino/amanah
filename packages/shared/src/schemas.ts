@@ -45,6 +45,26 @@ export type CampaignResponse = {
   createdAt: string;
 };
 
+// Runtime validator mirroring CampaignResponse. Lenient (.strip — the zod default)
+// so an additive field on GET /campaigns never turns a real response into an error.
+// The web app validates responses with this because the API write surface is
+// unauthenticated: the donor-flow gate reads `active`/`registeredOnChain` off these
+// rows, so a malformed row must be rejected rather than silently trusted. (NOTE: this
+// still cannot stop a well-formed but malicious row — that requires API auth / an
+// on-chain registration check; tracked as a protocol-level risk.)
+export const CampaignResponseSchema = z.object({
+  campaignId: Bytes32Schema,
+  type: CampaignType,
+  cause: z.string(),
+  name: z.string().nullable(),
+  country: z.string().nullable(),
+  releaseType: ReleaseType,
+  recipientOrg: z.string().nullable(),
+  active: z.boolean(),
+  registeredOnChain: z.boolean(),
+  createdAt: z.string(),
+});
+
 // ------------------------------- Rail ----------------------------------------
 export type RailResponse = {
   id: string;
@@ -76,6 +96,7 @@ type _Expect<T extends true> = T;
 type _Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 type _RailMirror = _Expect<_Equal<z.infer<typeof RailResponseSchema>, RailResponse>>;
+type _CampaignMirror = _Expect<_Equal<z.infer<typeof CampaignResponseSchema>, CampaignResponse>>;
 
 // --------------------------- Off-ramp routing --------------------------------
 // Why a fallback happened, coarse enough for a caller/agent to decide retry vs escalate:
