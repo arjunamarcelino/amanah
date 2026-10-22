@@ -140,7 +140,12 @@ function DonateForm({ campaignId }: { campaignId: Hex }) {
   }, [coin, input]);
 
   const canDonate =
-    parsed.ok && !insufficient && consent && Boolean(owner) && !engine.pending;
+    parsed.ok &&
+    balance !== undefined &&
+    !insufficient &&
+    consent &&
+    Boolean(owner) &&
+    !engine.pending;
 
   async function onDonate() {
     if (!parsed.ok || !owner) return;
