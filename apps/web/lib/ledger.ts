@@ -60,53 +60,34 @@ function lifecycleRow(
   };
 }
 
-async function scanInvested(from: bigint, to: bigint): Promise<LedgerEntry[]> {
-  const logs = await publicClient.getContractEvents({
-    abi: CharityPoolAbi,
-    address: A.CharityPool,
-    eventName: "Invested",
-    fromBlock: from,
-    toBlock: to,
-    strict: true,
-  });
-  return logs.map((l) =>
-    lifecycleRow("Invested", l.args.assets, l.blockNumber!, l.logIndex!, l.transactionHash!),
-  );
-}
+// A decoded log carries non-null block/log/tx fields for a historical (non-"pending")
+// range. The per-event amount accessor is the only thing that differs between the three.
+type MinedLog = {
+  blockNumber: bigint;
+  logIndex: number;
+  transactionHash: `0x${string}`;
+};
 
-async function scanStandardYield(from: bigint, to: bigint): Promise<LedgerEntry[]> {
-  const logs = await publicClient.getContractEvents({
-    abi: MockYieldVaultAbi,
-    address: A.MockYieldVault,
-    eventName: "YieldAccrued",
-    fromBlock: from,
-    toBlock: to,
-    strict: true,
-  });
-  return logs.map((l) =>
-    lifecycleRow("YieldAccrued", l.args.amount, l.blockNumber!, l.logIndex!, l.transactionHash!),
-  );
-}
-
-async function scanHalalYield(from: bigint, to: bigint): Promise<LedgerEntry[]> {
-  const logs = await publicClient.getContractEvents({
-    abi: MockHalalVaultAbi,
-    address: A.MockHalalVault,
-    eventName: "SukukYieldAccrued",
-    fromBlock: from,
-    toBlock: to,
-    strict: true,
-  });
-  return logs.map((l) =>
-    lifecycleRow("SukukYieldAccrued", l.args.amount, l.blockNumber!, l.logIndex!, l.transactionHash!),
-  );
+function toLifecycleRows<T extends MinedLog>(
+  logs: readonly T[],
+  eventName: string,
+  amountOf: (log: T) => bigint,
+): LedgerEntry[] {
+  return logs.map((l) => lifecycleRow(eventName, amountOf(l), l.blockNumber, l.logIndex, l.transactionHash));
 }
 
 async function scanWindow(from: bigint, to: bigint): Promise<LedgerEntry[]> {
+  const common = { fromBlock: from, toBlock: to, strict: true } as const;
   const [invested, std, halal] = await Promise.all([
-    scanInvested(from, to),
-    scanStandardYield(from, to),
-    scanHalalYield(from, to),
+    publicClient
+      .getContractEvents({ abi: CharityPoolAbi, address: A.CharityPool, eventName: "Invested", ...common })
+      .then((logs) => toLifecycleRows(logs, "Invested", (l) => l.args.assets)),
+    publicClient
+      .getContractEvents({ abi: MockYieldVaultAbi, address: A.MockYieldVault, eventName: "YieldAccrued", ...common })
+      .then((logs) => toLifecycleRows(logs, "YieldAccrued", (l) => l.args.amount)),
+    publicClient
+      .getContractEvents({ abi: MockHalalVaultAbi, address: A.MockHalalVault, eventName: "SukukYieldAccrued", ...common })
+      .then((logs) => toLifecycleRows(logs, "SukukYieldAccrued", (l) => l.args.amount)),
   ]);
   return [...invested, ...std, ...halal];
 }
