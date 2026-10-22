@@ -8,6 +8,26 @@ import { RouteRequestSchema, RouteResponseSchema, type RailResponse, type RouteR
 export const runtime = "nodejs";
 
 const UPSTREAM_TIMEOUT_MS = 15_000;
+const MAX_BODY_BYTES = 16_384;
+
+// Per-IP fixed-window limiter. In-memory → resets on restart and is per-instance, which is
+// adequate for a single-VPS demo; a multi-instance deploy would need Redis/Upstash. It caps
+// the cost/DoS blast radius of this unauthenticated endpoint (each accepted POST triggers a
+// paid Claude call).
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60_000;
+const hits = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimited(ip: string, now: number): boolean {
+  if (hits.size > 10_000) hits.clear(); // crude unbounded-growth guard
+  const entry = hits.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    hits.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > RATE_LIMIT;
+}
 
 // Deterministic lowest-fee pick from the request's OWN candidates — stable tie-break on id
 // so the same input always yields the same rail. Mirrors the agent's response shape with
@@ -41,20 +61,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
-  // Cheap abuse guards for an unauthenticated same-origin POST (it triggers a paid LLM call).
+  // Abuse guards for an unauthenticated same-origin POST (it triggers a paid LLM call).
+  const ip = (request.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown").trim();
+  if (rateLimited(ip, Date.now())) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+  if (Number(request.headers.get("content-length") ?? "0") > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  }
   if (!request.headers.get("content-type")?.includes("application/json")) {
     return NextResponse.json({ error: "Unsupported Media Type" }, { status: 415 });
   }
+  // Require a same-origin Origin header. Browsers always send it on cross/same-origin POST;
+  // a non-browser client that omits it to dodge the check is rejected rather than skipped.
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
-  if (origin && host) {
-    try {
-      if (new URL(origin).host !== host) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      }
-    } catch {
+  if (!origin || !host) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  try {
+    if (new URL(origin).host !== host) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let raw: unknown;
