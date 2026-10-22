@@ -25,16 +25,16 @@ export const AMOUNT_ERROR_MESSAGE: Record<AmountError, string> = {
 };
 
 /** Parse a user-typed amount into base units. No throwing — returns a union. */
-export function parseTokenAmount(input: string, decimals: number = DECIMALS): ParseAmountResult {
+export function parseTokenAmount(input: string): ParseAmountResult {
   const s = input.trim();
   if (s === "") return { ok: false, error: "empty" };
   // plain decimal only: no sign, no exponent, no commas, no whitespace inside
   if (!/^\d+(\.\d+)?$/.test(s)) return { ok: false, error: "not_numeric" };
   const frac = s.split(".")[1] ?? "";
-  if (frac.length > decimals) return { ok: false, error: "too_many_decimals" };
+  if (frac.length > DECIMALS) return { ok: false, error: "too_many_decimals" };
   let value: bigint;
   try {
-    value = parseUnits(s, decimals);
+    value = parseUnits(s, DECIMALS);
   } catch {
     return { ok: false, error: "not_numeric" };
   }
@@ -44,6 +44,6 @@ export function parseTokenAmount(input: string, decimals: number = DECIMALS): Pa
 }
 
 /** Format base units for display. */
-export function formatTokenAmount(value: bigint, decimals: number = DECIMALS): string {
-  return formatUnits(value, decimals);
+export function formatTokenAmount(value: bigint): string {
+  return formatUnits(value, DECIMALS);
 }

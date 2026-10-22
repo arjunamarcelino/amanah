@@ -58,7 +58,8 @@ function MintForm() {
   async function onMint() {
     if (!parsed.ok || !owner) return;
     await mint(token, owner, parsed.value);
-    await Promise.all([refetch(), Promise.resolve(refetchBalance())]);
+    await refetch();
+    refetchBalance();
   }
 
   return (
