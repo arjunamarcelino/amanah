@@ -58,12 +58,14 @@ const nextConfig = {
   },
   webpack: (config, { webpack }) => {
     // Wallet SDKs pulled transitively by @privy-io/wagmi (Coinbase/Base connectors)
-    // statically import optional @x402/* payment modules we never exercise in the
-    // embedded-wallet donor flow. Stub the whole scope to empty modules so webpack
-    // resolves them; also mark the classic optional node-only deps as externals.
-    // SAFE because the flow is embedded-wallet-only (no injected/Coinbase connector
-    // is configured). Revisit if such a connector is ever added — the stubbed path
-    // would then resolve to an empty module and fail opaquely.
+    // statically import optional @x402/* payment modules we never exercise. Stub the
+    // whole scope to empty modules so webpack resolves them; also mark the classic
+    // optional node-only deps as externals.
+    // The operator console (app/(console)) adds a plain-wagmi injected() connector.
+    // injected() is a core wagmi connector that does NOT pull @x402/* or the Coinbase
+    // SDK, so the stubs remain safe — verified by the production `next build`. If a
+    // Coinbase/WalletConnect connector is ever added, revisit: the stubbed path would
+    // then resolve to an empty module and fail opaquely.
     config.plugins.push(
       new webpack.IgnorePlugin({
         resourceRegExp: /^@x402\/|^@react-native-async-storage\//,

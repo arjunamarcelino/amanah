@@ -1,8 +1,13 @@
 import { Injectable } from "@nestjs/common";
-import type { LedgerEntry } from "@amanah/shared";
+import { ledgerSort, type LedgerEntry } from "@amanah/shared";
 import type { DonationLog, PayoutDecision, EventIndex } from "@amanah/db";
 import { PrismaService } from "../core/prisma/prisma.service";
 import { bigIntToString, decToString, toIso } from "../common/map";
+
+// ledgerSort now lives in @amanah/shared so the web's live chain-merge orders rows
+// identically to this cached index. Re-exported here to preserve the existing import
+// path used by apps/api/test/ledger.sort.test.ts.
+export { ledgerSort };
 
 // Non-typed lifecycle events live only in EventIndex (no typed projection).
 const LIFECYCLE_EVENTS = ["TriggerFired", "MilestoneApproved", "TriggerRevoked"];
@@ -70,28 +75,6 @@ function clampLimit(n?: number): number {
 
 function unique(xs: string[]): string[] {
   return [...new Set(xs)];
-}
-
-/**
- * Chain order, newest first: by (blockNumber, logIndex) desc for rows that have a
- * block. Block-less rows — optimistic pending donations and payouts (which
- * aggregate multiple txs) — pin to the top ordered by createdAt desc. Must NOT
- * sort confirmed rows by createdAt: that is the indexer transaction's now(),
- * constant across an entire chunk, which collapses a chunk's blocks to one key.
- */
-export function ledgerSort(a: LedgerEntry, b: LedgerEntry): number {
-  const aBlockless = a.blockNumber === null;
-  const bBlockless = b.blockNumber === null;
-  if (aBlockless !== bBlockless) return aBlockless ? -1 : 1; // block-less pinned to top
-
-  if (!aBlockless && !bBlockless && a.blockNumber !== b.blockNumber) {
-    return BigInt(a.blockNumber!) < BigInt(b.blockNumber!) ? 1 : -1; // block desc
-  }
-  const al = a.logIndex ?? -1;
-  const bl = b.logIndex ?? -1;
-  if (al !== bl) return bl - al; // logIndex desc
-  if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? 1 : -1; // createdAt desc
-  return 0;
 }
 
 function donationEntry(d: DonationLog, campaignName: string | null): LedgerEntry {

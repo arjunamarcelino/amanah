@@ -101,7 +101,8 @@ type _CampaignMirror = _Expect<_Equal<z.infer<typeof CampaignResponseSchema>, Ca
 // --------------------------- Off-ramp routing --------------------------------
 // Why a fallback happened, coarse enough for a caller/agent to decide retry vs escalate:
 // "unavailable" (Claude error/timeout → retryable) · "refusal"/"invalid_output" (escalate).
-export type FallbackReason = "unavailable" | "refusal" | "invalid_output";
+export const FallbackReasonSchema = z.enum(["unavailable", "refusal", "invalid_output"]);
+export type FallbackReason = z.infer<typeof FallbackReasonSchema>;
 
 export const RouteRequestSchema = z
   .object({
@@ -129,6 +130,20 @@ export type RouteResponse = {
   fallbackUsed: boolean;
   fallbackReason?: FallbackReason;
 };
+
+// Runtime validator mirroring RouteResponse. UNLIKE other responses, this one IS
+// re-validated: the web proxy (POST /api/route) and the client parse it before the
+// values flow into PayoutRouter.recordAndPay (feeBps → uint16) and onto the public
+// ledger (rationale/chosenRail rendered). Bounds mirror the rail/uint16 limits so a
+// compromised/buggy agent can't push an oversized string on-chain or into the glass box.
+export const RouteResponseSchema = z.object({
+  chosenRail: z.string().min(1).max(100),
+  feeBps: z.number().int().nonnegative().max(65535),
+  rationale: z.string().max(2000),
+  fallbackUsed: z.boolean(),
+  fallbackReason: FallbackReasonSchema.optional(),
+});
+type _RouteMirror = _Expect<_Equal<z.infer<typeof RouteResponseSchema>, RouteResponse>>;
 
 // Why a route request was rejected before reaching the model. Shared so the HTTP handler
 // and a future MCP tool map the same named reasons to their own transport (status / isError).
