@@ -1,4 +1,9 @@
-import { CreateDonationSchema, type CreateDonation, type CampaignResponse } from "@amanah/shared";
+import {
+  CreateDonationSchema,
+  CampaignResponseSchema,
+  type CreateDonation,
+  type CampaignResponse,
+} from "@amanah/shared";
 import { ENV } from "./env";
 
 // Operational-data client for the NestJS API (HTTP; no app->app import). Types
@@ -13,7 +18,10 @@ export async function getCampaigns(type?: string): Promise<CampaignResponse[]> {
   if (type) url.searchParams.set("type", type);
   const res = await fetch(url.toString(), { headers: { accept: "application/json" } });
   if (!res.ok) throw new Error(`GET /campaigns failed (${res.status})`);
-  return (await res.json()) as CampaignResponse[];
+  // Validate the unauthenticated response: reject malformed rows rather than trusting
+  // active/registeredOnChain blindly (the donor-flow gate reads them). Throws on a bad
+  // shape → the caller's query surfaces a retryable error.
+  return CampaignResponseSchema.array().parse(await res.json());
 }
 
 export type PostDonationOutcome =
