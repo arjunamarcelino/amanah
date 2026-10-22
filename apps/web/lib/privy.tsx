@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { PrivyProvider, type PrivyClientConfig } from "@privy-io/react-auth";
 import { WagmiProvider } from "@privy-io/wagmi"; // NOT from 'wagmi'
+import { WagmiProvider as BaseWagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { wagmiConfig, baseSepoliaOverride } from "./wagmi";
 import { ENV } from "./env";
@@ -26,9 +27,14 @@ export function Providers({ children }: { children: ReactNode }) {
   // `force-dynamic`, so they are never prerendered in this degraded mode.
   if (!ENV.privyAppId) {
     if (typeof window !== "undefined") {
-      console.error("[amanah] NEXT_PUBLIC_PRIVY_APP_ID is not set — wallet features are disabled.");
+      console.error("[amanah] NEXT_PUBLIC_PRIVY_APP_ID is not set — login is disabled.");
     }
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    // Keep a WagmiProvider in the tree so read hooks don't crash (no login/connector).
+    return (
+      <QueryClientProvider client={queryClient}>
+        <BaseWagmiProvider config={wagmiConfig}>{children}</BaseWagmiProvider>
+      </QueryClientProvider>
+    );
   }
 
   return (
