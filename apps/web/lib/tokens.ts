@@ -10,8 +10,13 @@ export const STABLECOINS: { key: StablecoinKey; address: Address; label: string 
   { key: "mIDRX", address: ADDRESSES[CHAIN_ID].mIDRX, label: "mIDRX" },
 ];
 
+// Total by construction — StablecoinKey is a closed union, so no throw path.
+const TOKEN_ADDRESS: Record<StablecoinKey, Address> = {
+  mUSDC: ADDRESSES[CHAIN_ID].mUSDC,
+  mXSGD: ADDRESSES[CHAIN_ID].mXSGD,
+  mIDRX: ADDRESSES[CHAIN_ID].mIDRX,
+};
+
 export function tokenByKey(key: StablecoinKey): Address {
-  const found = STABLECOINS.find((s) => s.key === key);
-  if (!found) throw new Error(`unknown stablecoin ${key}`);
-  return found.address;
+  return TOKEN_ADDRESS[key];
 }
