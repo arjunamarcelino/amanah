@@ -1,5 +1,4 @@
-import type { LedgerEntry } from "@amanah/shared";
-import { txUrl } from "@amanah/shared";
+import { txUrl, TxHashSchema, type LedgerEntry } from "@amanah/shared";
 import { Badge } from "@amanah/ui/badge";
 import { ledgerDisplayAmount } from "@/lib/ledger";
 
@@ -34,7 +33,11 @@ export function LedgerRow({ entry }: { entry: LedgerEntry }) {
   const rail = text(entry.payload, "rail");
   const rationale = text(entry.payload, "rationale");
   const detail = text(entry.payload, "detail");
-  const verified = Boolean(entry.txHash);
+  // Only treat a row as on-chain-verified when its txHash is a real 32-byte hash. The API
+  // feed is unauthenticated, so a forged row with a junk txHash must render as unconfirmed,
+  // never with a green "Verify" link — the whole page's value is honest verifiability.
+  const txHash =
+    entry.txHash && TxHashSchema.safeParse(entry.txHash).success ? entry.txHash : null;
 
   return (
     <li className="relative grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-l border-border py-3 pl-6">
@@ -46,9 +49,9 @@ export function LedgerRow({ entry }: { entry: LedgerEntry }) {
           <span className="text-xs text-foreground-soft">{entry.campaignName}</span>
         )}
         {rail && <span className="text-xs text-foreground-soft">via {rail}</span>}
-        {verified ? (
+        {txHash ? (
           <a
-            href={txUrl(entry.txHash as string)}
+            href={txUrl(txHash)}
             target="_blank"
             rel="noopener noreferrer"
             className="ml-auto text-xs text-primary underline-offset-4 hover:underline"
