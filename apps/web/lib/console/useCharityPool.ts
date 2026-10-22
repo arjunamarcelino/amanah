@@ -3,6 +3,7 @@
 import { useReadContracts } from "wagmi";
 import type { Address, Hex } from "viem";
 import { CharityPoolAbi, ADDRESSES, CHAIN_ID } from "@amanah/shared";
+import { clampedYield } from "../yield";
 
 const POOL = ADDRESSES[CHAIN_ID].CharityPool;
 
@@ -73,9 +74,7 @@ export function useCharityPool(
 
   const accruedYield =
     poolValue !== undefined && totalSupply !== undefined
-      ? poolValue > totalSupply
-        ? poolValue - totalSupply
-        : 0n
+      ? clampedYield(poolValue, totalSupply)
       : undefined;
 
   const remainingCap =
