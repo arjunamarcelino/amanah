@@ -21,11 +21,13 @@ export function CountUp({
 }) {
   const { ref, inView } = useInView<HTMLSpanElement>();
   const [n, setN] = useState(0);
-  const started = useRef(false);
+  // Tracks which value has been animated, so a changed `value`/`duration` re-runs cleanly
+  // instead of freezing mid-count (a plain boolean latch would).
+  const started = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!inView || started.current) return;
-    started.current = true;
+    if (!inView || started.current === value) return;
+    started.current = value;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setN(value);
