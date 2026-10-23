@@ -5,7 +5,9 @@
 **/.turbo
 **/coverage
 **/.env
+**/.env.*
 **/.env.local
+*.tsbuildinfo
 .git
 .github
 docs
