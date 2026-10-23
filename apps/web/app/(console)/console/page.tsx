@@ -13,6 +13,7 @@ import { OwnerGate } from "@/components/console/OwnerGate";
 import { ConsoleChainGuard } from "@/components/console/ConsoleChainGuard";
 import { CampaignSelect } from "@/components/console/CampaignSelect";
 import { CampaignStatePanel } from "@/components/console/CampaignStatePanel";
+import { OperatorStepper } from "@/components/console/OperatorStepper";
 import { YieldTicker } from "@/components/console/YieldTicker";
 import { InvestIdleCard } from "@/components/console/InvestIdleCard";
 import { AccrueCard } from "@/components/console/AccrueCard";
@@ -87,13 +88,21 @@ function ConsoleInner() {
   };
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-10">
-      <header className="flex flex-col gap-1">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Owner · Base Sepolia</p>
-        <h1 className="font-serif text-3xl text-foreground">Operator console</h1>
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6">
+      <header className="flex flex-col gap-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+          Operator · Base Sepolia
+        </p>
+        <h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-foreground md:text-5xl">
+          Operator console
+        </h1>
+        <p className="max-w-2xl text-foreground-soft">
+          Owner-only controls for the treasury and release engine — invest idle funds, accrue
+          yield, fire release conditions, release tranches, and route payouts.
+        </p>
       </header>
 
-      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-5 shadow-sm md:flex-row md:items-center md:justify-between">
         <CampaignSelect />
         <YieldTicker value={pool.accruedYield} halalMode={pool.halalMode} />
       </div>
@@ -110,36 +119,47 @@ function ConsoleInner() {
             campaignName={campaign?.name}
           />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <InvestIdleCard onSuccess={refetch} />
-            <AccrueCard halalMode={pool.halalMode} onSuccess={refetch} />
-            <HalalToggle halalMode={pool.halalMode} onSuccess={refetch} />
-            <ReleaseConditionCard
-              campaignId={campaignId}
-              releaseType={rc.releaseType}
-              canRelease={rc.canRelease}
-              detail={preset?.detail ?? ""}
-              onSuccess={refetch}
-            />
-            <ReleaseTrancheCard
-              campaignId={campaignId}
-              slug={slug}
-              enabled={step.step === "can_release"}
-              disabledReason={releaseDisabledReason(step)}
-              remainingCap={pool.remainingCap}
-              onReleased={refetch}
-            />
-            <RoutePayoutCard
-              country={campaign?.country ?? undefined}
-              accruedYield={pool.accruedYield}
-              onRouted={refetch}
-            />
-          </div>
+          <OperatorStepper step={step} />
+
+          <section className="flex flex-col gap-3">
+            <h2 className="font-serif text-xl tracking-tight text-foreground">Treasury</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              <InvestIdleCard onSuccess={refetch} />
+              <AccrueCard halalMode={pool.halalMode} onSuccess={refetch} />
+              <HalalToggle halalMode={pool.halalMode} onSuccess={refetch} />
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="font-serif text-xl tracking-tight text-foreground">Release &amp; payout</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              <ReleaseConditionCard
+                campaignId={campaignId}
+                releaseType={rc.releaseType}
+                canRelease={rc.canRelease}
+                detail={preset?.detail ?? ""}
+                onSuccess={refetch}
+              />
+              <ReleaseTrancheCard
+                campaignId={campaignId}
+                slug={slug}
+                enabled={step.step === "can_release"}
+                disabledReason={releaseDisabledReason(step)}
+                remainingCap={pool.remainingCap}
+                onReleased={refetch}
+              />
+              <RoutePayoutCard
+                country={campaign?.country ?? undefined}
+                accruedYield={pool.accruedYield}
+                onRouted={refetch}
+              />
+            </div>
+          </section>
         </>
       )}
 
-      <CompliancePanel />
-    </div>
+      <CompliancePanel className="rounded-2xl" />
+    </main>
   );
 }
 
