@@ -36,11 +36,16 @@ echo "==> docker compose up -d --build"
 docker compose up -d --build
 
 # Surface the one-shot migrate result explicitly (compose up does not fail the command
-# if a dependency one-shot exits non-zero in all versions).
-migrate_rc=\$(docker compose ps -a --format '{{.Service}} {{.ExitCode}}' | awk '\$1=="migrate"{print \$2}')
-if [ -n "\${migrate_rc:-}" ] && [ "\${migrate_rc}" != "0" ]; then
-  echo "ERROR: migrate exited \${migrate_rc} — see 'docker compose logs migrate' (P3009? run prisma migrate resolve)" >&2
-  exit 1
+# if a dependency one-shot exits non-zero in all versions). Read the exit code via
+# docker inspect (portable) rather than a compose --format template field that only
+# newer compose versions expose.
+migrate_cid=\$(docker compose ps -aq migrate 2>/dev/null)
+if [ -n "\${migrate_cid:-}" ]; then
+  migrate_rc=\$(docker inspect -f '{{.State.ExitCode}}' "\$migrate_cid" 2>/dev/null || echo "")
+  if [ -n "\${migrate_rc:-}" ] && [ "\${migrate_rc}" != "0" ]; then
+    echo "ERROR: migrate exited \${migrate_rc} — see 'docker compose logs migrate' (P3009? prisma migrate resolve --rolled-back)" >&2
+    exit 1
+  fi
 fi
 
 echo "==> docker compose ps"
