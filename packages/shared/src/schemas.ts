@@ -4,6 +4,7 @@ import {
   Bytes32Schema,
   TxHashSchema,
   DecimalStringSchema,
+  DecimalSumStringSchema,
 } from "./primitives.js";
 import { CampaignType, ReleaseType, DonationStatus, PayoutStatus } from "./enums.js";
 
@@ -76,9 +77,10 @@ export const CampaignResponseSchema = z.object({
   active: z.boolean(),
   registeredOnChain: z.boolean(),
   createdAt: z.string(),
-  // Base-units decimal strings (see DecimalStringSchema): raised is always present
-  // ("0" when none), goal is nullable.
-  baseRaised: DecimalStringSchema,
+  // Base-units decimal strings: raised is a SUM (not individually uint256-bounded, so a
+  // display total can't drop the whole row — see DecimalSumStringSchema); goal is a single
+  // declared value, nullable.
+  baseRaised: DecimalSumStringSchema,
   goalBase: DecimalStringSchema.nullable(),
   // Same-origin relative path only (leading "/", not "//host", no scheme/whitespace):
   // the value feeds next/image `src`, and next.config has no remotePatterns, so an

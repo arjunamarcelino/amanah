@@ -45,3 +45,13 @@ export const DecimalStringSchema = z
       return false;
     }
   }, "exceeds uint256 max");
+
+/**
+ * A non-negative integer amount that is a SUM of uint256 values (e.g. a campaign's total
+ * raised = Σ donation baseOut). A sum is not individually uint256-bounded, so this drops the
+ * uint256 refinement and only bounds the digit count (DoS/garbage guard). Using the stricter
+ * DecimalStringSchema here would risk rejecting the whole response row over a display total.
+ */
+export const DecimalSumStringSchema = z
+  .string()
+  .regex(/^\d{1,90}$/, "must be a non-negative integer string");
