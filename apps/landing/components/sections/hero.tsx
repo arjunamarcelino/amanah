@@ -13,7 +13,8 @@ const HERO_IMAGES = [
   { src: "/hero/clinic.jpg" },
   { src: "/hero/classroom.jpg" },
   { src: "/hero/masjid-waqf.jpg" },
-  { src: "/hero/cyclone.jpg" },
+  // Shared with the showcase set — deduped from a second identical /hero/cyclone.jpg.
+  { src: "/showcase/cyclone-ayeyarwady.jpg" },
 ];
 
 // Centered, light hero: headline (the LCP element) + short lead in GoFundMe's cadence, the
