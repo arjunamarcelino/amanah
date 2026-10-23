@@ -19,6 +19,9 @@ export function ChainGuard({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex flex-col items-start gap-2">
+      {/* eslint-disable-next-line @next/next/no-img-element -- small inline svg mark;
+          next/image would need dangerouslyAllowSVG. */}
+      <img src="/chains/base-logo.svg" alt="Base" className="h-5 w-auto" />
       <p className="text-sm text-foreground-soft">Switch your wallet to Base Sepolia to continue.</p>
       <Button
         disabled={isPending}
