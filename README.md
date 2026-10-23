@@ -113,7 +113,7 @@ Idempotent and preflight-guarded (fails loud if the deployer key is underfunded)
 ## 90-second demo runbook (Philippines typhoon)
 
 1. **Browse** `https://app.amanah.help` — the seeded flagship (PH typhoon) is featured; the "same engine, any cause" section shows the breadth.
-2. **Donate** to the flagship — gasless, any mock stablecoin; the donation appears on `/ledger` as a real on-chain row (seeded close to demo time; `INDEXER_CONFIRMATIONS` is low in the demo env so it surfaces fast).
+2. **Open & donate** — click the flagship to open its campaign page (`/f/ph-typhoon-2025`), then **Donate now** → gasless, any mock stablecoin, with an approve → donate → done stepper; the donation appears on `/ledger` as a real on-chain row (seeded close to demo time; `INDEXER_CONFIRMATIONS` is low in the demo env so it surfaces fast).
 3. **Route** the payout — the AI off-ramp router proposes the best rail (live Claude call; deterministic fallback if unavailable).
 4. **Fire the trigger** — from the operator console, fire the typhoon parametric trigger → the on-chain release happens live, visible in the ledger. (Idle-yield from `investIdle` is already reflected.)
 
