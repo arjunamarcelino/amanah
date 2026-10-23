@@ -16,6 +16,44 @@ export const FEATURED_ID = campaignIdFromSlug(FEATURED_SLUG); // lowercased 0x-h
 // The general-fund sentinel (inactive) must never appear in the grid or hero.
 export const ZERO_CAMPAIGN_ID = `0x${"0".repeat(64)}`;
 
+// Known demo slugs → their derived campaignId. campaignId = campaignIdFromSlug(slug) is
+// deterministic (one-way), so this reverse map gives pretty /f/<slug> URLs without a DB
+// `slug` column. Campaigns outside the map fall back to the raw campaignId in the URL.
+const DEMO_SLUGS = [
+  "ph-typhoon-2025",
+  "id-rural-school-supplies",
+  "clinic-medicine-fund",
+  "masjid-waqf",
+] as const;
+const SLUG_BY_ID: Record<string, string> = Object.fromEntries(
+  DEMO_SLUGS.map((s) => [campaignIdFromSlug(s), s]),
+);
+
+/** URL slug for a campaign: its known demo slug, else the raw campaignId (both resolvable). */
+export function slugFor(campaign: CampaignResponse): string {
+  return SLUG_BY_ID[campaign.campaignId.toLowerCase()] ?? campaign.campaignId;
+}
+
+/**
+ * Resolve a /f/<param> route param to a campaign. `param` may be a slug (→ derive its
+ * campaignId) or a raw campaignId; match either. Returns undefined if not found.
+ */
+export function findCampaignByParam(
+  list: CampaignResponse[],
+  param: string,
+): CampaignResponse | undefined {
+  const raw = param.toLowerCase();
+  let fromSlug: string | null = null;
+  try {
+    fromSlug = campaignIdFromSlug(param);
+  } catch {
+    fromSlug = null;
+  }
+  return list.find(
+    (c) => c.campaignId.toLowerCase() === fromSlug || c.campaignId.toLowerCase() === raw,
+  );
+}
+
 // Cause filter: "all" + the enum order. UI shows only causes actually present.
 export const CAUSE_ORDER: CampaignType[] = [
   "disaster",

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Badge } from "@amanah/ui/badge";
 import { Button } from "@amanah/ui/button";
 import type { CampaignResponse } from "@amanah/shared";
-import { coverImageFor } from "@/lib/campaigns";
+import { coverImageFor, slugFor } from "@/lib/campaigns";
 import { fundingView } from "@/lib/funding";
 import { FundingProgress } from "@/components/FundingProgress";
 
@@ -11,12 +11,12 @@ import { FundingProgress } from "@/components/FundingProgress";
 // panel — the whole card links to the donate flow (the button is a visual affordance inside
 // the same anchor, not a nested link).
 export function CampaignHero({ campaign }: { campaign: CampaignResponse }) {
-  const { campaignId, cause, name, country, releaseType, baseRaised, goalBase } = campaign;
+  const { cause, name, country, releaseType, baseRaised, goalBase } = campaign;
   const cover = coverImageFor(campaign);
   const funding = fundingView(baseRaised, goalBase);
   return (
     <Link
-      href={`/donate/${campaignId}`}
+      href={`/f/${slugFor(campaign)}`}
       className="group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-shadow duration-300 hover:shadow-xl hover:shadow-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="relative aspect-[21/10] w-full bg-muted md:aspect-[21/8]">

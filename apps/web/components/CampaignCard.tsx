@@ -4,7 +4,7 @@ import { cn } from "@amanah/ui/lib/utils";
 import type { ReactNode } from "react";
 import { CauseIcon } from "@amanah/ui/cause-icon";
 import type { CampaignResponse } from "@amanah/shared";
-import { coverImageFor } from "@/lib/campaigns";
+import { coverImageFor, slugFor } from "@/lib/campaigns";
 import { fundingView } from "@/lib/funding";
 import { FundingProgress } from "@/components/FundingProgress";
 import { CauseTag } from "@/components/CauseTag";
@@ -16,12 +16,12 @@ import { CauseTag } from "@/components/CauseTag";
 // Layout note: outer is `flex h-full flex-col` (matching the showcase cards). The cover's
 // aspect-ratio box resolves its height inside the flex column; a `block` outer collapsed it.
 export function CampaignCard({ campaign }: { campaign: CampaignResponse }) {
-  const { campaignId, type, cause, name, country, releaseType, baseRaised, goalBase } = campaign;
+  const { type, cause, name, country, releaseType, baseRaised, goalBase } = campaign;
   const cover = coverImageFor(campaign);
   const funding = fundingView(baseRaised, goalBase);
   return (
     <Link
-      href={`/donate/${campaignId}`}
+      href={`/f/${slugFor(campaign)}`}
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-ring hover:shadow-xl hover:shadow-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {/* 16:9 cover. Drop a same-origin image under apps/web/public/campaigns. */}
