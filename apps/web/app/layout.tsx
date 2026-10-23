@@ -32,10 +32,7 @@ export const metadata: Metadata = {
   description,
   // Favicon set lives in public/ (generated); Next renders these into <head>.
   icons: {
-    icon: [
-      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
-    ],
+    icon: [{ url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" }],
     shortcut: "/favicon.ico",
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
