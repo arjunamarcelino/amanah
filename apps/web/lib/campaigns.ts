@@ -1,5 +1,6 @@
 import { campaignIdFromSlug, type CampaignResponse, type CampaignType } from "@amanah/shared";
 import type { Cause } from "@amanah/ui/cause-icon";
+import { DEMO_BY_ID } from "./demo-campaigns";
 
 // Compile-time guard: @amanah/ui can't depend on @amanah/shared, so CauseIcon's `Cause`
 // key set is maintained independently. This app imports both, so assert they stay equal —
@@ -16,22 +17,9 @@ export const FEATURED_ID = campaignIdFromSlug(FEATURED_SLUG); // lowercased 0x-h
 // The general-fund sentinel (inactive) must never appear in the grid or hero.
 export const ZERO_CAMPAIGN_ID = `0x${"0".repeat(64)}`;
 
-// Known demo slugs → their derived campaignId. campaignId = campaignIdFromSlug(slug) is
-// deterministic (one-way), so this reverse map gives pretty /f/<slug> URLs without a DB
-// `slug` column. Campaigns outside the map fall back to the raw campaignId in the URL.
-const DEMO_SLUGS = [
-  "ph-typhoon-2025",
-  "id-rural-school-supplies",
-  "clinic-medicine-fund",
-  "masjid-waqf",
-] as const;
-const SLUG_BY_ID: Record<string, string> = Object.fromEntries(
-  DEMO_SLUGS.map((s) => [campaignIdFromSlug(s), s]),
-);
-
 /** URL slug for a campaign: its known demo slug, else the raw campaignId (both resolvable). */
 export function slugFor(campaign: CampaignResponse): string {
-  return SLUG_BY_ID[campaign.campaignId.toLowerCase()] ?? campaign.campaignId;
+  return DEMO_BY_ID[campaign.campaignId.toLowerCase()]?.slug ?? campaign.campaignId;
 }
 
 /**
@@ -69,20 +57,10 @@ export function isFeatured(c: CampaignResponse): boolean {
   return c.campaignId.toLowerCase() === FEATURED_ID;
 }
 
-// Demo cover images live in apps/web/public/campaigns and are keyed by the slug-derived
-// campaignId (the API does not yet emit `imageUrl`). campaignIdFromSlug returns lowercased
-// 0x-hex, so look up with `.toLowerCase()`. Campaigns without an entry render text-only.
-const COVER_BY_ID: Record<string, string> = {
-  [FEATURED_ID]: "/campaigns/relief.jpg",
-  [campaignIdFromSlug("id-rural-school-supplies")]: "/campaigns/classroom.jpg",
-  [campaignIdFromSlug("clinic-medicine-fund")]: "/campaigns/clinic.jpg",
-  [campaignIdFromSlug("masjid-waqf")]: "/campaigns/masjid-waqf.jpg",
-};
-
-/** Cover image for a campaign: its own `imageUrl` if present, else the demo map, else none. */
+/** Cover image for a campaign: its own `imageUrl` if present, else the demo data, else none. */
 export function coverImageFor(campaign: CampaignResponse): string | undefined {
   // `||` not `??`: treat an empty-string imageUrl as "no image" and fall through.
-  return campaign.imageUrl || COVER_BY_ID[campaign.campaignId.toLowerCase()];
+  return campaign.imageUrl || DEMO_BY_ID[campaign.campaignId.toLowerCase()]?.cover;
 }
 
 /** Campaigns shown in the grid: active and not the zero/general sentinel. */
