@@ -51,19 +51,21 @@ const rows: Row[] = [
 export function Comparison() {
   return (
     <Section id="comparison" labelledBy="comparison-title" sectionClassName="bg-secondary">
-      <Eyebrow>How we compare</Eyebrow>
+      <Reveal>
+        <Eyebrow>How we compare</Eyebrow>
 
-      <h2
-        id="comparison-title"
-        className="mt-5 max-w-[20ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
-      >
-        More of every gift reaches the cause.
-      </h2>
+        <h2
+          id="comparison-title"
+          className="mt-5 max-w-[20ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
+        >
+          More of every gift reaches the cause.
+        </h2>
 
-      <p className="mt-5 max-w-[46rem] text-lg leading-relaxed text-foreground-soft">
-        Others skim 3–8%, make you wait days, and hide the ledger. Amanah routes on-chain — fees
-        near zero, funds in minutes, every transfer public.
-      </p>
+        <p className="mt-5 max-w-[46rem] text-lg leading-relaxed text-foreground-soft">
+          Others skim 3–8%, make you wait days, and hide the ledger. Amanah routes on-chain — fees
+          near zero, funds in minutes, every transfer public.
+        </p>
+      </Reveal>
 
       <Reveal>
         {/* Scrolls horizontally on narrow screens; the page body never scrolls sideways. */}
@@ -129,8 +131,9 @@ export function Comparison() {
         </div>
       </Reveal>
 
-      <p className="mt-4 text-xs text-muted-foreground">
-        Competitor figures via{" "}
+      <Reveal>
+        <p className="mt-4 text-xs text-muted-foreground">
+          Competitor figures via{" "}
         <a
           href="https://www.crowdfunding.com/"
           rel="nofollow noopener"
@@ -138,9 +141,10 @@ export function Comparison() {
         >
           crowdfunding.com
         </a>{" "}
-        platform comparison; fees and timelines may change. Amanah is live on Base Sepolia
-        testnet — figures reflect the protocol design during early access.
-      </p>
+          platform comparison; fees and timelines may change. Amanah is live on Base Sepolia
+          testnet — figures reflect the protocol design during early access.
+        </p>
+      </Reveal>
     </Section>
   );
 }

@@ -44,6 +44,17 @@
   * {
     @apply border-border;
   }
+  /* Smooth anchor nav; scroll-padding clears the sticky header so targets aren't hidden.
+     Smooth scroll is a Tier-1 vestibular trigger, so disable it under reduced motion. */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
@@ -56,17 +67,26 @@
 }
 
 @layer base {
+  /* ── Motion language (Amanah: Corporate/Premium — trustworthy, elegant, no overshoot) ──
+     One ease for enters/landings, one for exits; a single base reveal duration. */
+  :root {
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+    --reveal-dur: 620ms;
+  }
+
   /* Scroll-reveal: final state is the DEFAULT so content is fully legible with JS
      disabled. The hidden start state is scoped to `html.js`, applied only once the
-     client marks JS active; motion is purely additive. Reveal flips [data-show]. */
+     client marks JS active; motion is purely additive. Reveal flips [data-show].
+     `--reveal-delay` lets a Stagger parent cascade its children. */
   [data-reveal] {
     transition:
-      opacity 560ms cubic-bezier(0.22, 1, 0.36, 1),
-      transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+      opacity var(--reveal-dur) var(--ease-out) var(--reveal-delay, 0ms),
+      transform var(--reveal-dur) var(--ease-out) var(--reveal-delay, 0ms);
   }
   html.js [data-reveal]:not([data-show]) {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(16px);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -76,6 +96,40 @@
     html.js [data-reveal]:not([data-show]) {
       opacity: 1;
       transform: none;
+    }
+  }
+}
+
+@layer utilities {
+  /* Hero page-load intro. `hero-rise` fades + lifts; `hero-rise-t` is translate-only
+     (opacity stays 1) for the LCP headline so first paint is never delayed. Gated behind
+     html.js + no-preference, so with JS off or reduced motion the hero renders static. */
+  @keyframes hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes hero-rise-t {
+    from {
+      transform: translateY(14px);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html.js .hero-rise {
+      animation: hero-rise var(--reveal-dur) var(--ease-out) both;
+      animation-delay: var(--hero-delay, 0ms);
+    }
+    html.js .hero-rise-t {
+      animation: hero-rise-t var(--reveal-dur) var(--ease-out) both;
+      animation-delay: var(--hero-delay, 0ms);
     }
   }
 }
@@ -97,5 +151,40 @@
     .animate-marquee {
       animation: none;
     }
+  }
+
+  /* Dropdown mega-menu entrance. */
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .animate-menu-in {
+    animation: menu-in 180ms var(--ease-out) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-menu-in {
+      animation: none;
+    }
+  }
+}
+
+@layer base {
+  /* Fine editorial grain over the whole page — adds paper-like depth without drawing the eye.
+     Fixed + pointer-events:none so it never affects layout or interaction; dropped under
+     reduced data/perf is unnecessary (it's a static texture, not motion). */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }

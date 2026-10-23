@@ -1,12 +1,12 @@
 import { Section } from "@/components/section";
-import { Reveal } from "@/components/reveal";
+import { Stagger } from "@/components/stagger";
 import { Eyebrow } from "@/components/eyebrow";
 import { FeeBar } from "@/components/fee-bar";
 
 export function Problem() {
   return (
     <Section id="problem" labelledBy="problem-title" divider={false}>
-      <Reveal>
+      <Stagger step={90}>
         <Eyebrow>The problem</Eyebrow>
 
         <h2
@@ -25,7 +25,7 @@ export function Problem() {
         <div className="mt-12">
           <FeeBar />
         </div>
-      </Reveal>
+      </Stagger>
     </Section>
   );
 }

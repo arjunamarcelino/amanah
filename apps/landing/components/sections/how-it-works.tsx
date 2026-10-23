@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
+import { Stagger } from "@/components/stagger";
 import { Eyebrow } from "@/components/eyebrow";
 import { cn } from "@amanah/ui/lib/utils";
 
@@ -39,44 +40,46 @@ export function HowItWorks() {
           Follow every step on-chain. Between the moment you give and the moment it’s delivered,
           idle funds earn in a halal vault — so more reaches the cause than you put in.
         </p>
+      </Reveal>
 
-        <ol className="mt-12 list-none">
-          {steps.map((step, i) => {
-            const notLast = i < steps.length - 1;
-            return (
-              <li key={step.title} className="flex gap-5">
-                {/* icon column + connecting line */}
-                <div className="flex flex-col items-center">
-                  <span
-                    className={cn(
-                      "inline-flex size-12 shrink-0 items-center justify-center rounded-xl border",
-                      step.highlight
-                        ? "border-primary/40 bg-primary text-primary-foreground"
-                        : "border-border bg-card text-primary",
-                    )}
-                  >
-                    <StepIcon icon={step.icon} />
-                  </span>
-                  {notLast ? <span className="mt-2 w-px grow bg-border" /> : null}
+      <Stagger step={80} role="list" className="mt-12">
+        {steps.map((step, i) => {
+          const notLast = i < steps.length - 1;
+          return (
+            <div key={step.title} role="listitem" className="group flex gap-5">
+              {/* icon column + connecting line */}
+              <div className="flex flex-col items-center">
+                <span
+                  className={cn(
+                    "inline-flex size-12 shrink-0 items-center justify-center rounded-xl border transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105",
+                    step.highlight
+                      ? "border-primary/40 bg-primary text-primary-foreground"
+                      : "border-border bg-card text-primary",
+                  )}
+                >
+                  <StepIcon icon={step.icon} />
+                </span>
+                {notLast ? <span className="mt-2 w-px grow bg-border" /> : null}
+              </div>
+
+              {/* content — fills the full container width */}
+              <div className={cn("flex-1 pt-1.5", notLast && "pb-10")}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-lg font-medium text-foreground">{step.title}</h3>
+                  {step.highlight ? (
+                    <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                      + yield
+                    </span>
+                  ) : null}
                 </div>
+                <p className="mt-1.5 leading-relaxed text-foreground-soft">{step.body}</p>
+              </div>
+            </div>
+          );
+        })}
+      </Stagger>
 
-                {/* content — fills the full container width */}
-                <div className={cn("flex-1 pt-1.5", notLast && "pb-10")}>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-medium text-foreground">{step.title}</h3>
-                    {step.highlight ? (
-                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                        + yield
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1.5 leading-relaxed text-foreground-soft">{step.body}</p>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-
+      <Reveal>
         <p className="mt-6 text-sm text-muted-foreground">
           Yield comes from idle balances only, placed in vetted, riba-free strategies — never from
           fees on your gift.

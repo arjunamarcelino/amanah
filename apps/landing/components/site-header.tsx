@@ -160,7 +160,7 @@ function DesktopMenu({
         <div
           id={panelId}
           className={cn(
-            "absolute top-full z-30 pt-3",
+            "absolute top-full z-30 pt-3 animate-menu-in",
             align === "right" ? "right-0" : "left-0",
           )}
         >

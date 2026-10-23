@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/reveal";
+import { Stagger } from "@/components/stagger";
 import { Eyebrow } from "@/components/eyebrow";
 import { cn } from "@amanah/ui/lib/utils";
 
@@ -50,23 +51,20 @@ export function WhyWeb3() {
             Putting charity on-chain isn’t hype — it makes every dollar auditable by anyone, with
             no middle layer to skim or stall it.
           </p>
-
-          <ul className="mt-10 grid gap-0 md:grid-cols-3 md:gap-8">
-            {points.map((point) => (
-              <li
-                key={point.label}
-                className={cn(
-                  "border-t border-border pt-6",
-                  "mt-6 first:mt-0",
-                  "md:mt-0 md:pt-8",
-                )}
-              >
-                <h3 className="text-lg font-medium text-foreground">{point.label}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{point.body}</p>
-              </li>
-            ))}
-          </ul>
         </Reveal>
+
+        <Stagger step={90} role="list" className="mt-10 grid gap-0 md:grid-cols-3 md:gap-8">
+          {points.map((point) => (
+            <div
+              key={point.label}
+              role="listitem"
+              className={cn("border-t border-border pt-6", "mt-6 first:mt-0", "md:mt-0 md:pt-8")}
+            >
+              <h3 className="text-lg font-medium text-foreground">{point.label}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{point.body}</p>
+            </div>
+          ))}
+        </Stagger>
       </div>
     </section>
   );

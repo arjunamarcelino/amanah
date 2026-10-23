@@ -1,6 +1,6 @@
 import { siteConfig } from "@/lib/site";
 import { Button } from "@amanah/ui/button";
-import { Reveal } from "@/components/reveal";
+import { Stagger } from "@/components/stagger";
 
 // Closing CTA band: a two-line headline (second line in pine italic), a short lead, and the
 // primary action into the app. Soft pine glow over the warm paper. No border-b — the footer
@@ -13,7 +13,7 @@ export function CallToAction() {
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_50%_32%,hsl(144_45%_45%/0.12),transparent_70%)]"
       />
       <div className="mx-auto w-full max-w-[64rem] px-[clamp(1.25rem,5vw,3rem)] py-[clamp(5rem,11vw,9rem)] text-center">
-        <Reveal>
+        <Stagger step={110}>
           <h2
             id="cta-title"
             className="mx-auto max-w-[18ch] text-[clamp(2.4rem,1.4rem+3.6vw,4.5rem)] font-medium leading-[1.04] tracking-[-0.02em] text-balance"
@@ -28,13 +28,23 @@ export function CallToAction() {
           </p>
 
           <div className="mt-9 flex justify-center">
-            <Button asChild size="lg" className="h-12 rounded-full px-9 text-base">
+            <Button
+              asChild
+              size="lg"
+              className="group h-12 rounded-full px-9 text-base transition-transform duration-200 hover:-translate-y-0.5"
+            >
               <a href={siteConfig.appUrl}>
-                Donate Now <span aria-hidden="true">→</span>
+                Donate Now
+                <span
+                  aria-hidden="true"
+                  className="transition-transform duration-200 group-hover:translate-x-1"
+                >
+                  →
+                </span>
               </a>
             </Button>
           </div>
-        </Reveal>
+        </Stagger>
       </div>
     </section>
   );

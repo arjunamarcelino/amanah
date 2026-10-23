@@ -1,5 +1,5 @@
 import { Section } from "@/components/section";
-import { Reveal } from "@/components/reveal";
+import { Stagger } from "@/components/stagger";
 import { TokenMarquee } from "@/components/token-marquee";
 
 // Stat callout between the hero arc and the problem. Distinct from the hero (which covers
@@ -9,7 +9,7 @@ import { TokenMarquee } from "@/components/token-marquee";
 export function Impact() {
   return (
     <Section id="impact" labelledBy="impact-title" className="text-center" divider={false}>
-      <Reveal>
+      <Stagger step={90}>
         <span className="inline-flex items-center rounded-full bg-accent px-3.5 py-1.5 text-sm font-semibold text-accent-foreground">
           Gifts That Grow
         </span>
@@ -37,7 +37,7 @@ export function Impact() {
             More stablecoins coming soon
           </p>
         </div>
-      </Reveal>
+      </Stagger>
     </Section>
   );
 }

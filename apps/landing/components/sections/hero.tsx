@@ -1,7 +1,12 @@
+import type { CSSProperties } from "react";
 import Image from "next/image";
 import { siteConfig } from "@/lib/site";
 import { Button } from "@amanah/ui/button";
 import { TiltedGridHero } from "@/components/tilted-grid-hero";
+
+// Per-element start offsets for the on-load stagger (ms). The headline leads at 0 and, being
+// translate-only (hero-rise-t), keeps its first paint instant so it stays the LCP element.
+const delay = (ms: number) => ({ "--hero-delay": `${ms}ms` }) as CSSProperties;
 
 // Cause photos that stream through the curved band below the hero copy.
 const HERO_IMAGES = [
@@ -23,25 +28,45 @@ export function Hero() {
       aria-labelledby="hero-title"
       className="relative pt-[clamp(3rem,6vw,5.5rem)] [overflow-x:clip]"
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[65%] bg-[radial-gradient(70%_100%_at_50%_0%,hsl(144_45%_45%/0.06),transparent_70%)]"
+      />
       <div className="mx-auto w-full max-w-[64rem] px-[clamp(1.25rem,5vw,3rem)] text-center">
         <h1
           id="hero-title"
-          className="mx-auto max-w-[16ch] text-[clamp(2.6rem,1.4rem+4.6vw,4.9rem)] font-medium leading-[1.03] tracking-[-0.021em] text-balance"
+          style={delay(0)}
+          className="hero-rise-t mx-auto max-w-[16ch] text-[clamp(2.6rem,1.4rem+4.6vw,4.9rem)] font-medium leading-[1.03] tracking-[-0.021em] text-balance"
         >
           Where every gift reaches further
         </h1>
 
-        <p className="mx-auto mt-6 max-w-[36rem] text-lg leading-relaxed text-foreground-soft md:text-xl">
+        <p
+          style={delay(140)}
+          className="hero-rise mx-auto mt-6 max-w-[36rem] text-lg leading-relaxed text-foreground-soft md:text-xl"
+        >
           Back any cause, give in any stablecoin, and track every step on-chain. Near-zero fees.
         </p>
 
-        <div className="mt-9 flex justify-center">
-          <Button asChild size="lg" className="h-12 rounded-full px-9 text-base">
-            <a href={siteConfig.appUrl}>Donate Now</a>
+        <div style={delay(240)} className="hero-rise mt-9 flex justify-center">
+          <Button
+            asChild
+            size="lg"
+            className="group h-12 rounded-full px-9 text-base transition-transform duration-200 hover:-translate-y-0.5"
+          >
+            <a href={siteConfig.appUrl}>
+              Donate Now
+              <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">
+                →
+              </span>
+            </a>
           </Button>
         </div>
 
-        <p className="mt-6 flex items-center justify-center gap-2 text-sm text-foreground-soft">
+        <p
+          style={delay(340)}
+          className="hero-rise mt-6 flex items-center justify-center gap-2 text-sm text-foreground-soft"
+        >
           <span>Live on</span>
           <Image
             src="/chains/base-logo.svg"
