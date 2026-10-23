@@ -49,6 +49,11 @@ const nextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../../"),
   transpilePackages: ["@amanah/ui", "@amanah/shared"],
   eslint: { ignoreDuringBuilds: true },
+  // Prune barrel exports (icons, controllers) from the SDK-heavy wallet packages so the
+  // (wallet) route only bundles what it imports.
+  experimental: {
+    optimizePackageImports: ["@dynamic-labs/sdk-react-core", "@dynamic-labs/ethereum", "wagmi"],
+  },
   async headers() {
     return [
       {
