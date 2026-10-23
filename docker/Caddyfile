@@ -1,32 +1,54 @@
-# Amanah reverse proxy — one subdomain per service.
-# Replace amanah.example with the real domain when provisioning the VPS.
+# Amanah reverse proxy — one subdomain per service, automatic TLS.
 
-app.amanah.example {
+{
+	# ACME account email (expiry + recovery notices; enables ZeroSSL fallback).
+	email ops@amanah.help
+	# First-issuance dry run: uncomment to use Let's Encrypt staging and avoid the
+	# production rate limit (5 failures/host/hour) while DNS/ports are still settling,
+	# then re-comment and redeploy to obtain real certs.
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+# Shared response/security headers. HSTS without `preload` (preload is a long-term
+# domain lock — overkill for a v1.0-demo). Imported into the dApp + API blocks,
+# which would otherwise have no headers of their own.
+(secure_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
+
+# Donor dApp (Privy/wagmi) — the most clickjacking-sensitive surface.
+app.amanah.help {
+	import secure_headers
 	reverse_proxy web:3000
 }
 
-# Apex landing site (becomes amanah.help in production).
-amanah.example {
-	# Security/response headers — the landing page is a self-contained static
-	# marketing site, so the CSP can stay tight (only inline bootstrap script +
-	# Next's inline styles are allowed; no external origins).
+# Apex landing site.
+amanah.help {
+	# Tight CSP for the self-contained static marketing site (only inline bootstrap
+	# script + Next's inline styles; no external origins).
 	header {
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		X-Frame-Options "DENY"
 		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
-		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	}
 	reverse_proxy landing:80
 }
 
-# Canonicalize www → apex with a permanent 308 (becomes www.amanah.help in production).
-www.amanah.example {
-	redir https://amanah.example{uri} 308
+# Canonicalize www → apex with a permanent 308.
+www.amanah.help {
+	redir https://amanah.help{uri} 308
 }
 
-api.amanah.example {
+api.amanah.help {
+	import secure_headers
 	reverse_proxy api:4000
 }
 

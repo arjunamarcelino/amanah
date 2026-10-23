@@ -1,21 +1,34 @@
 # syntax=docker/dockerfile:1
-# @amanah/landing — static Next.js export served by Caddy. Skeleton.
+# @amanah/landing — static Next.js export (output: 'export') served by Caddy.
 FROM node:22-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@10.29.2 --activate
 WORKDIR /app
 
-FROM base AS build
+FROM base AS prune
+# turbo pinned 2.11.9, installed globally (prune runs before workspace deps exist); this
+# version keeps the pnpm catalog in the pruned lockfile so --frozen-lockfile won't abort.
+RUN pnpm add -g turbo@2.11.9
 COPY . .
-RUN pnpm install --frozen-lockfile
-# next/font/local reads the committed .woff2 files, so this build needs no network.
-RUN pnpm --filter @amanah/landing... build
+RUN turbo prune @amanah/landing --docker
 
-FROM caddy:2-alpine AS run
-COPY --from=build /app/apps/landing/out /srv
-# Caddyfile-driven static server: branded 404, compression, and cache headers.
+FROM base AS installer
+COPY --from=prune /app/out/json/ .
+RUN pnpm install --frozen-lockfile
+
+FROM installer AS builder
+# NEXT_PUBLIC_APP_URL is build-time inlined (lib/site.ts throws if not http(s)).
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+COPY --from=prune /app/out/full/ .
+# next/font/local reads the committed .woff2 files, so this build needs no network.
+RUN pnpm turbo run build --filter=@amanah/landing
+
+# runner: caddy:2-alpine static server — branded 404, compression, cache headers.
 # (Security/response headers for the public edge live in docker/Caddyfile.)
+FROM caddy:2-alpine AS runner
+COPY --from=builder /app/apps/landing/out /srv
 COPY <<'CADDYFILE' /etc/caddy/Caddyfile
 :80 {
 	root * /srv
@@ -32,16 +45,16 @@ COPY <<'CADDYFILE' /etc/caddy/Caddyfile
 
 	file_server
 
-	# Serve the static export's branded 404 page on unknown paths. The handle_errors
-	# block runs with the original error status set, so the served page keeps its 404
-	# (not a soft-404 / 200); non-404 errors fall back to a plain status response.
-	# NOTE: Caddy is not run in CI here — verify on first deploy that
-	# `curl -I https://amanah.help/does-not-exist` returns `HTTP/2 404`.
+	# Serve the static export's branded 404 page on unknown paths. `file_server { status 404 }`
+	# forces a real 404 on the served page (not a soft-404 / 200); non-404 errors fall back to
+	# a plain status response. Validated with `caddy validate` (caddy 2.9).
 	handle_errors {
 		@404 expression {err.status_code} == 404
 		handle @404 {
 			rewrite * /404.html
-			file_server
+			file_server {
+				status 404
+			}
 		}
 		handle {
 			respond "{err.status_code} {err.status_text}" {err.status_code}

@@ -12,8 +12,12 @@
 // dedupe correctly.
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/client"
+  provider      = "prisma-client-js"
+  output        = "../src/generated/client"
+  // "native" keeps local dev working (macOS/other hosts); "debian-openssl-3.0.x"
+  // is the query engine the api/indexer/migrate images need on node:22-slim
+  // (bookworm, OpenSSL 3). Emitted by `prisma generate` at build.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
