@@ -10,7 +10,7 @@ import { CHAIN_ID } from "@amanah/shared";
 export type DonorWalletState =
   | { status: "initializing" } // Dynamic SDK not loaded yet
   | { status: "unauthenticated" } // loaded, no active wallet (not logged in and none connected)
-  | { status: "provisioning" } // logged in, embedded wallet not yet bridged into wagmi
+  | { status: "provisioning" } // logged in / connected, wallet not yet bridged into wagmi
   | {
       status: "active";
       address: Address;

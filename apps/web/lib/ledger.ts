@@ -18,7 +18,7 @@ import { ENV } from "./env";
 // This module reads those three straight from chain and merges them with the API feed —
 // chain is the source of truth, the API is the convenience index.
 //
-// NO wagmi/Privy here: a standalone viem client so /ledger stays wallet-free.
+// NO wagmi/Dynamic here: a standalone viem client so /ledger stays wallet-free.
 
 const A = ADDRESSES[CHAIN_ID];
 const REORG_BUFFER = 15n; // OP-stack reorg bound (mirrors the indexer)

@@ -7,7 +7,7 @@ import { useDonorWallet } from "@/lib/hooks/useDonorWallet";
 // Base Sepolia ETH faucet (Dynamic's onramp is mainnet-only → faucet used here instead).
 const FAUCET_URL = "https://www.alchemy.com/faucets/base-sepolia";
 
-// Shows a self-fund prompt when the embedded wallet has no gas; otherwise renders
+// Shows a self-fund prompt when the active wallet has no gas; otherwise renders
 // children. The faucet opens externally (no callback), so we offer an explicit
 // recheck that refetches the balance. We also surface the wallet address so the
 // donor can fund it directly from any other wallet or exchange, not just the faucet.
