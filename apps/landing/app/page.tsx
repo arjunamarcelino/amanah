@@ -6,6 +6,7 @@ import { Causes } from "@/components/sections/causes";
 import { Features } from "@/components/sections/features";
 import { Discover } from "@/components/sections/discover";
 import { WhyWeb3 } from "@/components/sections/why-web3";
+import { HowItWorks } from "@/components/sections/how-it-works";
 import { Comparison } from "@/components/sections/comparison";
 import { Compliance } from "@/components/sections/compliance";
 import { Footer } from "@/components/sections/footer";
@@ -22,6 +23,7 @@ export default function Home() {
         <Features />
         <Discover />
         <WhyWeb3 />
+        <HowItWorks />
         <Comparison />
         <Compliance />
       </main>
