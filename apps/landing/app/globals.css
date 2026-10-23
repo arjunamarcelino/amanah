@@ -79,3 +79,23 @@
     }
   }
 }
+
+@layer utilities {
+  /* Logo marquee: two identical halves slide left by exactly one half for a seamless loop. */
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .animate-marquee {
+    animation: marquee 50s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee {
+      animation: none;
+    }
+  }
+}

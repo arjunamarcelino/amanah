@@ -14,18 +14,24 @@ export function Section({
   id,
   labelledBy,
   className,
+  divider = true,
   children,
 }: {
   id?: string;
   labelledBy?: string;
   className?: string;
+  /** Bottom hairline between sections. Set false to drop the divider after this section. */
+  divider?: boolean;
   children: ReactNode;
 }) {
   return (
     <section
       id={id}
       aria-labelledby={labelledBy}
-      className="border-b border-border/70 py-[clamp(4.5rem,9vw,8rem)]"
+      className={cn(
+        "py-[clamp(4.5rem,9vw,8rem)]",
+        divider && "border-b border-border/70",
+      )}
     >
       <div
         className={cn(
