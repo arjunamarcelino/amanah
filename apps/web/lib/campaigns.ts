@@ -35,7 +35,7 @@ export function isFeatured(c: CampaignResponse): boolean {
 // campaignId (the API does not yet emit `imageUrl`). campaignIdFromSlug returns lowercased
 // 0x-hex, so look up with `.toLowerCase()`. Campaigns without an entry render text-only.
 const COVER_BY_ID: Record<string, string> = {
-  [campaignIdFromSlug("ph-typhoon-2025")]: "/campaigns/relief.jpg",
+  [FEATURED_ID]: "/campaigns/relief.jpg",
   [campaignIdFromSlug("id-rural-school-supplies")]: "/campaigns/classroom.jpg",
   [campaignIdFromSlug("clinic-medicine-fund")]: "/campaigns/clinic.jpg",
   [campaignIdFromSlug("masjid-waqf")]: "/campaigns/masjid-waqf.jpg",
@@ -43,7 +43,8 @@ const COVER_BY_ID: Record<string, string> = {
 
 /** Cover image for a campaign: its own `imageUrl` if present, else the demo map, else none. */
 export function coverImageFor(campaign: CampaignResponse): string | undefined {
-  return campaign.imageUrl ?? COVER_BY_ID[campaign.campaignId.toLowerCase()];
+  // `||` not `??`: treat an empty-string imageUrl as "no image" and fall through.
+  return campaign.imageUrl || COVER_BY_ID[campaign.campaignId.toLowerCase()];
 }
 
 /** Campaigns shown in the grid: active and not the zero/general sentinel. */
