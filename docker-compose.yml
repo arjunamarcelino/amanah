@@ -124,7 +124,7 @@ services:
       context: .
       dockerfile: docker/agent.Dockerfile
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env (agent requires it at boot)}
       # Internal-only: reached by api/web over the compose network, never via Caddy.
       API_URL: http://api:4000
       # MUST equal web's AGENT_SHARED_SECRET (same .env var) or /api/route 401s.
