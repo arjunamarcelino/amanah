@@ -6,7 +6,9 @@ import { STABLECOINS, type StablecoinKey } from "@/lib/tokens";
 
 // Segmented token picker (replaces a native <select>, which can't render the token marks).
 // Same contract as before — { value, onChange, id?, disabled? } — so the donate form is
-// untouched. Accessible as a radiogroup; the visible Label names it.
+// untouched. Presented as a labeled group of toggle buttons (aria-pressed): this matches
+// the actual behavior (each button is its own tab stop), rather than a `radiogroup` whose
+// ARIA contract would promise roving-tabindex + arrow-key navigation we don't implement.
 export function StablecoinSelect({
   value,
   onChange,
@@ -21,19 +23,14 @@ export function StablecoinSelect({
   return (
     <div className="flex flex-col gap-1.5">
       <Label id={`${id}-label`}>Stablecoin</Label>
-      <div
-        role="radiogroup"
-        aria-labelledby={`${id}-label`}
-        className="grid grid-cols-3 gap-2"
-      >
+      <div role="group" aria-labelledby={`${id}-label`} className="grid grid-cols-3 gap-2">
         {STABLECOINS.map((s) => {
           const selected = s.key === value;
           return (
             <button
               key={s.key}
               type="button"
-              role="radio"
-              aria-checked={selected}
+              aria-pressed={selected}
               disabled={disabled}
               onClick={() => onChange(s.key)}
               className={cn(
