@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { cn } from "@amanah/ui/lib/utils";
@@ -25,33 +24,40 @@ const RAISED_MARK = pct(100);
 
 type TipAlign = "center" | "left" | "right";
 
-// Hover tooltip. Lives in a transparent overlay above the bars (not inside the clipped track),
-// so it can spill above the bar. `align` keeps edge tooltips from overflowing the figure.
-function Tip({ title, children, align = "center" }: { title: string; children: ReactNode; align?: TipAlign }) {
+// Visual tooltip bubble. Lives in a transparent overlay above the bars (not inside the clipped
+// track) so it can spill above the bar. `align` keeps edge tooltips from overflowing the figure.
+// It's purely decorative (aria-hidden) — the accessible text is on the Zone's aria-label — and
+// shows on both hover and keyboard/touch focus of its Zone.
+function Tip({ title, body, align = "center" }: { title: string; body: string; align?: TipAlign }) {
   const pos =
     align === "left" ? "left-0" : align === "right" ? "right-0" : "left-1/2 -translate-x-1/2";
   return (
     <span
-      role="tooltip"
+      aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute bottom-full z-20 mb-2 w-max max-w-[15rem] rounded-lg bg-foreground px-3 py-2 text-left text-xs leading-snug text-background opacity-0 shadow-lg transition-opacity duration-150 group-hover/seg:opacity-100",
+        "pointer-events-none absolute bottom-full z-20 mb-2 w-max max-w-[15rem] rounded-lg bg-foreground px-3 py-2 text-left text-xs leading-snug text-background opacity-0 shadow-lg transition-opacity duration-150 group-hover/seg:opacity-100 group-focus/seg:opacity-100",
         pos,
       )}
     >
       <strong className="mb-0.5 block font-semibold text-background">{title}</strong>
-      <span className="text-background/80">{children}</span>
+      <span className="text-background/80">{body}</span>
     </span>
   );
 }
 
-// A transparent hover zone sized to a bar segment; it only carries the tooltip.
-function Zone({ width, title, align, children }: { width: string; title: string; align?: TipAlign; children: ReactNode }) {
+// A focusable zone sized to a bar segment. Carries the segment's full description as an
+// aria-label (so keyboard/touch/AT users get it), reveals the visual Tip on hover or focus, and
+// shows a focus ring. type=button with no handler — it exists only to expose the description.
+function Zone({ width, title, align, children }: { width: string; title: string; align?: TipAlign; children: string }) {
   return (
-    <div className="group/seg relative h-full shrink-0" style={{ width }}>
-      <Tip title={title} align={align}>
-        {children}
-      </Tip>
-    </div>
+    <button
+      type="button"
+      aria-label={`${title}: ${children}`}
+      className="group/seg relative h-full shrink-0 cursor-default rounded-sm bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+      style={{ width }}
+    >
+      <Tip title={title} body={children} align={align} />
+    </button>
   );
 }
 
@@ -219,15 +225,16 @@ export function FeeBar() {
 
 // A narrow hover target centred on the dashed "amount you gave" line.
 function MarkerZone() {
+  const body =
+    "100% of your donation. Traditional aid stops short of this line; Amanah passes it with yield.";
   return (
-    <div
-      className="group/seg absolute inset-y-0 w-4 -translate-x-1/2"
+    <button
+      type="button"
+      aria-label={`Amount you gave: ${body}`}
+      className="group/seg absolute inset-y-0 w-4 -translate-x-1/2 cursor-default bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       style={{ left: RAISED_MARK }}
     >
-      <Tip title="Amount you gave" align="right">
-        100% of your donation. Traditional aid stops short of this line; Amanah passes it with
-        yield.
-      </Tip>
-    </div>
+      <Tip title="Amount you gave" body={body} align="right" />
+    </button>
   );
 }
