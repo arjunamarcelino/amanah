@@ -4,6 +4,7 @@ import {
   Bytes32Schema,
   TxHashSchema,
   DecimalStringSchema,
+  DecimalSumStringSchema,
 } from "./primitives.js";
 import { CampaignType, ReleaseType, DonationStatus, PayoutStatus } from "./enums.js";
 
@@ -43,6 +44,14 @@ export type CampaignResponse = {
   active: boolean;
   registeredOnChain: boolean;
   createdAt: string;
+  // Real raised total: sum of CONFIRMED on-chain Donated events (DonationLog, status
+  // 'confirmed') in base units (Decimal(78,0) string, 6-dp base). Always present; "0"
+  // when the campaign has no confirmed donations. NOT authoritative balance — the
+  // chain is; this is the cached index summed for display.
+  baseRaised: string;
+  // Offchain display target (goal) in base units, or null when none is set. A target
+  // the campaign declares — not a claim about funds received — so showing it is honest.
+  goalBase: string | null;
   // Optional cover image for the campaign (grid card + featured hero). Same-origin
   // path under apps/web/public (e.g. "/campaigns/ph-typhoon-2025.jpg") — CSP img-src
   // is 'self'. Optional so existing responses/mappers need no change; null/undefined
@@ -68,6 +77,11 @@ export const CampaignResponseSchema = z.object({
   active: z.boolean(),
   registeredOnChain: z.boolean(),
   createdAt: z.string(),
+  // Base-units decimal strings: raised is a SUM (not individually uint256-bounded, so a
+  // display total can't drop the whole row — see DecimalSumStringSchema); goal is a single
+  // declared value, nullable.
+  baseRaised: DecimalSumStringSchema,
+  goalBase: DecimalStringSchema.nullable(),
   // Same-origin relative path only (leading "/", not "//host", no scheme/whitespace):
   // the value feeds next/image `src`, and next.config has no remotePatterns, so an
   // absolute/remote URL would throw at render. Bounds the documented invariant.

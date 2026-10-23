@@ -20,6 +20,8 @@ function campaign(over: Partial<CampaignResponse> & { campaignId: string; type: 
     active: true,
     registeredOnChain: true,
     createdAt: "2026-01-01T00:00:00Z",
+    baseRaised: "0",
+    goalBase: null,
     ...over,
   };
 }

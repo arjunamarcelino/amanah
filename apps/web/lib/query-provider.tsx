@@ -3,9 +3,10 @@
 import { useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Root provider — react-query only, so the browse route never pulls the wallet SDK.
-// (Dynamic + wagmi live in the (wallet) route group's layout.) QueryClient is created
-// once per browser session via useState (never module scope).
+// Root provider — react-query only, so the browse/ledger routes never pull the wallet SDK.
+// (Dynamic + wagmi are mounted by the wallet routes themselves — the /mint and /donate pages
+// and the (auth) login layout.) QueryClient is created once per browser session via useState
+// (never module scope).
 export function QueryProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>

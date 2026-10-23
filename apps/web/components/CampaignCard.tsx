@@ -1,50 +1,63 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
-import { Badge } from "@amanah/ui/badge";
 import { CauseIcon } from "@amanah/ui/cause-icon";
-import { cn } from "@amanah/ui/lib/utils";
 import type { CampaignResponse } from "@amanah/shared";
-import { causeBadgeClass, coverImageFor } from "@/lib/campaigns";
+import { coverImageFor, slugFor } from "@/lib/campaigns";
+import { fundingView } from "@/lib/funding";
+import { FundingProgress } from "@/components/FundingProgress";
+import { CauseTag } from "@/components/CauseTag";
+import { OverlayBadge } from "@/components/OverlayBadge";
 
 // All free-text fields (type/cause/name/country) render as escaped JSX text. `type`
-// drives styling only via the enum-keyed allowlist (causeBadgeClass) — never
-// interpolated into a className. The React key (set by the caller) is the campaignId.
+// drives styling only via the enum-keyed allowlist (causeBadgeClass, inside CauseTag) —
+// never interpolated into a className. The React key (set by the caller) is the campaignId.
+//
+// Layout note: outer is `flex h-full flex-col` (matching the showcase cards). The cover's
+// aspect-ratio box resolves its height inside the flex column; a `block` outer collapsed it.
 export function CampaignCard({ campaign }: { campaign: CampaignResponse }) {
-  const { campaignId, type, cause, name, country, releaseType } = campaign;
+  const { type, cause, name, country, releaseType, baseRaised, goalBase } = campaign;
   const cover = coverImageFor(campaign);
+  const funding = fundingView(baseRaised, goalBase);
   return (
-    <Link href={`/donate/${campaignId}`} className="block focus:outline-none">
-      <Card className="h-full overflow-hidden transition-colors hover:border-ring">
+    <Link
+      href={`/f/${slugFor(campaign)}`}
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-ring hover:shadow-xl hover:shadow-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {/* 16:9 cover. Drop a same-origin image under apps/web/public/campaigns. */}
+      <div className="relative aspect-[16/9] w-full bg-muted">
         {cover ? (
-          // 16:9 cover. Drop a same-origin image under apps/web/public/campaigns.
-          <div className="relative aspect-[16/9] w-full bg-muted">
-            <Image
-              src={cover}
-              alt="" // decorative: the CardTitle already names the campaign
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover"
-            />
+          <Image
+            src={cover}
+            alt="" // decorative: the title already names the campaign
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-muted-foreground">
+            <CauseIcon cause={type} className="size-10 opacity-40" />
           </div>
-        ) : null}
-        <CardHeader>
-          <div className="flex items-center justify-between gap-2">
-            <Badge className={cn("gap-1 border-transparent capitalize", causeBadgeClass(type))}>
-              <CauseIcon cause={type} className="size-3.5" />
-              {type}
-            </Badge>
-            {country ? <span className="text-xs text-foreground-soft">{country}</span> : null}
-          </div>
-          <CardTitle className="text-lg">{name ?? cause}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-end justify-between gap-3">
+        )}
+        {/* Cause tag floats top-left (no hover color change). */}
+        <CauseTag type={type} className="absolute left-3 top-3" />
+        {/* Location + release type float bottom-left, over the image like the cause tag. */}
+        <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-2">
+          {country ? <OverlayBadge>{country}</OverlayBadge> : null}
+          <OverlayBadge className="capitalize">{releaseType.toLowerCase()}</OverlayBadge>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <div className="flex flex-col gap-1.5">
+          <h3 className="font-serif text-lg leading-snug tracking-tight text-foreground transition-colors group-hover:text-primary">
+            {name ?? cause}
+          </h3>
           <p className="line-clamp-2 text-sm text-foreground-soft">{cause}</p>
-          <Badge variant="outline" className="shrink-0 capitalize">
-            {releaseType.toLowerCase()}
-          </Badge>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="mt-auto">
+          <FundingProgress view={funding} />
+        </div>
+      </div>
     </Link>
   );
 }

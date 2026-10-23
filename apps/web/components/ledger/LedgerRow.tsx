@@ -27,12 +27,29 @@ function text(payload: Record<string, unknown>, key: string): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
+/** A compact timestamp when the row carries one, else its block number, else null. */
+function timeLabel(entry: LedgerEntry): string | null {
+  if (entry.createdAt) {
+    const d = new Date(entry.createdAt);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+  }
+  return entry.blockNumber ? `Block ${entry.blockNumber}` : null;
+}
+
 export function LedgerRow({ entry }: { entry: LedgerEntry }) {
   const badge = badgeFor(entry.eventName);
   const amount = ledgerDisplayAmount(entry);
   const rail = text(entry.payload, "rail");
   const rationale = text(entry.payload, "rationale");
   const detail = text(entry.payload, "detail");
+  const when = timeLabel(entry);
   // Only treat a row as on-chain-verified when its txHash is a real 32-byte hash. The API
   // feed is unauthenticated, so a forged row with a junk txHash must render as unconfirmed,
   // never with a green "Verify" link — the whole page's value is honest verifiability.
@@ -40,37 +57,46 @@ export function LedgerRow({ entry }: { entry: LedgerEntry }) {
     entry.txHash && TxHashSchema.safeParse(entry.txHash).success ? entry.txHash : null;
 
   return (
-    <li className="relative grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-l border-border py-3 pl-6">
-      <span className="absolute -left-[5px] top-4 h-2.5 w-2.5 rounded-full bg-primary" aria-hidden />
+    <li className="relative border-l border-border py-4 pl-6 last:border-l-transparent">
+      <span className="absolute -left-[5px] top-[1.3rem] h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-card" aria-hidden />
 
-      <div className="col-span-2 flex flex-wrap items-center gap-2">
-        <Badge className={`border-transparent ${badge.className}`}>{badge.label}</Badge>
-        {entry.campaignName && (
-          <span className="text-xs text-foreground-soft">{entry.campaignName}</span>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge className={`border-transparent ${badge.className}`}>{badge.label}</Badge>
+          {entry.campaignName && (
+            <span className="text-sm text-foreground-soft">{entry.campaignName}</span>
+          )}
+          {rail && <span className="text-xs text-foreground-soft">via {rail}</span>}
+        </div>
+
+        {amount && (
+          <p className="text-xl tabular-nums text-foreground">
+            {amount} <span className="text-sm text-foreground-soft">USDC</span>
+          </p>
         )}
-        {rail && <span className="text-xs text-foreground-soft">via {rail}</span>}
-        {txHash ? (
-          <a
-            href={txUrl(txHash)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-auto text-xs text-primary underline-offset-4 hover:underline"
-          >
-            Verify ↗
-          </a>
-        ) : (
-          <span className="ml-auto text-xs text-muted-foreground">unconfirmed</span>
+
+        {(rationale || detail) && (
+          <p className="max-w-prose font-serif text-sm italic text-foreground-soft">
+            {rationale ?? detail}
+          </p>
         )}
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {when ? <span className="tabular-nums">{when}</span> : null}
+          {txHash ? (
+            <a
+              href={txUrl(txHash)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Verify ↗
+            </a>
+          ) : (
+            <span>unconfirmed</span>
+          )}
+        </div>
       </div>
-
-      {amount && (
-        <p className="col-span-2 text-lg tabular-nums text-foreground">{amount} USDC</p>
-      )}
-      {(rationale || detail) && (
-        <p className="col-span-2 max-w-prose font-serif text-sm italic text-foreground-soft">
-          {rationale ?? detail}
-        </p>
-      )}
     </li>
   );
 }

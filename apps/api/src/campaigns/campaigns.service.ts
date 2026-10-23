@@ -1,8 +1,8 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { CampaignType, normalizeHex, type CampaignResponse, type CreateCampaign } from "@amanah/shared";
-import { upsertCampaignMetadata, type Campaign } from "@amanah/db";
+import { upsertCampaignMetadata, type Campaign, type Prisma } from "@amanah/db";
 import { PrismaService } from "../core/prisma/prisma.service";
-import { toIso } from "../common/map";
+import { toIso, decToString } from "../common/map";
 
 @Injectable()
 export class CampaignsService {
@@ -13,7 +13,16 @@ export class CampaignsService {
       where: type ? { type } : undefined,
       orderBy: { createdAt: "desc" },
     });
-    return rows.map(toCampaignResponse);
+    // Real raised = sum of CONFIRMED on-chain donations per campaign, in one grouped
+    // query (no N+1). Only 'confirmed' counts — pending/expired optimistic rows are not
+    // yet verified money, so they must not inflate a public "raised" figure.
+    const sums = await this.prisma.donationLog.groupBy({
+      by: ["campaignId"],
+      where: { status: "confirmed", campaignId: { in: rows.map((r) => r.campaignId) } },
+      _sum: { baseOut: true },
+    });
+    const raisedById = new Map(sums.map((s) => [s.campaignId, s._sum.baseOut]));
+    return rows.map((r) => toCampaignResponse(r, raisedById.get(r.campaignId) ?? null));
   }
 
   /**
@@ -40,7 +49,10 @@ export class CampaignsService {
   }
 }
 
-export function toCampaignResponse(c: Campaign): CampaignResponse {
+export function toCampaignResponse(
+  c: Campaign,
+  raised: Prisma.Decimal | null = null,
+): CampaignResponse {
   return {
     campaignId: c.campaignId,
     // `type` is a free-form String column; validate at the boundary with a safe
@@ -54,5 +66,8 @@ export function toCampaignResponse(c: Campaign): CampaignResponse {
     active: c.active,
     registeredOnChain: c.registeredOnChain,
     createdAt: toIso(c.createdAt),
+    // Exact integer base-units strings (never Number()). Raised defaults to "0".
+    baseRaised: raised ? decToString(raised) : "0",
+    goalBase: c.goalBase ? decToString(c.goalBase) : null,
   };
 }

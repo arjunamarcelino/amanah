@@ -67,6 +67,12 @@ model Campaign {
   country           String?
   releaseType       ReleaseType
   recipientOrg      String?
+  // Offchain display target in base units (Decimal(78,0), 6-dp base). Set by the
+  // metadata seed/API; NOT a money column (no funds, no on-chain truth). null => the
+  // card shows real raised without a progress percentage. Raised itself is never
+  // stored here — it's summed from confirmed DonationLog rows at read time.
+  // Has a CHECK ("goalBase" >= 0) added in migration 20261024020000 (not expressible in PSL).
+  goalBase          Decimal?    @db.Decimal(78, 0)
   active            Boolean     @default(false)
   registeredOnChain Boolean     @default(false)
   createdAt         DateTime    @default(now())
@@ -110,6 +116,10 @@ model DonationLog {
 
   @@unique([txHash, logIndex])
   @@index([campaignId, status])
+  // Covering index for the per-campaign confirmed-donation sum in GET /campaigns
+  // (baseRaised): including baseOut lets the groupBy _sum read it from the index, no heap
+  // fetch per row. (The real fix at scale is denormalizing baseRaised onto Campaign.)
+  @@index([campaignId, status, baseOut])
   @@index([createdAt]) // /ledger + /donations order by createdAt
 }
 
