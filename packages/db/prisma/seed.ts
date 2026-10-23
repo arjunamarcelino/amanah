@@ -82,6 +82,9 @@ async function main() {
     await prisma.campaign.upsert({
       where: { campaignId },
       // Metadata only on update — never reset indexer-owned registeredOnChain/active.
+      // goalBase IS rewritten here (presentation metadata): re-seeding resets it to the
+      // hardcoded value. Intentional today (the API/console can't set goalBase); revisit if a
+      // goal-editing surface ships, so a re-seed doesn't clobber an operator-set goal.
       update: {
         type: c.type,
         cause: c.cause,
