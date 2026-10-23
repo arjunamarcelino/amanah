@@ -57,7 +57,9 @@ export function CauseIcon({ cause, ...props }: CauseIconProps) {
       role={labeled ? "img" : undefined}
       {...props}
     >
-      {paths[cause].map((d, i) => (
+      {/* Fallback to `general` if an out-of-catalog cause ever reaches this shared
+          component, so a vocabulary mismatch degrades to a heart icon, not a crash. */}
+      {(paths[cause] ?? paths.general).map((d, i) => (
         <path key={i} d={d} />
       ))}
     </svg>

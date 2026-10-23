@@ -1,4 +1,13 @@
 import { campaignIdFromSlug, type CampaignResponse, type CampaignType } from "@amanah/shared";
+import type { Cause } from "@amanah/ui/cause-icon";
+
+// Compile-time guard: @amanah/ui can't depend on @amanah/shared, so CauseIcon's `Cause`
+// key set is maintained independently. This app imports both, so assert they stay equal —
+// adding/removing a CampaignType without updating the icon catalog fails the build here.
+type _Expect<T extends true> = T;
+type _Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type _CauseMirror = _Expect<_Equal<Cause, CampaignType>>;
 
 // Featured campaign is pinned by slug — no `featured` field exists on the model.
 export const FEATURED_SLUG = "ph-typhoon-2025";
