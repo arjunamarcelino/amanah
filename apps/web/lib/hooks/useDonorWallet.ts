@@ -1,17 +1,16 @@
 "use client";
 
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useBalance } from "wagmi";
-import { getAddress, type Address } from "viem";
+import { useDynamicContext, useIsLoggedIn } from "@dynamic-labs/sdk-react-core";
+import { useAccount, useBalance } from "wagmi";
+import type { Address } from "viem";
 import { CHAIN_ID } from "@amanah/shared";
-import { caipToChainId } from "@/lib/caip";
 
-// Discriminated state for the embedded-wallet lifecycle. `address` exists ONLY on
-// the "active" arm, so consumers physically cannot read it while provisioning.
+// Discriminated state for the donor wallet lifecycle. `address` exists ONLY on the "active"
+// arm, so consumers physically cannot read it while provisioning.
 export type DonorWalletState =
-  | { status: "initializing" } // Privy SDK not ready
-  | { status: "unauthenticated" } // ready, not logged in
-  | { status: "provisioning" } // authenticated, embedded wallet not yet created
+  | { status: "initializing" } // Dynamic SDK not loaded yet
+  | { status: "unauthenticated" } // loaded, no active wallet (not logged in and none connected)
+  | { status: "provisioning" } // logged in, embedded wallet not yet bridged into wagmi
   | {
       status: "active";
       address: Address;
@@ -27,12 +26,12 @@ export function useDonorWallet(): {
   logout: () => Promise<void>;
   refetchBalance: () => void;
 } {
-  const { ready, authenticated, login, logout } = usePrivy();
-  const { wallets } = useWallets();
+  const { sdkHasLoaded, setShowAuthFlow, handleLogOut } = useDynamicContext();
+  const isLoggedIn = useIsLoggedIn();
 
-  // The donor is specifically the Privy EMBEDDED wallet (not any connected external one).
-  const embedded = wallets.find((w) => w.walletClientType === "privy");
-  const address = embedded ? getAddress(embedded.address) : undefined;
+  // DynamicWagmiConnector bridges the active wallet (embedded OR external) into wagmi, so the
+  // active address/chain come straight from wagmi — this is what covers external wallets too.
+  const { address, chainId, isConnected } = useAccount();
 
   const { data: balance, refetch } = useBalance({
     address,
@@ -41,14 +40,13 @@ export function useDonorWallet(): {
   });
 
   let state: DonorWalletState;
-  if (!ready) {
+  if (!sdkHasLoaded) {
     state = { status: "initializing" };
-  } else if (!authenticated) {
+  } else if (!isLoggedIn && !isConnected) {
     state = { status: "unauthenticated" };
   } else if (!address) {
     state = { status: "provisioning" };
   } else {
-    const chainId = caipToChainId(embedded?.chainId);
     const nativeBalance = balance?.value ?? 0n;
     state = {
       status: "active",
@@ -62,8 +60,8 @@ export function useDonorWallet(): {
 
   return {
     state,
-    login,
-    logout,
+    login: () => setShowAuthFlow(true),
+    logout: () => handleLogOut(),
     refetchBalance: () => {
       void refetch();
     },
