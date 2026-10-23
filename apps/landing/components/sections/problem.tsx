@@ -17,11 +17,9 @@ export function Problem() {
         </h2>
 
         <p className="mt-5 max-w-[38rem] text-lg leading-relaxed text-foreground-soft">
-          Between your wallet and the people who need help,{" "}
-          <em className="font-serif not-italic text-foreground">
-            too much good money quietly disappears
-          </em>{" "}
-          — to fees, to delay, and to processes no one on the outside can see.
+          Between your gift and the people who need it, too much vanishes — to{" "}
+          <em className="font-serif not-italic text-foreground">fees, delays, and steps</em>{" "}
+          no one outside can see.
         </p>
 
         <div className="mt-12">
