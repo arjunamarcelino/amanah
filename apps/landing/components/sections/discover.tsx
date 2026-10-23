@@ -89,7 +89,7 @@ function CampaignCard({
           }
           className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
         />
-        <span className="absolute bottom-3 left-3 rounded-full bg-foreground/65 px-3 py-1 text-xs font-medium text-background backdrop-blur-sm">
+        <span className="absolute bottom-3 left-3 rounded-full bg-foreground/80 px-3 py-1 text-xs font-medium text-background backdrop-blur-sm">
           {c.donations} donations
         </span>
       </div>
