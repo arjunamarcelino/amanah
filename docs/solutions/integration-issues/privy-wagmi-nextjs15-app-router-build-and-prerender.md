@@ -31,6 +31,11 @@ related:
 
 # Privy + wagmi embedded wallet in Next.js 15 App Router
 
+> **Superseded:** `apps/web` migrated from Privy to Dynamic.xyz. See
+> [`dynamic-xyz-wallet-migration-nextjs-app-router.md`](./dynamic-xyz-wallet-migration-nextjs-app-router.md).
+> Kept for historical reference — the route-group bundle isolation and the optional-module
+> webpack stubs (`@x402`, `@react-native-async-storage`) carried over to the Dynamic setup.
+
 Wiring `@privy-io/react-auth` v3 + `@privy-io/wagmi` v4 + `wagmi` v2 + `viem` into a Next.js 15
 App Router app (`apps/web`, embedded-EOA donor flow on Base Sepolia) hits a predictable
 sequence of `next build` failures that have nothing to do with your code — they come from the
