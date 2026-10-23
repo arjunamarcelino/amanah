@@ -1,3 +1,8 @@
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 function originOf(url, fallback = "") {
   try {
     return new URL(url).origin;
@@ -34,6 +39,11 @@ const csp = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Emit a self-contained server bundle for the Docker runner (apps/web/server.js).
+  output: "standalone",
+  // Monorepo root (two levels up) so file-tracing pulls in workspace deps and the
+  // standalone output mirrors the repo layout under /app.
+  outputFileTracingRoot: path.join(__dirname, "../../"),
   transpilePackages: ["@amanah/ui", "@amanah/shared"],
   eslint: { ignoreDuringBuilds: true },
   async headers() {
