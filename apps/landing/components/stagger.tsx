@@ -27,6 +27,8 @@ export function Stagger({
   className?: string;
 } & HTMLAttributes<HTMLDivElement>) {
   const { ref, inView } = useInView<HTMLDivElement>();
+  // Counts only real elements (not the Children.map index, which also counts text/null
+  // children), so the delays stay contiguous even if a child is conditionally null.
   let idx = 0;
   return (
     <div ref={ref} className={className} {...rest}>
