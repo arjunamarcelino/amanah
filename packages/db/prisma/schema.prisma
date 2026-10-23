@@ -71,6 +71,7 @@ model Campaign {
   // metadata seed/API; NOT a money column (no funds, no on-chain truth). null => the
   // card shows real raised without a progress percentage. Raised itself is never
   // stored here — it's summed from confirmed DonationLog rows at read time.
+  // Has a CHECK ("goalBase" >= 0) added in migration 20261024020000 (not expressible in PSL).
   goalBase          Decimal?    @db.Decimal(78, 0)
   active            Boolean     @default(false)
   registeredOnChain Boolean     @default(false)
