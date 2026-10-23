@@ -75,13 +75,6 @@ export function CampaignDetail({ param }: { param: string }) {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-8 sm:px-6 md:py-10">
       <div className="flex flex-col gap-5">
-        <Link
-          href="/"
-          className="w-fit text-sm text-foreground-soft underline underline-offset-4 hover:no-underline"
-        >
-          ← Back to campaigns
-        </Link>
-
         <div className="flex flex-wrap items-center gap-2">
           <CauseTag type={campaign.type} />
           {campaign.country ? <MetaPill>{campaign.country}</MetaPill> : null}
