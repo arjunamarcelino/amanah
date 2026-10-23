@@ -167,13 +167,44 @@ export function TiltedGridHero({
       );
     });
     ro.observe(el);
-    return () => ro.disconnect();
+
+    // Pause the orbit while the band is scrolled out of view, so the compositor stops ticking
+    // the infinite animation off-screen. Toggled as a data attribute (no re-render); the CSS
+    // rule injected below pauses every tile when it's set.
+    let io: IntersectionObserver | undefined;
+    if ("IntersectionObserver" in window) {
+      io = new IntersectionObserver(
+        ([entry]) => el.toggleAttribute("data-tgh-paused", !entry.isIntersecting),
+        { rootMargin: "200px" },
+      );
+      io.observe(el);
+    }
+
+    return () => {
+      ro.disconnect();
+      io?.disconnect();
+    };
   }, [tileHeight, aspectRatio, gap, bend]);
 
-  // Fetch every image up front. A tile picks up its next one just before
-  // it comes back into view, too late to start loading it then.
+  // Warm the image cache, but off the critical path — a tile picks up its next image just
+  // before it wraps back in, so prefetching can wait for idle time instead of competing with
+  // first paint. requestIdleCallback where available, a short timeout otherwise.
   React.useEffect(() => {
-    for (const { src } of images) new Image().src = src;
+    const warm = () => {
+      for (const { src } of images) new Image().src = src;
+    };
+    const ric = (window as typeof window & { requestIdleCallback?: (cb: () => void) => number })
+      .requestIdleCallback;
+    if (ric) {
+      const handle = ric(warm);
+      return () => {
+        const cic = (window as typeof window & { cancelIdleCallback?: (h: number) => void })
+          .cancelIdleCallback;
+        cic?.(handle);
+      };
+    }
+    const t = window.setTimeout(warm, 1200);
+    return () => window.clearTimeout(t);
   }, [images]);
 
   const { columns, sweep, unit, limit } =
@@ -205,7 +236,9 @@ export function TiltedGridHero({
     // Pausing rather than removing the motion keeps the band whole: every
     // tile is already placed by its negative delay, so it freezes as a
     // finished still.
-    `@media(prefers-reduced-motion:reduce){.${tile}{animation-play-state:paused}}`;
+    `@media(prefers-reduced-motion:reduce){.${tile}{animation-play-state:paused}}` +
+    // Freeze every tile while the band is scrolled off-screen (data-tgh-paused on the host).
+    `[data-tgh-paused] .${tile}{animation-play-state:paused}`;
 
   const share = aspectRatio / SLICES;
   const duration = columns * speed;
