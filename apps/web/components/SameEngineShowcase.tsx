@@ -1,11 +1,10 @@
-import type { ReactNode } from "react";
 import Image from "next/image";
 import { CauseIcon } from "@amanah/ui/cause-icon";
-import { cn } from "@amanah/ui/lib/utils";
 import type { CampaignType } from "@amanah/shared";
 import { fundingViewFromUsd } from "@/lib/funding";
 import { FundingProgress } from "@/components/FundingProgress";
 import { CauseTag } from "@/components/CauseTag";
+import { OverlayBadge } from "@/components/OverlayBadge";
 
 // Static, presentational "more causes on Amanah" showcase. The cards are non-interactive
 // (no donate link) and communicate the breadth of causes/disasters the same engine powers.
@@ -79,19 +78,6 @@ const DISASTERS: Example[] = [
     goalUsd: 60_000,
   },
 ];
-
-function OverlayBadge({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full bg-foreground/80 px-2.5 py-0.5 text-xs font-medium text-background backdrop-blur-sm",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
 
 function ExampleCard({ e }: { e: Example }) {
   return (

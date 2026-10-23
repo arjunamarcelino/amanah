@@ -1,13 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { cn } from "@amanah/ui/lib/utils";
-import type { ReactNode } from "react";
 import { CauseIcon } from "@amanah/ui/cause-icon";
 import type { CampaignResponse } from "@amanah/shared";
 import { coverImageFor, slugFor } from "@/lib/campaigns";
 import { fundingView } from "@/lib/funding";
 import { FundingProgress } from "@/components/FundingProgress";
 import { CauseTag } from "@/components/CauseTag";
+import { OverlayBadge } from "@/components/OverlayBadge";
 
 // All free-text fields (type/cause/name/country) render as escaped JSX text. `type`
 // drives styling only via the enum-keyed allowlist (causeBadgeClass, inside CauseTag) —
@@ -60,19 +59,5 @@ export function CampaignCard({ campaign }: { campaign: CampaignResponse }) {
         </div>
       </div>
     </Link>
-  );
-}
-
-/** Translucent pill for overlaying on a cover photo — readable over any image. */
-function OverlayBadge({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full bg-foreground/80 px-2.5 py-0.5 text-xs font-medium text-background backdrop-blur-sm",
-        className,
-      )}
-    >
-      {children}
-    </span>
   );
 }
