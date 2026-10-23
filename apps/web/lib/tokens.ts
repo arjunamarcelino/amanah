@@ -9,7 +9,7 @@ export type StablecoinKey = "mUSDC" | "mXSGD" | "mIDRX";
 export const STABLECOINS: { key: StablecoinKey; address: Address; label: string; icon: string }[] =
   [
     { key: "mUSDC", address: ADDRESSES[CHAIN_ID].mUSDC, label: "mUSDC", icon: "/tokens/usdc.svg" },
-    { key: "mXSGD", address: ADDRESSES[CHAIN_ID].mXSGD, label: "mXSGD", icon: "/tokens/xgsd_logo.webp" },
+    { key: "mXSGD", address: ADDRESSES[CHAIN_ID].mXSGD, label: "mXSGD", icon: "/tokens/xsgd_logo.webp" },
     { key: "mIDRX", address: ADDRESSES[CHAIN_ID].mIDRX, label: "mIDRX", icon: "/tokens/idrx-symbol.png" },
   ];
 
