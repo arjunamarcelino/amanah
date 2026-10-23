@@ -1,3 +1,4 @@
+import type { HTMLAttributes } from "react";
 import Image from "next/image";
 import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
@@ -58,12 +59,19 @@ const GRID: Campaign[] = [
   },
 ];
 
-function CampaignCard({ c, featured = false }: { c: Campaign; featured?: boolean }) {
+function CampaignCard({
+  c,
+  featured = false,
+  ...rest
+}: { c: Campaign; featured?: boolean } & HTMLAttributes<HTMLDivElement>) {
+  // The reveal (from <Stagger>) rides on this wrapper so it never fights the inner <a>'s own
+  // hover translate; the <a> is h-full so the grid still stretches cards evenly.
   return (
-    <a
-      href={siteConfig.appUrl}
-      className="group flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1"
-    >
+    <div {...rest} className="h-full">
+      <a
+        href={siteConfig.appUrl}
+        className="group flex h-full flex-col transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1"
+      >
       <div
         className={cn(
           "relative w-full overflow-hidden rounded-2xl bg-muted shadow-sm transition-shadow duration-300 group-hover:shadow-xl group-hover:shadow-foreground/10",
@@ -113,7 +121,8 @@ function CampaignCard({ c, featured = false }: { c: Campaign; featured?: boolean
           $<CountUp value={c.raised} /> raised
         </p>
       </div>
-    </a>
+      </a>
+    </div>
   );
 }
 
