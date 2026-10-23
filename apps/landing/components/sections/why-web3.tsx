@@ -1,6 +1,7 @@
 import { Reveal } from "@/components/reveal";
 import { Stagger } from "@/components/stagger";
 import { Eyebrow } from "@/components/eyebrow";
+import { SectionHeading } from "@/components/section-heading";
 import { cn } from "@amanah/ui/lib/utils";
 
 const points = [
@@ -40,12 +41,9 @@ export function WhyWeb3() {
         <Reveal>
           <Eyebrow>Why it needs Web3</Eyebrow>
 
-          <h2
-            id="why-web3-title"
-            className="mt-6 max-w-[22ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
-          >
+          <SectionHeading id="why-web3-title" className="mt-6 max-w-[22ch]">
             Transparency you can check yourself.
-          </h2>
+          </SectionHeading>
 
           <p className="mt-5 max-w-[38rem] text-lg leading-relaxed text-foreground-soft">
             Putting charity on-chain isn’t hype — it makes every dollar auditable by anyone, with

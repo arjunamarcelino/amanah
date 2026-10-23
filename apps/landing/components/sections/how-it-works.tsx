@@ -3,6 +3,7 @@ import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
 import { Stagger } from "@/components/stagger";
 import { Eyebrow } from "@/components/eyebrow";
+import { SectionHeading } from "@/components/section-heading";
 import { cn } from "@amanah/ui/lib/utils";
 
 type Step = {
@@ -29,12 +30,9 @@ export function HowItWorks() {
       <Reveal>
         <Eyebrow>How it works</Eyebrow>
 
-        <h2
-          id="how-it-works-title"
-          className="mt-6 text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
-        >
+        <SectionHeading id="how-it-works-title" className="mt-6">
           Where your money goes — and grows.
-        </h2>
+        </SectionHeading>
 
         <p className="mt-5 text-lg leading-relaxed text-foreground-soft">
           Follow every step on-chain. Between the moment you give and the moment it’s delivered,

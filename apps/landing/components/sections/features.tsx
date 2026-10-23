@@ -3,6 +3,7 @@ import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
 import { Stagger } from "@/components/stagger";
 import { Eyebrow } from "@/components/eyebrow";
+import { SectionHeading } from "@/components/section-heading";
 
 type Feature = {
   index: string;
@@ -33,12 +34,9 @@ export function Features() {
     <Section id="features" labelledBy="features-title" divider={false}>
       <Reveal>
         <Eyebrow>What you get</Eyebrow>
-        <h2
-          id="features-title"
-          className="mt-5 max-w-[20ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
-        >
+        <SectionHeading id="features-title" className="mt-5 max-w-[20ch]">
           How Amanah grows your gift.
-        </h2>
+        </SectionHeading>
       </Reveal>
 
       <Stagger step={90} className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
 import { Eyebrow } from "@/components/eyebrow";
+import { SectionHeading } from "@/components/section-heading";
 
 // Comparison table: Amanah vs. mainstream donation platforms, across the aspects where an
 // on-chain router wins — fees that trend to zero, near-instant payout, and a ledger anyone
@@ -54,12 +55,9 @@ export function Comparison() {
       <Reveal>
         <Eyebrow>How we compare</Eyebrow>
 
-        <h2
-          id="comparison-title"
-          className="mt-5 max-w-[20ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
-        >
+        <SectionHeading id="comparison-title" className="mt-5 max-w-[20ch]">
           More of every gift reaches the cause.
-        </h2>
+        </SectionHeading>
 
         <p className="mt-5 max-w-[46rem] text-lg leading-relaxed text-foreground-soft">
           Others skim 3–8%, make you wait days, and hide the ledger. Amanah routes on-chain — fees

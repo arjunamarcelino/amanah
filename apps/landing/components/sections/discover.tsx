@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
 import { Stagger } from "@/components/stagger";
+import { SectionHeading } from "@/components/section-heading";
 import { CountUp } from "@/components/count-up";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@amanah/ui/lib/utils";
@@ -130,12 +131,9 @@ export function Discover() {
   return (
     <Section id="discover" labelledBy="discover-title" divider={false}>
       <Reveal>
-        <h2
-          id="discover-title"
-          className="max-w-[22ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
-        >
+        <SectionHeading id="discover-title" className="max-w-[22ch]">
           Discover causes close to your heart.
-        </h2>
+        </SectionHeading>
       </Reveal>
 
       <Stagger step={110} className="mt-10 grid gap-6 lg:grid-cols-2">

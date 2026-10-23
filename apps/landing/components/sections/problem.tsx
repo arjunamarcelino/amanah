@@ -1,6 +1,7 @@
 import { Section } from "@/components/section";
 import { Stagger } from "@/components/stagger";
 import { Eyebrow } from "@/components/eyebrow";
+import { SectionHeading } from "@/components/section-heading";
 import { FeeBar } from "@/components/fee-bar";
 
 export function Problem() {
@@ -9,12 +10,9 @@ export function Problem() {
       <Stagger step={90}>
         <Eyebrow>The problem</Eyebrow>
 
-        <h2
-          id="problem-title"
-          className="mt-5 max-w-[20ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
-        >
+        <SectionHeading id="problem-title" className="mt-5 max-w-[20ch]">
           Too much good money disappears in the middle.
-        </h2>
+        </SectionHeading>
 
         <p className="mt-5 max-w-[38rem] text-lg leading-relaxed text-foreground-soft">
           Between your gift and the people who need it, too much vanishes — to{" "}
