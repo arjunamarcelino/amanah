@@ -38,7 +38,9 @@ export function OwnerGate({ children }: { children: ReactNode }) {
         <Button disabled={connecting || !connector} onClick={() => connector && connect({ connector })}>
           {connecting ? "Connecting…" : "Connect wallet"}
         </Button>
-        {connectError && <p className="mt-3 text-destructive">{connectError.message}</p>}
+        {connectError ? (
+          <p className="mt-3 text-sm text-destructive">{connectErrorMessage(connectError)}</p>
+        ) : null}
       </Gate>
     );
   }
@@ -67,6 +69,19 @@ export function OwnerGate({ children }: { children: ReactNode }) {
   }
 
   return <>{children}</>;
+}
+
+// Map wagmi connect errors to operator-friendly guidance. ProviderNotFoundError means no
+// injected wallet owns window.ethereum — almost always "no wallet extension installed".
+function connectErrorMessage(err: Error): string {
+  const text = `${err.name} ${err.message}`;
+  if (/ProviderNotFound|Provider not found/i.test(text)) {
+    return "No browser wallet detected. Install MetaMask (or another EVM wallet extension), then reload this page.";
+  }
+  if (/User rejected|rejected the request/i.test(text)) {
+    return "Connection request was rejected in your wallet.";
+  }
+  return err.message;
 }
 
 function Gate({ title, body, children }: { title: string; body: string; children?: ReactNode }) {
