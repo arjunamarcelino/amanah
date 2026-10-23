@@ -144,8 +144,9 @@ services:
         condition: service_healthy
 
   # On-demand demo seeder — not started by `up`: `docker compose run --rm seed`
-  # (wrapped by `pnpm seed:demo`). Runs the on-chain forge script (external RPC)
-  # and the offchain prisma seed + POST /campaigns over the internal network.
+  # (wrapped by `pnpm seed:demo`). Runs the on-chain forge script (external RPC) and the
+  # offchain prisma seed, which writes campaign metadata + rails straight to Postgres.
+  # No API coupling: it talks to Postgres directly, not via the api HTTP service.
   seed:
     profiles: ["seed"]
     build:
@@ -156,12 +157,11 @@ services:
       BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}
       DEPLOYER_PRIVATE_KEY: ${DEPLOYER_PRIVATE_KEY:?set DEPLOYER_PRIVATE_KEY in .env}
       DATABASE_URL: postgresql://amanah:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/amanah
-      API_URL: http://api:4000
     depends_on:
+      postgres:
+        condition: service_healthy
       migrate:
         condition: service_completed_successfully
-      api:
-        condition: service_healthy
     restart: "no"
 
   caddy:
