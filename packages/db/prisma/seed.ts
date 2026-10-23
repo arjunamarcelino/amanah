@@ -58,6 +58,16 @@ const railsPH = [
   { name: "InstaPay Bank Transfer", country: "PH", feeBps: 30, liquidity: "medium", etaMinutes: 15 },
 ];
 
+// Indonesia rails — the seeded MILESTONE campaigns (id-rural-school-supplies,
+// clinic-medicine-fund, masjid-waqf) are ID, so the agent/UI needs ID candidates.
+const railsID = [
+  { name: "GoPay", country: "ID", feeBps: 55, liquidity: "high", etaMinutes: 5 },
+  { name: "DANA", country: "ID", feeBps: 50, liquidity: "high", etaMinutes: 10 },
+  { name: "BI-FAST Bank Transfer", country: "ID", feeBps: 25, liquidity: "medium", etaMinutes: 15 },
+];
+
+const rails = [...railsPH, ...railsID];
+
 async function main() {
   for (const c of campaigns) {
     const campaignId = campaignIdFromSlug(c.slug);
@@ -100,7 +110,7 @@ async function main() {
     },
   });
 
-  for (const r of railsPH) {
+  for (const r of rails) {
     await prisma.rail.upsert({
       where: { name_country: { name: r.name, country: r.country } },
       update: { feeBps: r.feeBps, liquidity: r.liquidity, etaMinutes: r.etaMinutes, active: true },
