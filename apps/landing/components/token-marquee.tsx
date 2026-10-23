@@ -36,7 +36,7 @@ export function TokenMarquee() {
     "linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)";
   return (
     <div
-      aria-label="Supported stablecoins"
+      aria-label={`Supported stablecoins: ${TOKENS.map((t) => t.label).join(", ")}`}
       role="img"
       className="group relative overflow-hidden"
       style={{ maskImage: edgeFade, WebkitMaskImage: edgeFade }}
