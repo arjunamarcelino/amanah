@@ -51,14 +51,11 @@ const nextConfig = {
       {
         source: "/:path*",
         headers: [
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // HSTS / X-Frame-Options / X-Content-Type-Options / Referrer-Policy are set once
+          // at the edge by Caddy's (secure_headers) snippet (docker/Caddyfile) — kept out of
+          // here to avoid duplicate/conflicting headers on app.amanah.help. Permissions-Policy
+          // is app-specific and not in that snippet, so it stays.
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          {
-            key: "Strict-Transport-Security",
-            value: "max-age=63072000; includeSubDomains; preload",
-          },
           // Report-Only until a real Privy login + donate run confirms the policy
           // doesn't block the auth iframe/inline styles; then flip to enforcing.
           { key: "Content-Security-Policy-Report-Only", value: csp },
