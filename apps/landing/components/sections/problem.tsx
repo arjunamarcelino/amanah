@@ -5,7 +5,7 @@ import { FeeBar } from "@/components/fee-bar";
 
 export function Problem() {
   return (
-    <Section id="problem" labelledBy="problem-title">
+    <Section id="problem" labelledBy="problem-title" divider={false}>
       <Reveal>
         <Eyebrow>The problem</Eyebrow>
 
