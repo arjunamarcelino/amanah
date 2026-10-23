@@ -13,34 +13,41 @@ import { TxStatus } from "@/components/TxStatus";
 import { RequireWallet } from "@/components/RequireWallet";
 import { ChainGuard } from "@/components/ChainGuard";
 import { GasPrompt } from "@/components/GasPrompt";
+import { WalletProviders } from "@/lib/wallet-providers";
+import { WalletMenu } from "@/components/WalletMenu";
 
 // Wallet page — never statically prerendered (providers only exist at runtime).
 export const dynamic = "force-dynamic";
 
 export default function MintPage() {
+  // Wallet SDK mounts only here (and /donate), not app-wide — browse/ledger stay wallet-free.
   return (
-    <main className="mx-auto w-full max-w-md px-6 py-10 md:py-16">
-      {/* Back link lives in the navbar (like detail/donate), not inline. */}
-      <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2 text-center">
-            <h1 className="font-serif text-3xl tracking-tight text-foreground">
-              Mint test tokens
-            </h1>
-            <p className="text-sm text-foreground-soft">
-              Mint mock stablecoins to your wallet so you can try a donation on Base Sepolia.
-            </p>
-          </div>
-          <RequireWallet>
-            <ChainGuard>
-              <GasPrompt>
-                <MintForm />
-              </GasPrompt>
-            </ChainGuard>
-          </RequireWallet>
+    <WalletProviders>
+      <main className="mx-auto w-full max-w-md px-6 py-10 md:py-16">
+        <div className="mb-4 flex justify-end">
+          <WalletMenu />
         </div>
-      </div>
-    </main>
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2 text-center">
+              <h1 className="font-serif text-3xl tracking-tight text-foreground">
+                Mint test tokens
+              </h1>
+              <p className="text-sm text-foreground-soft">
+                Mint mock stablecoins to your wallet so you can try a donation on Base Sepolia.
+              </p>
+            </div>
+            <RequireWallet>
+              <ChainGuard>
+                <GasPrompt>
+                  <MintForm />
+                </GasPrompt>
+              </ChainGuard>
+            </RequireWallet>
+          </div>
+        </div>
+      </main>
+    </WalletProviders>
   );
 }
 

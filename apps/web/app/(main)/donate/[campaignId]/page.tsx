@@ -24,6 +24,8 @@ import { AmountField } from "@/components/AmountField";
 import { ConsentBox } from "@/components/ConsentBox";
 import { DonateProgressDialog } from "@/components/DonateProgressDialog";
 import { FundingProgress } from "@/components/FundingProgress";
+import { WalletProviders } from "@/lib/wallet-providers";
+import { WalletMenu } from "@/components/WalletMenu";
 import { RequireWallet } from "@/components/RequireWallet";
 import { ChainGuard } from "@/components/ChainGuard";
 import { GasPrompt } from "@/components/GasPrompt";
@@ -91,7 +93,12 @@ export default function DonatePage() {
     return <Blocked title="This campaign isn't open for donations yet" />;
   }
 
-  return <DonateExperience campaign={campaign} campaignId={validId} />;
+  // Wallet SDK mounts only here (and /mint), not app-wide — browse/ledger stay wallet-free.
+  return (
+    <WalletProviders>
+      <DonateExperience campaign={campaign} campaignId={validId} />
+    </WalletProviders>
+  );
 }
 
 function DonateExperience({
@@ -113,6 +120,9 @@ function DonateExperience({
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 md:py-10">
+      <div className="mb-4 flex justify-end">
+        <WalletMenu />
+      </div>
       <h1 className="font-serif text-2xl leading-tight tracking-tight text-foreground md:text-3xl">
         Donate to {name}
       </h1>

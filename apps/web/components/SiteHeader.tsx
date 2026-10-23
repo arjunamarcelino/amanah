@@ -4,9 +4,9 @@ import { type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Button } from "@amanah/ui/button";
 import { useSearch } from "@/lib/search";
-import { WalletMenu } from "@/components/WalletMenu";
-import { isFocusedRoute } from "@/lib/chrome";
+import { isFocusedRoute, isWalletRoute } from "@/lib/chrome";
 
 // Shared chrome for the donor app (mounted by the (main) layout). Mirrors the landing
 // header's language but stripped down to three slots: Search (left), brand (center), and the
@@ -37,9 +37,13 @@ export function SiteHeader() {
           />
         </Link>
 
-        {/* ── Right: wallet / sign in ───────────────────────────────────────── */}
+        {/* ── Right: Sign in (wallet routes show their own in-page account control) ── */}
         <div className="justify-self-end">
-          <WalletMenu />
+          {isWalletRoute(pathname) ? null : (
+            <Button asChild size="sm" className="rounded-full px-4 font-semibold">
+              <Link href="/login">Sign In</Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

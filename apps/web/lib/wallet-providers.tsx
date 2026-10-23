@@ -8,9 +8,11 @@ import { WagmiProvider } from "wagmi"; // stock wagmi (no longer @privy-io/wagmi
 import { wagmiConfig, evmNetworks } from "./wagmi";
 import { ENV } from "./env";
 
-// Mounted only by the (wallet) route group's layout — keeps the wallet SDK out of the
-// browse bundle. QueryClientProvider is already provided at the root, so the nesting at a
-// wallet route is QueryClient(root) -> Dynamic -> Wagmi -> DynamicWagmiConnector (innermost).
+// Mounted only by the routes that actually use the wallet — the /mint and /donate pages wrap
+// their own content in this, and the (auth) login layout mounts it — so the SDK stays out of
+// the browse/ledger bundles (the shared (main) layout does NOT mount it). QueryClientProvider
+// is provided at the root, so the nesting at a wallet route is QueryClient(root) -> Dynamic ->
+// Wagmi -> DynamicWagmiConnector (innermost).
 // EthereumWalletConnectors covers email/social + Dynamic embedded wallets AND external EVM
 // wallets (MetaMask / WalletConnect); which methods actually appear is a Dynamic Dashboard
 // toggle (incl. enabling Base Sepolia / testnets + "create embedded wallet on sign up").
