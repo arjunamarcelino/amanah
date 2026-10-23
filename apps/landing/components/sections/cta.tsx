@@ -1,5 +1,4 @@
-import { siteConfig } from "@/lib/site";
-import { Button } from "@amanah/ui/button";
+import { DonateButton } from "@/components/donate-button";
 import { Stagger } from "@/components/stagger";
 
 // Closing CTA band: a two-line headline (second line in pine italic), a short lead, and the
@@ -28,21 +27,7 @@ export function CallToAction() {
           </p>
 
           <div className="mt-9 flex justify-center">
-            <Button
-              asChild
-              size="lg"
-              className="group h-12 rounded-full px-9 text-base transition-transform duration-200 hover:-translate-y-0.5"
-            >
-              <a href={siteConfig.appUrl}>
-                Donate Now
-                <span
-                  aria-hidden="true"
-                  className="transition-transform duration-200 group-hover:translate-x-1"
-                >
-                  →
-                </span>
-              </a>
-            </Button>
+            <DonateButton />
           </div>
         </Stagger>
       </div>

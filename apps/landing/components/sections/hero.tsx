@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 import Image from "next/image";
-import { siteConfig } from "@/lib/site";
-import { Button } from "@amanah/ui/button";
+import { DonateButton } from "@/components/donate-button";
 import { TiltedGridHero } from "@/components/tilted-grid-hero";
 
 // Per-element start offsets for the on-load stagger (ms). The headline leads at 0 and, being
@@ -49,18 +48,7 @@ export function Hero() {
         </p>
 
         <div style={delay(240)} className="hero-rise mt-9 flex justify-center">
-          <Button
-            asChild
-            size="lg"
-            className="group h-12 rounded-full px-9 text-base transition-transform duration-200 hover:-translate-y-0.5"
-          >
-            <a href={siteConfig.appUrl}>
-              Donate Now
-              <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">
-                →
-              </span>
-            </a>
-          </Button>
+          <DonateButton />
         </div>
 
         <p
