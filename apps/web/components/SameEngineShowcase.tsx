@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
 import { Badge } from "@amanah/ui/badge";
 import { cn } from "@amanah/ui/lib/utils";
+import type { CampaignType } from "@amanah/shared";
 import { causeBadgeClass } from "@/lib/campaigns";
 
 // Static, presentational "more causes on Amanah" showcase. The cards are non-interactive
@@ -8,8 +9,7 @@ import { causeBadgeClass } from "@/lib/campaigns";
 // `type` drives styling only via the enum-keyed causeBadgeClass allowlist, never
 // interpolated into a className.
 type Example = {
-  type: string; // CampaignType for badge styling
-  label: string; // human cause label
+  type: CampaignType; // hardcoded literals — held to the enum so a typo won't compile
   title: string;
   blurb: string;
   release: "MILESTONE" | "PARAMETRIC";
@@ -19,7 +19,6 @@ type Example = {
 const CAUSES: Example[] = [
   {
     type: "education",
-    label: "education",
     title: "School supplies for rural students",
     blurb: "Tranches release as enrolment and attendance milestones are verified.",
     release: "MILESTONE",
@@ -27,7 +26,6 @@ const CAUSES: Example[] = [
   },
   {
     type: "medical",
-    label: "medical",
     title: "Essential medicine for a community clinic",
     blurb: "Funds unlock against delivery and dispensing milestones.",
     release: "MILESTONE",
@@ -35,7 +33,6 @@ const CAUSES: Example[] = [
   },
   {
     type: "waqf",
-    label: "waqf",
     title: "Masjid waqf endowment",
     blurb: "A perpetual endowment; idle principal earns halal yield for the cause.",
     release: "MILESTONE",
@@ -46,7 +43,6 @@ const CAUSES: Example[] = [
 const DISASTERS: Example[] = [
   {
     type: "disaster",
-    label: "disaster",
     title: "Mekong Delta flood response",
     blurb: "Parametric release auto-triggers when flood thresholds are breached.",
     release: "PARAMETRIC",
@@ -54,7 +50,6 @@ const DISASTERS: Example[] = [
   },
   {
     type: "disaster",
-    label: "disaster",
     title: "Cyclone relief, Ayeyarwady",
     blurb: "Humanitarian aid that releases on a verified cyclone trigger.",
     release: "PARAMETRIC",
@@ -68,7 +63,7 @@ function ExampleCard({ e }: { e: Example }) {
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <Badge className={cn("border-transparent capitalize", causeBadgeClass(e.type))}>
-            {e.label}
+            {e.type}
           </Badge>
         </div>
         <CardTitle className="text-lg">{e.title}</CardTitle>
