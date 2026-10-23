@@ -29,7 +29,7 @@ export function ReleaseConditionCard({
 
   if (releaseType === undefined) {
     return (
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="font-serif text-lg">Release condition</CardTitle>
         </CardHeader>
@@ -60,7 +60,7 @@ export function ReleaseConditionCard({
   }
 
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm">
       <CardHeader>
         <CardTitle className="font-serif text-lg">{title}</CardTitle>
       </CardHeader>

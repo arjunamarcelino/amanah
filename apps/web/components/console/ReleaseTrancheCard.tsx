@@ -40,7 +40,7 @@ export function ReleaseTrancheCard({
 
   if (!preset) {
     return (
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle className="font-serif text-lg">Release tranche</CardTitle>
         </CardHeader>
@@ -86,7 +86,7 @@ export function ReleaseTrancheCard({
   }
 
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm">
       <CardHeader>
         <CardTitle className="font-serif text-lg">Release tranche</CardTitle>
       </CardHeader>

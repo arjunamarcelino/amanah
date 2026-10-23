@@ -41,7 +41,7 @@ export function HalalToggle({
   }
 
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-serif text-lg">
           Treasury mode

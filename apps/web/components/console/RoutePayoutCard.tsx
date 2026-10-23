@@ -130,7 +130,7 @@ export function RoutePayoutCard({
   const routed = payout.status === "routed";
 
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm">
       <CardHeader>
         <CardTitle className="font-serif text-lg">Route payout</CardTitle>
       </CardHeader>

@@ -32,7 +32,7 @@ export function ActionCard({
   disabled?: boolean;
 }) {
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm">
       <CardHeader>
         <CardTitle className="font-serif text-lg">{title}</CardTitle>
       </CardHeader>

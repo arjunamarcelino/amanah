@@ -33,7 +33,7 @@ export function CampaignStatePanel({
   const fmt = (v: bigint | undefined) => (v === undefined ? "—" : `${formatTokenAmount(v)} USDC`);
 
   return (
-    <Card>
+    <Card className="rounded-2xl shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center justify-between font-serif text-lg">
           <span>{campaignName ?? "Campaign"}</span>
