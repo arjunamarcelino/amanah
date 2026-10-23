@@ -41,7 +41,7 @@ export const donateMenu: MegaMenu = {
     {
       label: "How Donations Work",
       description: "See exactly where your money goes",
-      href: "/#features",
+      href: "/#how-it-works",
     },
     {
       label: "Disaster Relief",
@@ -72,7 +72,7 @@ export const fundraiseMenu: MegaMenu = {
     {
       label: "How It Works",
       description: "From your gift to delivery",
-      href: "/#features",
+      href: "/#how-it-works",
     },
     {
       label: "Supported Causes",
@@ -104,7 +104,7 @@ export const aboutMenu: MegaMenu = {
   icon: "about",
   // The About panel mirrors GoFundMe's — single-line links, no descriptions.
   items: [
-    { label: "How Amanah Works", href: "/#features" },
+    { label: "How Amanah Works", href: "/#how-it-works" },
     { label: "Compliance & Halal", href: "/#compliance" },
     { label: "Why Web3", href: "/#why-web3" },
     { label: "On-Chain Ledger", href: `${app}/ledger`, external: true },

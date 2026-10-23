@@ -14,12 +14,15 @@ export function Section({
   id,
   labelledBy,
   className,
+  sectionClassName,
   divider = true,
   children,
 }: {
   id?: string;
   labelledBy?: string;
   className?: string;
+  /** Extra classes on the full-width <section> element (e.g. a distinct background). */
+  sectionClassName?: string;
   /** Bottom hairline between sections. Set false to drop the divider after this section. */
   divider?: boolean;
   children: ReactNode;
@@ -31,6 +34,7 @@ export function Section({
       className={cn(
         "py-[clamp(4.5rem,9vw,8rem)]",
         divider && "border-b border-border/70",
+        sectionClassName,
       )}
     >
       <div

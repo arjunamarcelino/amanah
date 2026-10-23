@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
 import { Eyebrow } from "@/components/eyebrow";
@@ -49,7 +50,7 @@ const rows: Row[] = [
 
 export function Comparison() {
   return (
-    <Section id="comparison" labelledBy="comparison-title">
+    <Section id="comparison" labelledBy="comparison-title" sectionClassName="bg-secondary">
       <Eyebrow>How we compare</Eyebrow>
 
       <h2
@@ -60,9 +61,8 @@ export function Comparison() {
       </h2>
 
       <p className="mt-5 max-w-[46rem] text-lg leading-relaxed text-foreground-soft">
-        Mainstream platforms still skim 3–8% and make you wait days — and ask you to trust a
-        ledger you can&apos;t see. Amanah routes on-chain, so fees trend toward zero, funds move
-        in minutes, and every transfer is public.
+        Others skim 3–8%, make you wait days, and hide the ledger. Amanah routes on-chain — fees
+        near zero, funds in minutes, every transfer public.
       </p>
 
       <Reveal>
@@ -74,15 +74,18 @@ export function Comparison() {
               speed, transparency, currencies, and Shariah-compliant handling.
             </caption>
             <thead>
-              <tr className="border-b border-border">
+              <tr className="bg-muted/70">
                 <th scope="col" className="w-[30%] px-5 py-4 font-medium text-muted-foreground">
                   <span className="sr-only">Comparison aspect</span>
                 </th>
-                <th
-                  scope="col"
-                  className="w-[28%] bg-primary px-5 py-4 text-center font-serif text-base font-medium text-primary-foreground"
-                >
-                  Amanah
+                <th scope="col" className="w-[28%] bg-primary px-5 py-4 text-center">
+                  <Image
+                    src="/amanah-logo.png"
+                    alt="Amanah"
+                    width={267}
+                    height={100}
+                    className="mx-auto block h-7 w-auto brightness-0 invert"
+                  />
                 </th>
                 {PLATFORMS.map((name) => (
                   <th
@@ -99,25 +102,23 @@ export function Comparison() {
               {rows.map((row, i) => (
                 <tr
                   key={row.aspect}
-                  className={i < rows.length - 1 ? "border-b border-border/70" : undefined}
+                  className={`group transition-colors hover:bg-muted/60 ${
+                    i % 2 === 1 ? "bg-muted/35" : ""
+                  }`}
                 >
-                  <th
-                    scope="row"
-                    className="px-5 py-4 align-top font-medium text-foreground"
-                  >
-                    {row.aspect}
+                  <th scope="row" className="px-5 py-4 align-top font-medium text-foreground">
+                    <span className="inline-block transition-transform duration-200 group-hover:translate-x-1">
+                      {row.aspect}
+                    </span>
                   </th>
-                  <td className="bg-accent/40 px-5 py-4 text-center align-top">
+                  <td className="bg-accent/40 px-5 py-4 text-center align-top transition-colors group-hover:bg-accent/70">
                     <span className="inline-flex items-start justify-center gap-1.5 font-medium text-primary">
                       {row.amanah.win ? <CheckIcon /> : null}
                       <span>{row.amanah.value}</span>
                     </span>
                   </td>
                   {row.others.map((cell, j) => (
-                    <td
-                      key={j}
-                      className="px-5 py-4 text-center align-top text-muted-foreground"
-                    >
+                    <td key={j} className="px-5 py-4 text-center align-top text-muted-foreground">
                       {cell.value}
                     </td>
                   ))}

@@ -10,19 +10,19 @@ export function Compliance() {
       </h2>
       <ul className="mt-6 max-w-[48rem] space-y-3 text-[0.8125rem] leading-relaxed text-muted-foreground">
         <li>
-          Donations are irrevocable charitable gifts — there are no refunds and no donor
-          withdrawal.
+          Every donation is an irrevocable charitable gift — no refunds, no withdrawals once you
+          give.
         </li>
         <li>
-          Amanah is not an investment, security, or collective investment scheme; donors receive no
-          financial return. Any yield funds the mission, not donors.
+          Amanah isn’t an investment, security, or fund, and donors earn no return — any yield
+          funds the cause, never you.
         </li>
         <li>
-          The protocol currently runs on the Base Sepolia testnet using test tokens — not real
-          money, for demonstration and early access.
+          It runs on the Base Sepolia testnet with test tokens during early access — not real
+          money.
         </li>
         <li>
-          Nothing here is financial, legal, tax, or religious advice. Halal-mode claims are
+          Nothing here is financial, legal, tax, or religious advice. Halal handling is
           best-effort; please verify independently.
         </li>
       </ul>
