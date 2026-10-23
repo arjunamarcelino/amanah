@@ -21,7 +21,7 @@ export function CampaignCard({ campaign }: { campaign: CampaignResponse }) {
           <div className="relative aspect-[16/9] w-full bg-muted">
             <Image
               src={cover}
-              alt={name ?? cause}
+              alt="" // decorative: the CardTitle already names the campaign
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="object-cover"

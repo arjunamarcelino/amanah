@@ -16,7 +16,7 @@ export function CampaignHero({ campaign }: { campaign: CampaignResponse }) {
           <div className="relative aspect-[21/9] w-full bg-muted">
             <Image
               src={cover}
-              alt={name ?? cause}
+              alt="" // decorative: the CardTitle already names the campaign
               fill
               priority
               sizes="(max-width: 1024px) 100vw, 1024px"

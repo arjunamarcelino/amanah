@@ -72,7 +72,7 @@ function ExampleCard({ e }: { e: Example }) {
         <div className="relative aspect-[16/9] w-full bg-muted">
           <Image
             src={e.image}
-            alt={e.title}
+            alt="" // decorative: the CardTitle already names the example
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover"
