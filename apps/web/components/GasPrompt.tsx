@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@amanah/ui/button";
 import { useDonorWallet } from "@/lib/hooks/useDonorWallet";
 
@@ -14,6 +14,8 @@ const FAUCET_URL = "https://www.alchemy.com/faucets/base-sepolia";
 export function GasPrompt({ children }: { children: ReactNode }) {
   const { state, refetchBalance } = useDonorWallet();
   const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(copyTimer.current), []);
 
   if (state.status === "active" && state.needsGas) {
     const address = state.address;
@@ -21,7 +23,8 @@ export function GasPrompt({ children }: { children: ReactNode }) {
       try {
         await navigator.clipboard.writeText(address);
         setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        clearTimeout(copyTimer.current);
+        copyTimer.current = setTimeout(() => setCopied(false), 1500);
       } catch {
         // Clipboard may be unavailable (insecure context / denied) — the address is
         // still shown in full for manual copy, so this is a no-op fallback.
@@ -46,6 +49,9 @@ export function GasPrompt({ children }: { children: ReactNode }) {
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>
+          <span role="status" aria-live="polite" className="sr-only">
+            {copied ? "Address copied to clipboard" : ""}
+          </span>
         </div>
 
         <div className="flex flex-wrap gap-2">
