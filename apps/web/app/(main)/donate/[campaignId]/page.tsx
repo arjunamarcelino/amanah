@@ -164,7 +164,9 @@ function SummaryCard({
   const cover = coverImageFor(campaign);
   const funding = fundingView(campaign.baseRaised, campaign.goalBase);
   const parsed = parseTokenAmount(input);
-  const amount = parsed.ok ? Number(input) : 0;
+  // Derive the display amount from the validated base-unit value (the exact amount sent
+  // on-chain), not a second Number(input) parse — so the summary provably matches the tx.
+  const amount = parsed.ok ? Number(formatTokenAmount(parsed.value)) : 0;
   // No "$": the stablecoin (shown alongside) IS the unit, so "10.00 mUSDC" not "$10.00 mUSDC".
   const amountLabel = amount.toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -315,7 +317,11 @@ function DonateForm({
       <ConsentBox checked={consent} onChange={setConsent} disabled={engine.pending} />
 
       <Button size="lg" className="w-full rounded-full font-semibold" onClick={onDonate} disabled={!canDonate}>
-        {engine.pending ? "Processing…" : parsed.ok ? `Donate ${Number(input).toLocaleString()} ${coin}` : `Donate ${coin}`}
+        {engine.pending
+          ? "Processing…"
+          : parsed.ok
+            ? `Donate ${Number(formatTokenAmount(parsed.value)).toLocaleString()} ${coin}`
+            : `Donate ${coin}`}
       </Button>
 
       <DonateProgressDialog
