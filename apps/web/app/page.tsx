@@ -14,6 +14,7 @@ import {
 import { CampaignCard } from "@/components/CampaignCard";
 import { CampaignHero } from "@/components/CampaignHero";
 import { CauseFilterChips } from "@/components/CauseFilterChips";
+import { SameEngineShowcase } from "@/components/SameEngineShowcase";
 
 export default function BrowsePage() {
   const [cause, setCause] = useState<CauseChip>("all");
@@ -64,6 +65,8 @@ export default function BrowsePage() {
           </>
         )
       ) : null}
+
+      <SameEngineShowcase />
     </main>
   );
 }
