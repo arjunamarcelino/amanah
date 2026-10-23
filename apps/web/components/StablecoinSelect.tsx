@@ -45,8 +45,8 @@ export function StablecoinSelect({
                   : "border-input bg-background text-foreground-soft hover:border-ring",
               )}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element -- mixed svg/png/webp
-                  token marks; next/image would need dangerouslyAllowSVG for the svg. */}
+              {/* Plain <img>: marks are mixed svg/png/webp; next/image would need
+                  dangerouslyAllowSVG for the svg. */}
               <img src={s.icon} alt="" width={20} height={20} className="size-5 rounded-full" />
               {s.label}
             </button>
