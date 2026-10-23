@@ -3,11 +3,10 @@ import { Badge } from "@amanah/ui/badge";
 import { cn } from "@amanah/ui/lib/utils";
 import { causeBadgeClass } from "@/lib/campaigns";
 
-// Static, presentational-only "same engine, any cause" showcase. These are illustrative
-// EXAMPLES — not live, donatable campaigns — so the cards are non-interactive and each
-// carries an explicit "Example" label (glass-box honesty: nothing here implies a real
-// on-chain campaign). `type` drives styling only via the enum-keyed causeBadgeClass
-// allowlist, never interpolated into a className.
+// Static, presentational "more causes on Amanah" showcase. The cards are non-interactive
+// (no donate link) and communicate the breadth of causes/disasters the same engine powers.
+// `type` drives styling only via the enum-keyed causeBadgeClass allowlist, never
+// interpolated into a className.
 type Example = {
   type: string; // CampaignType for badge styling
   label: string; // human cause label
@@ -71,9 +70,6 @@ function ExampleCard({ e }: { e: Example }) {
           <Badge className={cn("border-transparent capitalize", causeBadgeClass(e.type))}>
             {e.label}
           </Badge>
-          <Badge variant="outline" className="shrink-0 text-[10px] uppercase tracking-wide">
-            Example
-          </Badge>
         </div>
         <CardTitle className="text-lg">{e.title}</CardTitle>
       </CardHeader>
@@ -96,10 +92,10 @@ export function SameEngineShowcase() {
   return (
     <section className="flex flex-col gap-6 border-t border-border pt-8">
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl">Same engine, any cause</h2>
+        <h2 className="text-2xl">More causes on Amanah</h2>
         <p className="text-sm text-foreground-soft">
-          Parametric and milestone release, AI off-ramp routing, and idle-yield power every
-          cause — these are illustrative examples, not live campaigns.
+          The same release engine (parametric + milestone), AI off-ramp routing, and
+          idle-yield power every cause and disaster on the platform.
         </p>
       </div>
 
