@@ -12,24 +12,18 @@ type Feature = {
 const features: Feature[] = [
   {
     index: "01 —",
-    title: "Smart routing, near-zero fees",
-    body: "An automated router finds the cheapest on-chain path, shrinking the 3–8% typically lost to fees toward nothing.",
+    title: "Near-zero fees",
+    body: "An on-chain router takes the cheapest path, so almost your whole gift survives to grow — not 3–8% lost.",
   },
   {
     index: "02 —",
-    title: "Give in any stablecoin",
-    body: "Donate in the dollar-pegged coin you already hold; it settles 1:1 into the pool, with no manual swapping.",
+    title: "Any stablecoin",
+    body: "Give in any dollar-pegged coin you hold; it settles 1:1 into the pool, ready to grow.",
   },
   {
     index: "03 —",
-    title: "Zakat & waqf that sustain themselves",
-    body: (
-      <>
-        Idle funds can earn to extend every gift — and{" "}
-        <span aria-hidden="true">🌙</span> Halal mode adds opt-in, riba-free
-        handling for those who want it.
-      </>
-    ),
+    title: "Yield on idle funds",
+    body: "Idle funds earn in a halal, riba-free vault, so every gift keeps growing before it's delivered.",
   },
 ];
 
@@ -42,7 +36,7 @@ export function Features() {
         id="features-title"
         className="mt-5 max-w-[20ch] text-[clamp(1.9rem,1.2rem+2vw,2.75rem)] font-medium leading-[1.08] tracking-[-0.015em] text-balance"
       >
-        How Amanah protects your gift.
+        How Amanah grows your gift.
       </h2>
 
       <Reveal>
