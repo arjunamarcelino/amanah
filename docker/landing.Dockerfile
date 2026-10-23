@@ -43,16 +43,16 @@ COPY <<'CADDYFILE' /etc/caddy/Caddyfile
 
 	file_server
 
-	# Serve the static export's branded 404 page on unknown paths. The handle_errors
-	# block runs with the original error status set, so the served page keeps its 404
-	# (not a soft-404 / 200); non-404 errors fall back to a plain status response.
-	# NOTE: Caddy is not run in CI here — verify on first deploy that
-	# `curl -I https://amanah.help/does-not-exist` returns `HTTP/2 404`.
+	# Serve the static export's branded 404 page on unknown paths. `file_server { status 404 }`
+	# forces a real 404 on the served page (not a soft-404 / 200); non-404 errors fall back to
+	# a plain status response. Validated with `caddy validate` (caddy 2.9).
 	handle_errors {
 		@404 expression {err.status_code} == 404
 		handle @404 {
 			rewrite * /404.html
-			file_server
+			file_server {
+				status 404
+			}
 		}
 		handle {
 			respond "{err.status_code} {err.status_text}" {err.status_code}
