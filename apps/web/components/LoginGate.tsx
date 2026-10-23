@@ -8,7 +8,8 @@ import { assertNever } from "@/lib/assertNever";
 // Renders children only once a wallet is active; otherwise shows the right state for each of
 // Dynamic's lifecycle phases. The switch is exhaustive — adding a DonorWalletState status
 // without a handler is a compile error. The unauthenticated arm uses Dynamic's drop-in
-// <DynamicWidget/> (connect/login button + profile menu).
+// <DynamicWidget/> as the connect/login button (the account/logout menu lives in the
+// (wallet) layout's WalletBar, shown once a wallet is active).
 export function LoginGate({ children }: { children: ReactNode }) {
   const { state } = useDonorWallet();
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { useDynamicContext, useIsLoggedIn } from "@dynamic-labs/sdk-react-core";
 import { useAccount, useBalance } from "wagmi";
 import type { Address } from "viem";
@@ -22,11 +23,11 @@ export type DonorWalletState =
 
 export function useDonorWallet(): {
   state: DonorWalletState;
-  login: () => void;
   logout: () => Promise<void>;
   refetchBalance: () => void;
 } {
-  const { sdkHasLoaded, setShowAuthFlow, handleLogOut } = useDynamicContext();
+  // login is intentionally NOT exposed: the logged-out arm uses Dynamic's <DynamicWidget/>.
+  const { sdkHasLoaded, handleLogOut } = useDynamicContext();
   const isLoggedIn = useIsLoggedIn();
 
   // DynamicWagmiConnector bridges the active wallet (embedded OR external) into wagmi, so the
@@ -58,12 +59,11 @@ export function useDonorWallet(): {
     };
   }
 
-  return {
-    state,
-    login: () => setShowAuthFlow(true),
-    logout: () => handleLogOut(),
-    refetchBalance: () => {
-      void refetch();
-    },
-  };
+  // Stable identities (the hook advertises these as a public API that may land in deps).
+  const logout = useCallback(() => handleLogOut(), [handleLogOut]);
+  const refetchBalance = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  return { state, logout, refetchBalance };
 }
