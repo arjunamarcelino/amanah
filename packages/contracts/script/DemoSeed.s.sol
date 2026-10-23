@@ -7,39 +7,114 @@ import {MockStablecoin} from "../src/mocks/MockStablecoin.sol";
 import {CharityPool} from "../src/CharityPool.sol";
 import {ReleaseController} from "../src/release/ReleaseController.sol";
 import {IReleaseController} from "../src/release/IReleaseController.sol";
+import {IYieldAdapter} from "../src/yield/IYieldAdapter.sol";
 
-// OPTIONAL demo seeding (off the critical path). Registers ONE seeded campaign
-// on-chain and makes a real mUSDC donation on Base Sepolia so the indexer surfaces
-// a genuine `confirmed` ledger row (never fabricate confirmed data offchain). Uses
-// the SAME campaignId preimage as the offchain seed: keccak256(bytes("ph-typhoon-2025")).
+// OPTIONAL demo seeding (off the critical path). Idempotent: safe to re-run.
+// Registers BOTH demo campaigns on-chain, makes ONE real mUSDC donation to the
+// flagship PARAMETRIC campaign (so the indexer surfaces a genuine `confirmed`
+// ledger row — never fabricate confirmed data offchain), and deploys idle
+// principal into the yield adapter. Uses the SAME campaignId preimages as the
+// offchain seed: keccak256(bytes(slug)).
 //
-// Requires a funded owner key in an untracked .env:
-//   forge script script/DemoSeed.s.sol --rpc-url $BASE_SEPOLIA_RPC_URL \
-//     --private-key $DEPLOYER_PRIVATE_KEY --broadcast
+// Deliberately does NOT call fire(): the PARAMETRIC campaign is left ARMED
+// (registered but not triggered) for a live demo of the release path.
+//
+// Reads a funded owner key from an untracked .env (DEPLOYER_PRIVATE_KEY = owner of
+// all three contracts) — passed as an env var, never an argv flag:
+//   forge script script/DemoSeed.s.sol --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast
 contract DemoSeed is Script {
+    string internal constant FLAGSHIP_SLUG = "ph-typhoon-2025"; // PARAMETRIC (armed, not fired)
+    string internal constant MILESTONE_SLUG = "id-rural-school-supplies"; // MILESTONE (registered)
+
+    uint256 internal constant SEED_AMOUNT = 100e6; // 100 mUSDC (6 decimals)
+    // Preflight floor: ~10x headroom for ~6 cheap L2 txs (2x register, mint, approve,
+    // donate, investIdle).
+    uint256 internal constant MIN_ETH = 0.005 ether;
+    uint16 internal constant MAX_BPS = 10_000; // mirrors CharityPool.MAX_BPS
+
     function run() external {
         string memory json = vm.readFile("./deployments/84532.json");
         CharityPool pool = CharityPool(vm.parseJsonAddress(json, ".CharityPool"));
         ReleaseController rc = ReleaseController(vm.parseJsonAddress(json, ".ReleaseController"));
         MockStablecoin musdc = MockStablecoin(vm.parseJsonAddress(json, ".mUSDC"));
 
-        bytes32 campaignId = keccak256(bytes("ph-typhoon-2025"));
-        bytes32 consentHash = keccak256("demo-consent"); // opaque salted commitment (demo)
-        uint256 amount = 100e6; // 100 mUSDC (6 decimals)
+        uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        address deployer = vm.addr(pk); // == owner of pool/rc/mocks; broadcast msg.sender
 
-        vm.startBroadcast();
+        bytes32 flagshipId = keccak256(bytes(FLAGSHIP_SLUG));
+        bytes32 milestoneId = keccak256(bytes(MILESTONE_SLUG));
+        bytes32 consentHash = keccak256("demo-consent"); // opaque salted commitment (demo); non-zero
 
-        (bool registered,) = rc.campaignInfo(campaignId);
-        if (!registered) {
-            rc.registerCampaign(campaignId, IReleaseController.ReleaseType.PARAMETRIC);
+        // 1. PREFLIGHT: fail fast BEFORE any broadcast tx if the owner key is underfunded.
+        uint256 bal = deployer.balance;
+        console2.log("DemoSeed: deployer      ", deployer);
+        console2.log("DemoSeed: deployer ETH  ", bal);
+        console2.log("DemoSeed: required floor ", MIN_ETH);
+        require(bal >= MIN_ETH, "DemoSeed: deployer underfunded - top up DEPLOYER_PRIVATE_KEY on Base Sepolia");
+
+        // Read current on-chain state (view calls) for idempotency.
+        (bool flagshipRegistered,) = rc.campaignInfo(flagshipId);
+        (bool milestoneRegistered,) = rc.campaignInfo(milestoneId);
+        uint256 flagshipDonated = pool.donatedByCampaign(flagshipId);
+        bool needDonation = flagshipDonated < SEED_AMOUNT;
+
+        vm.startBroadcast(pk);
+
+        // 2. Register BOTH campaigns idempotently.
+        if (!flagshipRegistered) {
+            rc.registerCampaign(flagshipId, IReleaseController.ReleaseType.PARAMETRIC);
+            console2.log("DemoSeed: registered PARAMETRIC flagship (ph-typhoon-2025)");
+        } else {
+            console2.log("DemoSeed: flagship already registered - skip");
         }
 
-        musdc.mint(msg.sender, amount);
-        musdc.approve(address(pool), amount);
-        uint256 baseOut = pool.donate(campaignId, address(musdc), amount, consentHash);
+        if (!milestoneRegistered) {
+            rc.registerCampaign(milestoneId, IReleaseController.ReleaseType.MILESTONE);
+            console2.log("DemoSeed: registered MILESTONE (id-rural-school-supplies)");
+        } else {
+            console2.log("DemoSeed: milestone already registered - skip");
+        }
+
+        // 3. Idempotent mint + approve + donate to the flagship. Guard on the
+        // per-campaign cumulative tally (donatedByCampaign) — skip if already seeded.
+        if (needDonation) {
+            musdc.mint(deployer, SEED_AMOUNT);
+            musdc.approve(address(pool), SEED_AMOUNT);
+            uint256 baseOut = pool.donate(flagshipId, address(musdc), SEED_AMOUNT, consentHash);
+            console2.log("DemoSeed: donated mUSDC to flagship, baseOut =", baseOut);
+        } else {
+            console2.log("DemoSeed: flagship already funded, donatedByCampaign =", flagshipDonated);
+            console2.log("DemoSeed: donation skipped");
+        }
+
+        // 4. Idempotent investIdle() (extracted to keep run()'s stack shallow).
+        _investIdleIfSurplus(pool, musdc);
 
         vm.stopBroadcast();
 
-        console2.log("DemoSeed: donated 100 mUSDC, baseOut =", baseOut);
+        // 5. fire() intentionally NOT called: PARAMETRIC flagship left ARMED for the demo.
+        console2.log("DemoSeed: done. Flagship left ARMED (not fired).");
+    }
+
+    // Deploy idle base above the liquidity buffer into the active adapter — only if
+    // there is a surplus. Reconstructs the pool's own check so we never fire a pointless
+    // tx, and short-circuits if the active adapter is unset (avoids AdapterNotSet revert).
+    // Must be called within an active broadcast.
+    function _investIdleIfSurplus(CharityPool pool, MockStablecoin musdc) internal {
+        IYieldAdapter adapter = pool.halalMode() ? pool.halalAdapter() : pool.standardAdapter();
+        if (address(adapter) == address(0)) {
+            console2.log("DemoSeed: no active yield adapter set - investIdle skipped");
+            return;
+        }
+        uint256 idle = musdc.balanceOf(address(pool)); // pool's idle base
+        uint256 deployed = adapter.totalAssets(); // base currently in the adapter
+        uint256 target = (idle + deployed) * pool.minLiquidityBufferBps() / MAX_BPS;
+        if (idle > target) {
+            pool.investIdle();
+            console2.log("DemoSeed: investIdle deployed surplus base =", idle - target);
+        } else {
+            console2.log("DemoSeed: idle base at/below buffer - investIdle skipped (idle)", idle);
+            console2.log("DemoSeed: buffer target was", target);
+        }
     }
 }
