@@ -27,6 +27,11 @@ export function WalletProviders({ children }: { children: ReactNode }) {
       theme="light"
       settings={{
         environmentId: ENV.dynamicEnvironmentId,
+        // Full EVM connector set (injected/MetaMask + Coinbase + WalletConnect + embedded).
+        // NOTE: WalletConnect (~300-400kB) can't be dropped via config in Dynamic v5 — the
+        // package statically side-effect-imports @walletconnect/ethereum-provider with no
+        // `sideEffects:false`. Trimming it needs an unsupported webpack alias hack; we keep
+        // the supported full set deliberately (the weight is isolated to the (wallet) routes).
         walletConnectors: [EthereumWalletConnectors],
         overrides: { evmNetworks },
       }}
