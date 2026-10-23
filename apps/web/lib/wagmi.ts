@@ -1,4 +1,4 @@
-import { http, createConfig } from "wagmi"; // stock wagmi — Dynamic injects connectors via DynamicWagmiConnector
+import { http, createConfig, createStorage } from "wagmi"; // stock wagmi — Dynamic injects connectors via DynamicWagmiConnector
 import { baseSepolia } from "viem/chains";
 import type { EvmNetwork } from "@dynamic-labs/sdk-react-core";
 import { ENV } from "./env";
@@ -9,6 +9,13 @@ import { ENV } from "./env";
 export const wagmiConfig = createConfig({
   chains: [baseSepolia],
   multiInjectedProviderDiscovery: false,
+  // ssr + explicit storage mirror the console config, so SSR'd wallet routes don't emit
+  // hydration-mismatch warnings. Uses the default "wagmi" key the console deliberately avoids.
+  ssr: true,
+  storage: createStorage({
+    key: "wagmi",
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
+  }),
   transports: { [baseSepolia.id]: http(ENV.rpcUrl) },
 });
 
