@@ -31,9 +31,12 @@ export function fundingView(baseRaised: string, goalBase: string | null): Fundin
   const goal = goalBase ? safeBig(goalBase) : null;
   const raisedUsd = Number(raised / BASE_PER_USD);
   const goalUsd = goal !== null ? Number(goal / BASE_PER_USD) : null;
+  // Derive pct from the SAME floored-dollar figures the labels show, so the bar and the
+  // "$X raised of $Y" text never disagree (e.g. a ~100% bar labeled "$99 of $100"). Floored,
+  // so it never over-reports raised.
   const pct =
-    goal !== null && goal > 0n
-      ? Math.min(100, Math.max(0, Number((raised * 10_000n) / goal) / 100))
+    goalUsd !== null && goalUsd > 0
+      ? Math.min(100, Math.max(0, (raisedUsd / goalUsd) * 100))
       : null;
   return {
     raisedUsd,
