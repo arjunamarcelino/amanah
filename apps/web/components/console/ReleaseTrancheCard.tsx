@@ -10,12 +10,10 @@ import { useOwnerWrite } from "@/lib/console/useOwnerWrite";
 import { useConsoleSession } from "@/lib/console/session";
 import { presetForSlug } from "@/lib/console/presets";
 import { formatTokenAmount } from "@/lib/amount";
+import { shortAddress } from "@/lib/address";
 
 const POOL = ADDRESSES[CHAIN_ID].CharityPool;
 
-function short(addr: string): string {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
 
 // Releases a tranche to the preset beneficiary, then parses the TrancheReleased event and
 // lifts the ACTUAL (possibly cap-limited) {payoutId, beneficiary, usdcAmount} into the
@@ -96,7 +94,7 @@ export function ReleaseTrancheCard({
         <dl className="flex flex-col gap-1 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Beneficiary</dt>
-            <dd className="tabular-nums text-foreground">{short(preset.beneficiary)}</dd>
+            <dd className="tabular-nums text-foreground">{shortAddress(preset.beneficiary)}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Requested</dt>

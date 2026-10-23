@@ -7,6 +7,7 @@ import { Button } from "@amanah/ui/button";
 import { cn } from "@amanah/ui/lib/utils";
 import { useDonorWallet } from "@/lib/hooks/useDonorWallet";
 import { useCopied } from "@/lib/hooks/useCopied";
+import { shortAddress } from "@/lib/address";
 
 // Right slot of the SiteHeader: the single auth surface in the chrome. Connecting a wallet
 // happens ONLY on /login, so the logged-out arm is a link there — never an inline connect
@@ -59,7 +60,7 @@ function AccountMenu({
   const [open, setOpen] = useState(false);
   const { copied, copy } = useCopied();
   const ref = useRef<HTMLDivElement>(null);
-  const short = `${address.slice(0, 6)}…${address.slice(-4)}`;
+  const short = shortAddress(address);
 
   // Close on outside click + Escape.
   useEffect(() => {

@@ -16,6 +16,7 @@ import {
 } from "@/lib/campaigns";
 import { fundingView, usd, baseToUsd } from "@/lib/funding";
 import { useCopied } from "@/lib/hooks/useCopied";
+import { shortAddress } from "@/lib/address";
 import { storyFor } from "@/lib/story";
 import { FundingProgress } from "@/components/FundingProgress";
 import { CauseTag } from "@/components/CauseTag";
@@ -319,7 +320,7 @@ function Centered({ children }: { children: ReactNode }) {
 
 function shortDonor(d: LedgerEntry): string {
   const donor = typeof d.payload.donor === "string" ? d.payload.donor : "";
-  return donor ? `${donor.slice(0, 6)}…${donor.slice(-4)}` : "Anonymous";
+  return donor ? shortAddress(donor) : "Anonymous";
 }
 
 function donationUsd(d: LedgerEntry): string {
