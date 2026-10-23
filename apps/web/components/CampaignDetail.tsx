@@ -23,10 +23,18 @@ import { CampaignCard } from "@/components/CampaignCard";
 // GoFundMe-style fundraiser page. Cards link here (not straight to /donate); the sidebar's
 // "Donate now" button is the redirect into the donate flow. Layout: hero → [story | sticky
 // donate card] → trust section (the card unsticks here) → "More ways" (other campaigns).
-export function CampaignDetail({ param }: { param: string }) {
+export function CampaignDetail({
+  param,
+  initialCampaigns,
+}: {
+  param: string;
+  initialCampaigns?: CampaignResponse[];
+}) {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["campaigns"],
     queryFn: () => getCampaigns(),
+    // Server already fetched this for the <title>; seed the cache so we don't refetch on mount.
+    initialData: initialCampaigns,
   });
 
   const campaign = useMemo(
