@@ -1,7 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { cn } from "@amanah/ui/lib/utils";
 import { useInView } from "@/lib/use-in-view";
 
 // One-off chart shades for this figure only — intentionally outside the shadcn token
@@ -21,6 +23,38 @@ const SCALE = 110;
 const pct = (v: number) => `${((v / SCALE) * 100).toFixed(3)}%`;
 const RAISED_MARK = pct(100);
 
+type TipAlign = "center" | "left" | "right";
+
+// Hover tooltip. Lives in a transparent overlay above the bars (not inside the clipped track),
+// so it can spill above the bar. `align` keeps edge tooltips from overflowing the figure.
+function Tip({ title, children, align = "center" }: { title: string; children: ReactNode; align?: TipAlign }) {
+  const pos =
+    align === "left" ? "left-0" : align === "right" ? "right-0" : "left-1/2 -translate-x-1/2";
+  return (
+    <span
+      role="tooltip"
+      className={cn(
+        "pointer-events-none absolute bottom-full z-20 mb-2 w-max max-w-[15rem] rounded-lg bg-foreground px-3 py-2 text-left text-xs leading-snug text-background opacity-0 shadow-lg transition-opacity duration-150 group-hover/seg:opacity-100",
+        pos,
+      )}
+    >
+      <strong className="mb-0.5 block font-semibold text-background">{title}</strong>
+      <span className="text-background/80">{children}</span>
+    </span>
+  );
+}
+
+// A transparent hover zone sized to a bar segment; it only carries the tooltip.
+function Zone({ width, title, align, children }: { width: string; title: string; align?: TipAlign; children: ReactNode }) {
+  return (
+    <div className="group/seg relative h-full shrink-0" style={{ width }}>
+      <Tip title={title} align={align}>
+        {children}
+      </Tip>
+    </div>
+  );
+}
+
 // The "amount you gave" line, drawn across a bar's track.
 function RaisedMark() {
   return (
@@ -38,10 +72,13 @@ function RaisedMark() {
  *
  * Honest by construction: both bars share one 0–110% track where 100% is the amount raised
  * (the dashed marker). Traditional aid falls short of that line (3–8% lost); Amanah reaches it
- * at near-zero fees and a modest vault-yield segment carries it just past. Motion is additive
- * and compositor-only (transform / opacity); the FINAL filled state is the default, so with JS
+ * at near-zero fees and a modest vault-yield segment carries it just past. Each segment has a
+ * hover tooltip explaining what it is (base donation / fees / yield / the amount you gave).
+ *
+ * Motion is additive and compositor-only; the FINAL filled state is the default, so with JS
  * off, no IntersectionObserver, or prefers-reduced-motion the bars render full and correct. The
- * bars are decorative (aria-hidden); the labels, figures and captions are the text equivalent.
+ * animated bars are decorative (aria-hidden); the sr-only figcaption is the text equivalent and
+ * the tooltips are a hover-only visual enhancement.
  */
 export function FeeBar() {
   const { ref, inView } = useInView<HTMLElement>({ threshold: 0.3 });
@@ -68,32 +105,44 @@ export function FeeBar() {
               3–8% lost
             </span>
           </div>
-          <div
-            aria-hidden="true"
-            className="relative flex h-11 w-full overflow-hidden rounded-md bg-muted"
-          >
-            <div
-              className="h-full"
-              style={{
-                width: pct(95),
-                backgroundColor: TRADITIONAL_FILL,
-                transform: filled ? "scaleX(1)" : "scaleX(0)",
-                transformOrigin: "left",
-                transition: GROW,
-              }}
-            />
-            <div
-              className="h-full border-y border-r border-border"
-              style={{
-                width: pct(5),
-                backgroundColor: LOST_FILL,
-                backgroundImage: `repeating-linear-gradient(135deg, transparent, transparent 4px, ${LOST_HATCH} 4px, ${LOST_HATCH} 5px)`,
-                opacity: filled ? 1 : 0,
-                transition: "opacity 400ms ease 150ms",
-              }}
-            />
-            <RaisedMark />
+
+          <div className="relative h-11">
+            {/* visual bar (clipped + rounded) */}
+            <div aria-hidden="true" className="absolute inset-0 flex overflow-hidden rounded-md bg-muted">
+              <div
+                className="h-full"
+                style={{
+                  width: pct(95),
+                  backgroundColor: TRADITIONAL_FILL,
+                  transform: filled ? "scaleX(1)" : "scaleX(0)",
+                  transformOrigin: "left",
+                  transition: GROW,
+                }}
+              />
+              <div
+                className="h-full border-y border-r border-border"
+                style={{
+                  width: pct(5),
+                  backgroundColor: LOST_FILL,
+                  backgroundImage: `repeating-linear-gradient(135deg, transparent, transparent 4px, ${LOST_HATCH} 4px, ${LOST_HATCH} 5px)`,
+                  opacity: filled ? 1 : 0,
+                  transition: "opacity 400ms ease 150ms",
+                }}
+              />
+              <RaisedMark />
+            </div>
+            {/* hover zones (transparent, carry the tooltips) */}
+            <div className="relative flex h-full">
+              <Zone width={pct(95)} title="Reaches the cause">
+                About 92–97% of your donation actually arrives.
+              </Zone>
+              <Zone width={pct(5)} title="Lost to fees" align="right">
+                3–8% skimmed by platform, payment and last-mile costs before it arrives.
+              </Zone>
+              <MarkerZone />
+            </div>
           </div>
+
           <p className="mt-2 text-sm text-muted-foreground">falls short of what you gave</p>
         </div>
 
@@ -111,34 +160,47 @@ export function FeeBar() {
               ~0% lost · + yield
             </span>
           </div>
-          <div
-            aria-hidden="true"
-            className="relative flex h-11 w-full overflow-hidden rounded-md bg-muted"
-          >
-            <div
-              className="h-full bg-primary"
-              style={{
-                width: pct(100),
-                transform: filled ? "scaleX(1)" : "scaleX(0)",
-                transformOrigin: "left",
-                transition: GROW,
-                transitionDelay: "200ms",
-              }}
-            />
-            <div
-              className="h-full"
-              style={{
-                width: pct(8),
-                backgroundColor: YIELD_FILL,
-                backgroundImage: `repeating-linear-gradient(135deg, transparent, transparent 5px, ${YIELD_HATCH} 5px, ${YIELD_HATCH} 6px)`,
-                transform: filled ? "scaleX(1)" : "scaleX(0)",
-                transformOrigin: "left",
-                transition: GROW,
-                transitionDelay: "550ms",
-              }}
-            />
-            <RaisedMark />
+
+          <div className="relative h-11">
+            {/* visual bar (clipped + rounded) */}
+            <div aria-hidden="true" className="absolute inset-0 flex overflow-hidden rounded-md bg-muted">
+              <div
+                className="h-full bg-primary"
+                style={{
+                  width: pct(100),
+                  transform: filled ? "scaleX(1)" : "scaleX(0)",
+                  transformOrigin: "left",
+                  transition: GROW,
+                  transitionDelay: "200ms",
+                }}
+              />
+              <div
+                className="h-full"
+                style={{
+                  width: pct(8),
+                  backgroundColor: YIELD_FILL,
+                  backgroundImage: `repeating-linear-gradient(135deg, transparent, transparent 5px, ${YIELD_HATCH} 5px, ${YIELD_HATCH} 6px)`,
+                  transform: filled ? "scaleX(1)" : "scaleX(0)",
+                  transformOrigin: "left",
+                  transition: GROW,
+                  transitionDelay: "550ms",
+                }}
+              />
+              <RaisedMark />
+            </div>
+            {/* hover zones (transparent, carry the tooltips) */}
+            <div className="relative flex h-full">
+              <Zone width={pct(100)} title="Your donation">
+                Routed on-chain the cheapest way — near-zero fees, so ~100% reaches the cause.
+              </Zone>
+              <Zone width={pct(8)} title="Vault yield" align="right">
+                Idle funds earn in a halal, riba-free vault — adding a little on top of what you
+                gave.
+              </Zone>
+              <MarkerZone />
+            </div>
           </div>
+
           <p className="mt-2 text-sm text-muted-foreground">
             near-zero fees — plus vault yield on top
           </p>
@@ -152,5 +214,20 @@ export function FeeBar() {
         apply.
       </p>
     </figure>
+  );
+}
+
+// A narrow hover target centred on the dashed "amount you gave" line.
+function MarkerZone() {
+  return (
+    <div
+      className="group/seg absolute inset-y-0 w-4 -translate-x-1/2"
+      style={{ left: RAISED_MARK }}
+    >
+      <Tip title="Amount you gave" align="right">
+        100% of your donation. Traditional aid stops short of this line; Amanah passes it with
+        yield.
+      </Tip>
+    </div>
   );
 }
