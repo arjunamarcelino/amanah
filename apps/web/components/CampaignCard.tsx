@@ -5,21 +5,22 @@ import { Badge } from "@amanah/ui/badge";
 import { CauseIcon } from "@amanah/ui/cause-icon";
 import { cn } from "@amanah/ui/lib/utils";
 import type { CampaignResponse } from "@amanah/shared";
-import { causeBadgeClass } from "@/lib/campaigns";
+import { causeBadgeClass, coverImageFor } from "@/lib/campaigns";
 
 // All free-text fields (type/cause/name/country) render as escaped JSX text. `type`
 // drives styling only via the enum-keyed allowlist (causeBadgeClass) — never
 // interpolated into a className. The React key (set by the caller) is the campaignId.
 export function CampaignCard({ campaign }: { campaign: CampaignResponse }) {
-  const { campaignId, type, cause, name, country, releaseType, imageUrl } = campaign;
+  const { campaignId, type, cause, name, country, releaseType } = campaign;
+  const cover = coverImageFor(campaign);
   return (
     <Link href={`/donate/${campaignId}`} className="block focus:outline-none">
       <Card className="h-full overflow-hidden transition-colors hover:border-ring">
-        {imageUrl ? (
-          // 16:9 cover. Drop a same-origin image at the imageUrl path (apps/web/public).
+        {cover ? (
+          // 16:9 cover. Drop a same-origin image under apps/web/public/campaigns.
           <div className="relative aspect-[16/9] w-full bg-muted">
             <Image
-              src={imageUrl}
+              src={cover}
               alt={name ?? cause}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"

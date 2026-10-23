@@ -3,17 +3,19 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
 import { Badge } from "@amanah/ui/badge";
 import type { CampaignResponse } from "@amanah/shared";
+import { coverImageFor } from "@/lib/campaigns";
 
 export function CampaignHero({ campaign }: { campaign: CampaignResponse }) {
-  const { campaignId, cause, name, country, releaseType, imageUrl } = campaign;
+  const { campaignId, cause, name, country, releaseType } = campaign;
+  const cover = coverImageFor(campaign);
   return (
     <Link href={`/donate/${campaignId}`} className="block focus:outline-none">
       <Card className="overflow-hidden border-primary/30 transition-colors hover:border-primary/60">
-        {imageUrl ? (
+        {cover ? (
           // Wide 21:9 hero cover — a larger same-origin image reads best here.
           <div className="relative aspect-[21/9] w-full bg-muted">
             <Image
-              src={imageUrl}
+              src={cover}
               alt={name ?? cause}
               fill
               priority
