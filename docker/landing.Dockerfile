@@ -7,6 +7,8 @@ RUN corepack enable && corepack prepare pnpm@10.29.2 --activate
 WORKDIR /app
 
 FROM base AS prune
+# turbo pinned 2.11.9, installed globally (prune runs before workspace deps exist); this
+# version keeps the pnpm catalog in the pruned lockfile so --frozen-lockfile won't abort.
 RUN pnpm add -g turbo@2.11.9
 COPY . .
 RUN turbo prune @amanah/landing --docker
