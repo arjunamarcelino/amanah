@@ -27,13 +27,15 @@ const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://app.dynamic.xyz",
+  "img-src 'self' data: blob: https://app.dynamic.xyz https://*.dynamic-static-assets.com",
   "font-src 'self' data:",
   "object-src 'none'",
-  `connect-src 'self' https://app.dynamicauth.com https://*.dynamicauth.com wss://*.dynamicauth.com ${apiOrigin} ${rpcOrigin}`
+  // Dynamic (*.dynamicauth.com + static assets) plus the external-wallet connectors:
+  // Coinbase (cca-lite / chain-proxy / walletlink) and WalletConnect (relay + verify).
+  `connect-src 'self' https://*.dynamicauth.com wss://*.dynamicauth.com https://*.dynamic-static-assets.com https://cca-lite.coinbase.com https://chain-proxy.wallet.coinbase.com wss://www.walletlink.org https://*.walletconnect.com https://*.walletconnect.org wss://relay.walletconnect.com wss://*.relay.walletconnect.org ${apiOrigin} ${rpcOrigin}`
     .replace(/\s+/g, " ")
     .trim(),
-  "frame-src https://app.dynamicauth.com https://*.dynamicauth.com",
+  "frame-src https://app.dynamicauth.com https://verify.walletconnect.com https://verify.walletconnect.org https://keys.coinbase.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
