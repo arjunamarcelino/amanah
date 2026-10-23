@@ -1,21 +1,32 @@
 # syntax=docker/dockerfile:1
-# @amanah/landing — static Next.js export served by Caddy. Skeleton.
+# @amanah/landing — static Next.js export (output: 'export') served by Caddy.
 FROM node:22-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@10.29.2 --activate
 WORKDIR /app
 
-FROM base AS build
+FROM base AS prune
+RUN pnpm add -g turbo@2.11.9
 COPY . .
-RUN pnpm install --frozen-lockfile
-# next/font/local reads the committed .woff2 files, so this build needs no network.
-RUN pnpm --filter @amanah/landing... build
+RUN turbo prune @amanah/landing --docker
 
-FROM caddy:2-alpine AS run
-COPY --from=build /app/apps/landing/out /srv
-# Caddyfile-driven static server: branded 404, compression, and cache headers.
+FROM base AS installer
+COPY --from=prune /app/out/json/ .
+RUN pnpm install --frozen-lockfile
+
+FROM installer AS builder
+# NEXT_PUBLIC_APP_URL is build-time inlined (lib/site.ts throws if not http(s)).
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+COPY --from=prune /app/out/full/ .
+# next/font/local reads the committed .woff2 files, so this build needs no network.
+RUN pnpm turbo run build --filter=@amanah/landing
+
+# runner: caddy:2-alpine static server — branded 404, compression, cache headers.
 # (Security/response headers for the public edge live in docker/Caddyfile.)
+FROM caddy:2-alpine AS runner
+COPY --from=builder /app/apps/landing/out /srv
 COPY <<'CADDYFILE' /etc/caddy/Caddyfile
 :80 {
 	root * /srv
