@@ -21,6 +21,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/throttler": "^6.4.0",
+    "express": "^5.2.1",
     "helmet": "^8.0.0",
     "nestjs-zod": "^5.0.0",
     "reflect-metadata": "^0.2.2",
