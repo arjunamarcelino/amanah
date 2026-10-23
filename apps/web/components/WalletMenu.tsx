@@ -6,6 +6,7 @@ import { formatEther } from "viem";
 import { Button } from "@amanah/ui/button";
 import { cn } from "@amanah/ui/lib/utils";
 import { useDonorWallet } from "@/lib/hooks/useDonorWallet";
+import { useCopied } from "@/lib/hooks/useCopied";
 
 // Right slot of the SiteHeader: the single auth surface in the chrome. Connecting a wallet
 // happens ONLY on /login, so the logged-out arm is a link there — never an inline connect
@@ -56,19 +57,9 @@ function AccountMenu({
   onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopied();
   const ref = useRef<HTMLDivElement>(null);
   const short = `${address.slice(0, 6)}…${address.slice(-4)}`;
-
-  async function copyAddress() {
-    try {
-      await navigator.clipboard.writeText(address);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard can be unavailable (insecure context / denied permission) — no-op.
-    }
-  }
 
   // Close on outside click + Escape.
   useEffect(() => {
@@ -124,7 +115,7 @@ function AccountMenu({
             {/* The whole row is the copy control — click copies the full address. */}
             <button
               type="button"
-              onClick={copyAddress}
+              onClick={() => copy(address)}
               aria-label={copied ? "Address copied" : "Copy wallet address"}
               className="group/copy mt-1 flex w-full items-start gap-2 rounded-md text-left transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >

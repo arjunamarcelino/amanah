@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import {
   visibleCampaigns,
 } from "@/lib/campaigns";
 import { fundingView, usd, baseToUsd } from "@/lib/funding";
+import { useCopied } from "@/lib/hooks/useCopied";
 import { storyFor } from "@/lib/story";
 import { FundingProgress } from "@/components/FundingProgress";
 import { CauseTag } from "@/components/CauseTag";
@@ -170,18 +171,14 @@ function DonateCard({ campaign }: { campaign: CampaignResponse }) {
 }
 
 function ShareButton() {
-  const [copied, setCopied] = useState(false);
-  async function share() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard unavailable — no-op.
-    }
-  }
+  const { copied, copy } = useCopied();
   return (
-    <Button variant="outline" size="lg" className="w-full rounded-full font-semibold" onClick={share}>
+    <Button
+      variant="outline"
+      size="lg"
+      className="w-full rounded-full font-semibold"
+      onClick={() => copy(window.location.href)}
+    >
       {copied ? "Link copied" : "Share"}
     </Button>
   );
