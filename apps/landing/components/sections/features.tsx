@@ -29,7 +29,7 @@ const features: Feature[] = [
 
 export function Features() {
   return (
-    <Section id="features" labelledBy="features-title">
+    <Section id="features" labelledBy="features-title" divider={false}>
       <Eyebrow>What you get</Eyebrow>
 
       <h2
