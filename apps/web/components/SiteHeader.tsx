@@ -6,19 +6,24 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@amanah/ui/button";
 import { useSearch } from "@/lib/search";
-import { isFocusedRoute, isWalletRoute } from "@/lib/chrome";
+import { chromeFor } from "@/lib/chrome";
 
 // Shared chrome for the donor app (mounted by the (main) layout). Mirrors the landing
 // header's language but stripped down to three slots: Search (left), brand (center), and the
-// auth/wallet control (right). No mega-menus — this is the app, not the marketing site.
+// auth/wallet control (right). Route-specific behavior comes from chromeFor (lib/chrome).
 export function SiteHeader() {
   const pathname = usePathname();
+  const chrome = chromeFor(pathname);
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur">
       <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6 md:h-[4.5rem]">
-        {/* ── Left: contextual — a back link on detail/donate, search elsewhere ── */}
+        {/* ── Left: search or a contextual back link (per chromeFor) ────────────── */}
         <div className="min-w-0 justify-self-start">
-          <LeftSlot pathname={pathname} />
+          {chrome.left.kind === "search" ? (
+            <SearchBox />
+          ) : chrome.left.kind === "back" ? (
+            <BackLink href={chrome.left.href} label={chrome.left.label} />
+          ) : null}
         </div>
 
         {/* ── Center: brand ─────────────────────────────────────────────────── */}
@@ -39,7 +44,7 @@ export function SiteHeader() {
 
         {/* ── Right: Sign in (wallet routes show their own in-page account control) ── */}
         <div className="justify-self-end">
-          {isWalletRoute(pathname) ? null : (
+          {chrome.wallet ? null : (
             <Button asChild size="sm" className="rounded-full px-4 font-semibold">
               <Link href="/login">Sign In</Link>
             </Button>
@@ -48,27 +53,6 @@ export function SiteHeader() {
       </div>
     </header>
   );
-}
-
-// Left slot by route:
-//  - /donate/<id>  → "Fundraiser" back link to that campaign's detail page (/f/<id>)
-//  - /f/<slug>     → "Back to campaigns" link to Discover
-//  - focused (/mint) → nothing (search hidden)
-//  - everything else → the search box
-function LeftSlot({ pathname }: { pathname: string }) {
-  if (pathname.startsWith("/donate/")) {
-    const id = pathname.split("/")[2] ?? "";
-    return <BackLink href={`/f/${id}`} label="Fundraiser" />;
-  }
-  if (
-    pathname.startsWith("/f/") ||
-    pathname.startsWith("/mint") ||
-    pathname.startsWith("/ledger")
-  ) {
-    return <BackLink href="/" label="Back to campaigns" />;
-  }
-  if (isFocusedRoute(pathname)) return null;
-  return <SearchBox />;
 }
 
 function BackLink({ href, label }: { href: string; label: string }) {

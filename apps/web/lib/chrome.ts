@@ -1,18 +1,38 @@
-// Routes where the app chrome is minimized: the SiteHeader drops its search box and the
-// SiteFooter is hidden, keeping these task-focused flows (e.g. the token faucet) distraction-
-// free. Matched by exact path or as a path prefix (so nested segments count).
-const FOCUSED_PREFIXES = ["/mint", "/donate"];
+// Single source of truth for per-route chrome: what the header's left slot shows, whether the
+// footer renders, and whether the route mounts the wallet (so the header suppresses "Sign in"
+// and the page shows its own account control). SiteHeader and SiteFooter both derive from
+// `chromeFor` — route knowledge lives here, not scattered across components.
 
-export function isFocusedRoute(pathname: string | null | undefined): boolean {
-  if (!pathname) return false;
-  return FOCUSED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-}
+export type ChromeLeft =
+  | { kind: "search" }
+  | { kind: "back"; href: string; label: string }
+  | { kind: "none" };
 
-// Routes that mount the wallet SDK and render their own in-page account control, so the shared
-// header suppresses its "Sign in" link there (the page shows the connected wallet instead).
-const WALLET_PREFIXES = ["/mint", "/donate"];
+export type Chrome = {
+  left: ChromeLeft;
+  /** Render the shared footer? Hidden on focused flows (mint/donate). */
+  footer: boolean;
+  /** Wallet route: mounts WalletProviders in-page; header drops its "Sign in" link. */
+  wallet: boolean;
+};
 
-export function isWalletRoute(pathname: string | null | undefined): boolean {
-  if (!pathname) return false;
-  return WALLET_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+const BACK_TO_CAMPAIGNS: ChromeLeft = { kind: "back", href: "/", label: "Back to campaigns" };
+
+export function chromeFor(pathname: string | null | undefined): Chrome {
+  const p = pathname ?? "/";
+  // /donate/<id> → back to that campaign's detail; focused; wallet.
+  if (p === "/donate" || p.startsWith("/donate/")) {
+    const id = p.split("/")[2] ?? "";
+    return { left: { kind: "back", href: `/f/${id}`, label: "Fundraiser" }, footer: false, wallet: true };
+  }
+  // /mint → back to discover; focused; wallet.
+  if (p === "/mint" || p.startsWith("/mint/")) {
+    return { left: BACK_TO_CAMPAIGNS, footer: false, wallet: true };
+  }
+  // detail + ledger → back to discover; footer kept; no wallet.
+  if (p.startsWith("/f/") || p === "/ledger" || p.startsWith("/ledger/")) {
+    return { left: BACK_TO_CAMPAIGNS, footer: true, wallet: false };
+  }
+  // discover + anything else → search.
+  return { left: { kind: "search" }, footer: true, wallet: false };
 }

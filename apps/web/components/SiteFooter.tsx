@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isFocusedRoute } from "@/lib/chrome";
+import { chromeFor } from "@/lib/chrome";
 
 // App footer, mirroring the landing site's footer (wordmark + tagline + copyright) with a
 // small row of in-app links added. Rendered by the (main) layout, so it sits under every
@@ -16,7 +16,7 @@ const LINKS = [
 
 export function SiteFooter() {
   const pathname = usePathname();
-  if (isFocusedRoute(pathname)) return null;
+  if (!chromeFor(pathname).footer) return null;
   return (
     <footer className="border-t border-border/70 py-12">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 sm:px-6 md:flex-row md:items-start md:justify-between">
