@@ -11,7 +11,7 @@ const MAX_ROWS = 100; // cap the rendered feed so a long-open tab doesn't grow t
 
 function SourceDot({ label, ok }: { label: string; ok: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
       <span className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-primary" : "bg-destructive/70"}`} />
       {label} {ok ? "healthy" : "degraded"}
     </span>
@@ -41,14 +41,17 @@ export function LedgerFeed() {
   const loading = apiQuery.isLoading && chainQuery.isLoading;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-4">
-        <SourceDot label="Index (API)" ok={!apiQuery.isError} />
-        <SourceDot label="Chain (RPC)" ok={!chainQuery.isError} />
+    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+        <h2 className="font-serif text-xl tracking-tight text-foreground">Activity</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <SourceDot label="Index (API)" ok={!apiQuery.isError} />
+          <SourceDot label="Chain (RPC)" ok={!chainQuery.isError} />
+        </div>
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading the ledger…</p>
+        <p className="py-8 text-sm text-muted-foreground">Loading the ledger…</p>
       ) : rows.length === 0 ? (
         <div className="py-16 text-center">
           <p className="font-serif text-2xl text-foreground">Nothing to verify yet.</p>
@@ -58,12 +61,12 @@ export function LedgerFeed() {
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col">
+        <ul className="flex flex-col pt-4">
           {rows.map((entry) => (
             <LedgerRow key={ledgerKey(entry)} entry={entry} />
           ))}
         </ul>
       )}
-    </div>
+    </section>
   );
 }

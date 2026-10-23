@@ -56,7 +56,11 @@ function LeftSlot({ pathname }: { pathname: string }) {
     const id = pathname.split("/")[2] ?? "";
     return <BackLink href={`/f/${id}`} label="Fundraiser" />;
   }
-  if (pathname.startsWith("/f/")) {
+  if (
+    pathname.startsWith("/f/") ||
+    pathname.startsWith("/mint") ||
+    pathname.startsWith("/ledger")
+  ) {
     return <BackLink href="/" label="Back to campaigns" />;
   }
   if (isFocusedRoute(pathname)) return null;

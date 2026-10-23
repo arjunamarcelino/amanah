@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Button } from "@amanah/ui/button";
 import { parseTokenAmount, formatTokenAmount, AMOUNT_ERROR_MESSAGE } from "@/lib/amount";
 import { tokenByKey, type StablecoinKey } from "@/lib/tokens";
@@ -21,15 +20,8 @@ export const dynamic = "force-dynamic";
 export default function MintPage() {
   return (
     <main className="mx-auto w-full max-w-md px-6 py-10 md:py-16">
-      {/* Back link stays above the card. */}
-      <Link
-        href="/"
-        className="text-sm text-foreground-soft underline underline-offset-4 hover:no-underline"
-      >
-        ← Back to campaigns
-      </Link>
-
-      <div className="mt-4 rounded-2xl border border-border bg-card p-8 shadow-sm">
+      {/* Back link lives in the navbar (like detail/donate), not inline. */}
+      <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2 text-center">
             <h1 className="font-serif text-3xl tracking-tight text-foreground">
