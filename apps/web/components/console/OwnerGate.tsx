@@ -35,7 +35,11 @@ export function OwnerGate({ children }: { children: ReactNode }) {
         title="Connect the owner wallet"
         body="The operator console signs owner-only transactions. Connect the injected wallet (MetaMask) holding the protocol owner key."
       >
-        <Button disabled={connecting || !connector} onClick={() => connector && connect({ connector })}>
+        <Button
+          disabled={connecting || !connector}
+          onClick={() => connector && connect({ connector })}
+          className="rounded-full px-6 font-semibold"
+        >
           {connecting ? "Connecting…" : "Connect wallet"}
         </Button>
         {connectError ? (
@@ -86,10 +90,16 @@ function connectErrorMessage(err: Error): string {
 
 function Gate({ title, body, children }: { title: string; body: string; children?: ReactNode }) {
   return (
-    <div className="mx-auto mt-10 max-w-md rounded-lg border border-border bg-card p-6">
-      <h2 className="font-serif text-lg text-foreground">{title}</h2>
+    <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center px-6 py-12 text-center">
+      <span className="inline-flex size-14 items-center justify-center rounded-full bg-accent text-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="size-7">
+          <rect x="4" y="11" width="16" height="9" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </svg>
+      </span>
+      <h2 className="mt-4 font-serif text-2xl tracking-tight text-foreground">{title}</h2>
       <p className="mt-2 text-sm text-foreground-soft">{body}</p>
-      {children && <div className="mt-4">{children}</div>}
-    </div>
+      {children ? <div className="mt-5 flex flex-col items-center">{children}</div> : null}
+    </main>
   );
 }

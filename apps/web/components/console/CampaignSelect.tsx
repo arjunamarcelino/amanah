@@ -34,6 +34,7 @@ export function CampaignSelect() {
             key={slug}
             variant={selectedSlug === slug ? "default" : "outline"}
             onClick={() => setSelectedSlug(slug)}
+            className="rounded-full"
           >
             <span>{campaign?.name ?? slug}</span>
             {campaign && (
