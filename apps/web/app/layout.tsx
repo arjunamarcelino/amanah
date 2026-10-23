@@ -30,22 +30,30 @@ export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: "Amanah",
   description,
-  // app/icon.svg is picked up automatically; this also wires the SVG as the shortcut icon.
-  icons: { icon: "/icon.svg" },
+  // Favicon set lives in public/ (generated); Next renders these into <head>.
+  icons: {
+    icon: [
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/site.webmanifest",
+  appleWebApp: { title: "Amanah" },
   openGraph: {
     type: "website",
     url: "/",
     siteName: "Amanah",
     title: "Amanah",
     description,
-    // Drop a 1200×630 PNG at apps/web/public/og.png (see apps/landing/public/og.png).
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Amanah" }],
+    images: [{ url: "/amanah-og.png", width: 1730, height: 909, alt: "Amanah" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Amanah",
     description,
-    images: ["/og.png"],
+    images: ["/amanah-og.png"],
   },
 };
 
