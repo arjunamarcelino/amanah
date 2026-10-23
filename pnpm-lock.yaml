@@ -182,9 +182,6 @@ importers:
       '@amanah/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      framer-motion:
-        specifier: ^14.6.0
-        version: 14.6.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next:
         specifier: ^15.1.4
         version: 15.5.28(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
