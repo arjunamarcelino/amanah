@@ -1,5 +1,6 @@
 # Full-stack orchestration for the VPS. Testnet + mocks only.
 # Secrets come from the host environment / an untracked .env — never committed.
+# See docker-compose.example.env for the required variable names.
 
 services:
   postgres:
@@ -13,30 +14,64 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     # Bind to loopback only — not world-reachable on the VPS. Services reach it
-    # over the compose network; local psql still works via 127.0.0.1.
+    # over the compose network; drop this mapping unless host psql is needed.
     ports:
       - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amanah -d amanah"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # One-shot: applies pending migrations, then exits. api/indexer gate on its
+  # success so they never race an empty/not-ready schema on first boot. Reuses the
+  # api image (which carries pnpm + the prisma CLI + schema + migrations) with a
+  # command override — no second build.
+  migrate:
+    image: amanah-api:local
+    command: ["pnpm", "--filter", "@amanah/db", "exec", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://amanah:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/amanah
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   web:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
+      args:
+        # Inlined into the bundle + CSP at BUILD time; a change ⇒ rebuild (deploy.sh --build).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL in .env}
+        NEXT_PUBLIC_PRIVY_APP_ID: ${NEXT_PUBLIC_PRIVY_APP_ID:?set NEXT_PUBLIC_PRIVY_APP_ID in .env}
+        NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: ${NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?set NEXT_PUBLIC_APP_URL in .env}
     environment:
       NODE_ENV: production
+      # Server-only (NOT NEXT_PUBLIC): app/api/route uses these to reach the agent.
+      AGENT_URL: http://agent:5000
+      AGENT_SHARED_SECRET: ${AGENT_SHARED_SECRET:?set AGENT_SHARED_SECRET in .env}
     expose:
       - "3000"
     depends_on:
-      - api
-      - agent
+      api:
+        condition: service_healthy
+      agent:
+        condition: service_healthy
 
   landing:
     build:
       context: .
       dockerfile: docker/landing.Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?set NEXT_PUBLIC_APP_URL in .env}
     expose:
       - "80"
 
   api:
+    image: amanah-api:local
     build:
       context: .
       dockerfile: docker/api.Dockerfile
@@ -47,8 +82,19 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
     expose:
       - "4000"
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "node -e \"fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   indexer:
     build:
@@ -57,10 +103,15 @@ services:
     environment:
       DATABASE_URL: postgresql://amanah:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/amanah?connection_limit=3
       BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}
+      # Set low (e.g. 2) in the demo .env so seeded/live-fired events surface
+      # inside the 90-second demo window; keep 15 for a production-grade feed.
       INDEXER_CONFIRMATIONS: ${INDEXER_CONFIRMATIONS:-15}
     # Worker: no HTTP port.
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   agent:
     build:
@@ -70,14 +121,46 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       # Internal-only: reached by api/web over the compose network, never via Caddy.
       API_URL: http://api:4000
+      # MUST equal web's AGENT_SHARED_SECRET (same .env var) or /api/route 401s.
       AGENT_SHARED_SECRET: ${AGENT_SHARED_SECRET:?set AGENT_SHARED_SECRET in .env}
     expose:
       - "5000"
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "node -e \"require('net').connect(5000,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))\""
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+
+  # On-demand demo seeder — not started by `up`: `docker compose run --rm seed`
+  # (wrapped by `pnpm seed:demo`). Runs the on-chain forge script (external RPC)
+  # and the offchain prisma seed + POST /campaigns over the internal network.
+  seed:
+    profiles: ["seed"]
+    build:
+      context: .
+      dockerfile: docker/seed.Dockerfile
+    command: ["bash", "scripts/seed-demo.sh"]
+    environment:
+      BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}
+      DEPLOYER_PRIVATE_KEY: ${DEPLOYER_PRIVATE_KEY:?set DEPLOYER_PRIVATE_KEY in .env}
+      DATABASE_URL: postgresql://amanah:${POSTGRES_PASSWORD:?set a strong POSTGRES_PASSWORD in .env}@postgres:5432/amanah
+      API_URL: http://api:4000
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+    restart: "no"
 
   caddy:
     image: caddy:2-alpine
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
@@ -89,7 +172,6 @@ services:
       - web
       - landing
       - api
-      - agent
 
 volumes:
   pgdata:
