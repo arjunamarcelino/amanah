@@ -76,7 +76,8 @@ Contracts are already live on Base Sepolia (addresses below); only the services 
 ```bash
 # 1. DNS: point A records at the VPS — amanah.help, www., app., api.
 # 2. Open ports 80 and 443; nothing else may bind them.
-# 3. Privy dashboard: add https://app.amanah.help (+ https://amanah.help) to allowed origins.
+# 3. Dynamic dashboard: enable Base Sepolia (testnets) + embedded wallets, and add
+#    https://app.amanah.help (+ https://amanah.help) to allowed origins.
 # 4. On the VPS, clone the repo and set the stack env:
 git clone <repo> /srv/amanah && cd /srv/amanah
 cp docker-compose.example.env .env   # then edit .env with real values

@@ -17,20 +17,25 @@ const rpcOrigin = originOf(
   "https://sepolia.base.org",
 );
 
-// CSP shipped as Report-Only first (does not block) so a real Privy login + donate
+// CSP shipped as Report-Only first (does not block) so a real Dynamic login + donate
 // run can surface violations before we flip to enforcing. frame-ancestors 'none'
 // (+ X-Frame-Options) is the clickjacking defense for the approve/donate UI.
+// Dynamic's auth/embedded-wallet iframe + API live on *.dynamicauth.com; its network/
+// wallet icons come from app.dynamic.xyz. (Enforcing mode should add a nonce via
+// DynamicContextProvider's cspNonce instead of 'unsafe-inline' for styles.)
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
+  "img-src 'self' data: blob: https://app.dynamic.xyz https://*.dynamic-static-assets.com",
   "font-src 'self' data:",
   "object-src 'none'",
-  `connect-src 'self' https://auth.privy.io https://*.privy.io wss://*.privy.io ${apiOrigin} ${rpcOrigin}`
+  // Dynamic (*.dynamicauth.com + static assets) plus the external-wallet connectors:
+  // Coinbase (cca-lite / chain-proxy / walletlink) and WalletConnect (relay + verify).
+  `connect-src 'self' https://*.dynamicauth.com wss://*.dynamicauth.com https://*.dynamic-static-assets.com https://cca-lite.coinbase.com https://chain-proxy.wallet.coinbase.com wss://www.walletlink.org https://*.walletconnect.com https://*.walletconnect.org wss://relay.walletconnect.com wss://*.relay.walletconnect.org ${apiOrigin} ${rpcOrigin}`
     .replace(/\s+/g, " ")
     .trim(),
-  "frame-src https://auth.privy.io https://*.privy.io",
+  "frame-src https://app.dynamicauth.com https://verify.walletconnect.com https://verify.walletconnect.org https://keys.coinbase.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -56,7 +61,7 @@ const nextConfig = {
           // here to avoid duplicate/conflicting headers on app.amanah.help. Permissions-Policy
           // is app-specific and not in that snippet, so it stays.
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          // Report-Only until a real Privy login + donate run confirms the policy
+          // Report-Only until a real Dynamic login + donate run confirms the policy
           // doesn't block the auth iframe/inline styles; then flip to enforcing.
           { key: "Content-Security-Policy-Report-Only", value: csp },
         ],
@@ -64,15 +69,12 @@ const nextConfig = {
     ];
   },
   webpack: (config, { webpack }) => {
-    // Wallet SDKs pulled transitively by @privy-io/wagmi (Coinbase/Base connectors)
-    // statically import optional @x402/* payment modules we never exercise. Stub the
-    // whole scope to empty modules so webpack resolves them; also mark the classic
-    // optional node-only deps as externals.
-    // The operator console (app/(console)) adds a plain-wagmi injected() connector.
-    // injected() is a core wagmi connector that does NOT pull @x402/* or the Coinbase
-    // SDK, so the stubs remain safe — verified by the production `next build`. If a
-    // Coinbase/WalletConnect connector is ever added, revisit: the stubbed path would
-    // then resolve to an empty module and fail opaquely.
+    // Dynamic's EthereumWalletConnectors pull the WalletConnect/Coinbase/MetaMask wagmi
+    // connectors, whose SDKs statically import optional modules we never exercise in the
+    // browser bundle: @x402/* (Coinbase payment), @react-native-async-storage (MetaMask
+    // SDK). Stub the whole scopes to empty modules so webpack resolves them; also mark the
+    // classic optional node-only deps as externals. Dynamic also pulls pino/pino-pretty.
+    // If a build ever genuinely needs one of these, narrow the regex.
     config.plugins.push(
       new webpack.IgnorePlugin({
         resourceRegExp: /^@x402\/|^@react-native-async-storage\//,

@@ -5,11 +5,11 @@ import { ENV } from "../env";
 
 // Operator-console wallet config: PLAIN wagmi + injected() (MetaMask holding the owner
 // key). Deliberately imports viem's baseSepolia + wagmi directly and NEVER lib/wagmi.ts
-// (which pulls @privy-io/wagmi) — keeps the Privy SDK out of the console bundle.
+// (which pulls the Dynamic wallet SDK) — keeps that SDK out of the console bundle.
 //
 // - `injected({ target: "metaMask" })` + multiInjectedProviderDiscovery:false → one
 //   deterministic connector (no EIP-6963 duplicates).
-// - distinct storage `key` so it never clobbers the donor/Privy config's "wagmi" key.
+// - distinct storage `key` so it never clobbers the donor config's "wagmi" key.
 // - `batch: { multicall: true }` collapses the console's ~9 per-refresh reads into one
 //   eth_call (viem's baseSepolia carries Multicall3) — keeps the public RPC under its
 //   rate limit when the yield ticker polls.

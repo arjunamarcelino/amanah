@@ -30,7 +30,7 @@ See the [README honesty note](./README.md#real-vs-mocked-honesty-note). Short ve
 ## Pre-deploy checklist (operator)
 
 - DNS A records for `amanah.help`, `www.`, `app.`, `api.` → VPS; ports 80/443 open.
-- Privy dashboard lists `https://app.amanah.help`.
+- Dynamic dashboard: Base Sepolia + embedded wallets enabled; `https://app.amanah.help` in allowed origins.
 - VPS `.env`: `CORS_ORIGINS=https://app.amanah.help`; `AGENT_SHARED_SECRET` (`openssl rand -hex 32`, same for web + agent); funded `DEPLOYER_PRIVATE_KEY`; `ANTHROPIC_API_KEY` **with a console spend cap**; `POSTGRES_PASSWORD`; all `NEXT_PUBLIC_*`.
 
 ## Operating notes

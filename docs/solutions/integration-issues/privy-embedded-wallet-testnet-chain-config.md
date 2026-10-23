@@ -24,6 +24,11 @@ related:
 
 # Privy embedded wallet stuck on the wrong chain
 
+> **Superseded:** `apps/web` migrated from Privy to Dynamic.xyz. See
+> [`dynamic-xyz-wallet-migration-nextjs-app-router.md`](./dynamic-xyz-wallet-migration-nextjs-app-router.md).
+> Kept for historical reference — the dashboard-vs-code chain-config lesson below applies
+> identically to Dynamic (enable Base Sepolia / testnets in the Dynamic dashboard).
+
 The donor flow (`apps/web`, Privy embedded EOA on Base Sepolia) threw at transaction time:
 
 ```

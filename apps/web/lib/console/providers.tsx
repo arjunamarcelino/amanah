@@ -7,9 +7,9 @@ import { createConsoleConfig } from "./wagmi";
 import { ConsoleSessionProvider } from "./session";
 
 // Console-only provider tree: own wagmi config (injected owner wallet) + its own
-// QueryClient (clean connection-state isolation from the donor/Privy tree) + the
+// QueryClient (clean connection-state isolation from the donor (Dynamic) tree) + the
 // session seam. Config/client are created once via useState so a re-render never
-// drops the wallet connection. No Privy here by design.
+// drops the wallet connection. No Dynamic/wallet SDK here by design.
 export function ConsoleProviders({ children }: { children: ReactNode }) {
   const [config] = useState(createConsoleConfig);
   const [queryClient] = useState(
