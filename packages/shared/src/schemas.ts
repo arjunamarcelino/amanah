@@ -68,7 +68,16 @@ export const CampaignResponseSchema = z.object({
   active: z.boolean(),
   registeredOnChain: z.boolean(),
   createdAt: z.string(),
-  imageUrl: z.string().nullable().optional(),
+  // Same-origin relative path only (leading "/", not "//host", no scheme/whitespace):
+  // the value feeds next/image `src`, and next.config has no remotePatterns, so an
+  // absolute/remote URL would throw at render. Bounds the documented invariant.
+  // regex/max don't change the inferred type (still string), so _CampaignMirror holds.
+  imageUrl: z
+    .string()
+    .regex(/^\/(?!\/)\S*$/)
+    .max(512)
+    .nullable()
+    .optional(),
 });
 
 // ------------------------------- Rail ----------------------------------------
