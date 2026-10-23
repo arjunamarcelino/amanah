@@ -1,5 +1,6 @@
 import { http, createConfig } from "wagmi"; // stock wagmi — Dynamic injects connectors via DynamicWagmiConnector
 import { baseSepolia } from "viem/chains";
+import type { EvmNetwork } from "@dynamic-labs/sdk-react-core";
 import { ENV } from "./env";
 
 // Donor wagmi config. No `connectors` array: DynamicWagmiConnector bridges the active
@@ -21,9 +22,8 @@ export const evmNetworks = [
     chainId: baseSepolia.id,
     networkId: baseSepolia.id,
     name: "Base Sepolia",
-    vanityName: "Base Sepolia",
     iconUrls: ["https://app.dynamic.xyz/assets/networks/base.svg"],
     nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
     rpcUrls: [ENV.rpcUrl],
   },
-];
+] satisfies EvmNetwork[]; // excess-property + required-field check (networkId===chainId, decimals 18)
