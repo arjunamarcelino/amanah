@@ -29,6 +29,7 @@ const COVER_BY_ID: Record<string, string> = {
   [campaignIdFromSlug("ph-typhoon-2025")]: "/campaigns/relief.jpg",
   [campaignIdFromSlug("id-rural-school-supplies")]: "/campaigns/classroom.jpg",
   [campaignIdFromSlug("clinic-medicine-fund")]: "/campaigns/clinic.jpg",
+  [campaignIdFromSlug("masjid-waqf")]: "/campaigns/masjid-waqf.jpg",
 };
 
 /** Cover image for a campaign: its own `imageUrl` if present, else the demo map, else none. */
