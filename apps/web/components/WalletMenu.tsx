@@ -56,8 +56,19 @@ function AccountMenu({
   onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const short = `${address.slice(0, 6)}…${address.slice(-4)}`;
+
+  async function copyAddress() {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard can be unavailable (insecure context / denied permission) — no-op.
+    }
+  }
 
   // Close on outside click + Escape.
   useEffect(() => {
@@ -110,9 +121,29 @@ function AccountMenu({
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Connected wallet
             </p>
-            <p className="mt-1 break-all font-mono text-sm text-foreground" title={address}>
-              {address}
-            </p>
+            {/* The whole row is the copy control — click copies the full address. */}
+            <button
+              type="button"
+              onClick={copyAddress}
+              aria-label={copied ? "Address copied" : "Copy wallet address"}
+              className="group/copy mt-1 flex w-full items-start gap-2 rounded-md text-left transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <span className="break-all font-mono text-sm text-foreground group-hover/copy:text-primary" title={address}>
+                {address}
+              </span>
+              <span className="mt-0.5 shrink-0 text-foreground-soft group-hover/copy:text-primary">
+                {copied ? <CheckIcon /> : <CopyIcon />}
+              </span>
+            </button>
+            <span
+              role="status"
+              className={cn(
+                "mt-1 block text-xs text-primary transition-opacity",
+                copied ? "opacity-100" : "opacity-0",
+              )}
+            >
+              Copied to clipboard
+            </span>
           </div>
 
           <dl className="grid grid-cols-2 gap-y-2 px-4 py-3 text-sm">
@@ -170,6 +201,41 @@ function Chevron({ open }: { open: boolean }) {
       className={cn("size-3.5 text-foreground-soft transition-transform duration-200", open && "rotate-180")}
     >
       <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="size-4"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="size-4 text-primary"
+    >
+      <path d="M20 6 9 17l-5-5" />
     </svg>
   );
 }
