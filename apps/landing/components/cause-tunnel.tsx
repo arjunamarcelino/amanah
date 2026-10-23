@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Eyebrow } from "@/components/eyebrow";
 
@@ -281,7 +280,6 @@ export function CauseTunnel() {
               className="pointer-events-none absolute left-1/2 top-1/2 aspect-[4/5] w-[200px] select-none opacity-0 will-change-transform"
             >
               <div className="relative h-full w-full overflow-hidden rounded-2xl bg-muted shadow-2xl shadow-foreground/20 ring-1 ring-foreground/10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={card.item.src}
                   alt=""

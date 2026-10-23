@@ -321,7 +321,6 @@ export function TiltedGridHero({
                   }}
                 >
                   {img ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={img.src}
                       alt={k === 0 ? (img.alt ?? "") : ""}
