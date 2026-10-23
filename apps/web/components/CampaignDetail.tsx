@@ -180,7 +180,10 @@ function ShareButton() {
 }
 
 function DonationsList({ campaignId }: { campaignId: string }) {
-  const { data } = useQuery({ queryKey: ["ledger"], queryFn: () => getLedger() });
+  // Reuse the shared ledger-index query (same key + limit as LedgerFeed/LedgerStats) so this
+  // list hits one cache entry instead of a divergent ["ledger"] fetch — and so an
+  // invalidate(["ledger","api"]) can't be partially clobbered by a bare ["ledger"] prefix.
+  const { data } = useQuery({ queryKey: ["ledger", "api"], queryFn: () => getLedger(100) });
 
   const donations = useMemo(
     () =>
