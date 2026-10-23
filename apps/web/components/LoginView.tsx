@@ -78,10 +78,11 @@ function LoginBody() {
   const router = useRouter();
   const params = useSearchParams();
 
-  // Already connected → leave immediately. Only internal paths are honored as `next` (an
-  // absolute or protocol-relative value could redirect off-site), otherwise fall back to "/".
-  const nextParam = params.get("next");
-  const next = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/";
+  // Already connected → leave immediately. `next` must resolve to THIS origin, else fall back
+  // to "/": a string-prefix check ("/"-but-not-"//") is bypassable via backslash ("/\evil.com"
+  // normalizes to a foreign origin), so validate the resolved origin instead — this page's job
+  // is connecting a funds-moving wallet, so an open redirect here is a phishing primitive.
+  const next = safeNext(params.get("next"));
 
   useEffect(() => {
     if (state.status === "active") router.replace(next);
@@ -98,6 +99,17 @@ function LoginBody() {
       return <Hint>You&apos;re signed in — redirecting…</Hint>;
     default:
       return assertNever(state);
+  }
+}
+
+// Resolve a `?next=` param against this origin; return a same-origin path or "/".
+function safeNext(raw: string | null): string {
+  if (!raw) return "/";
+  try {
+    const u = new URL(raw, window.location.origin);
+    return u.origin === window.location.origin ? u.pathname + u.search + u.hash : "/";
+  } catch {
+    return "/";
   }
 }
 
