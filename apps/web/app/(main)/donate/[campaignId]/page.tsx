@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -237,6 +237,8 @@ function DonateForm({
   const [consent, setConsent] = useState(false);
   const [ledgerPending, setLedgerPending] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  // Stable so the dialog's keydown effect doesn't re-subscribe on every render.
+  const closeDialog = useCallback(() => setDialogOpen(false), []);
 
   const token = tokenByKey(coin);
   const { balance, allowance, refetch } = useErc20(token, owner);
@@ -326,7 +328,7 @@ function DonateForm({
 
       <DonateProgressDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={closeDialog}
         phase={engine.phase}
         stage={engine.stage}
         error={engine.error}
