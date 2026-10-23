@@ -6,18 +6,21 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSearch } from "@/lib/search";
 import { WalletMenu } from "@/components/WalletMenu";
+import { isFocusedRoute } from "@/lib/chrome";
 
 // Shared chrome for the donor app (mounted by the (main) layout). Mirrors the landing
 // header's language but stripped down to three slots: Search (left), brand (center), and the
 // auth/wallet control (right). No mega-menus — this is the app, not the marketing site.
 export function SiteHeader() {
+  const pathname = usePathname();
+  // Focused flows (e.g. the faucet) drop the search box; the empty 1fr column keeps the
+  // centered brand lockup in place.
+  const showSearch = !isFocusedRoute(pathname);
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur">
       <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6 md:h-[4.5rem]">
-        {/* ── Left: search ──────────────────────────────────────────────────── */}
-        <div className="justify-self-start">
-          <SearchBox />
-        </div>
+        {/* ── Left: search (hidden on focused routes) ───────────────────────── */}
+        <div className="justify-self-start">{showSearch ? <SearchBox /> : null}</div>
 
         {/* ── Center: brand ─────────────────────────────────────────────────── */}
         <Link

@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@amanah/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
 import { parseTokenAmount, formatTokenAmount, AMOUNT_ERROR_MESSAGE } from "@/lib/amount";
 import { tokenByKey, type StablecoinKey } from "@/lib/tokens";
 import { useDonorWallet } from "@/lib/hooks/useDonorWallet";
@@ -21,23 +20,34 @@ export const dynamic = "force-dynamic";
 
 export default function MintPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 p-6 md:p-10">
-      <div>
-        <Link href="/" className="text-sm text-foreground-soft underline underline-offset-4">
-          ← Back to campaigns
-        </Link>
-        <h1 className="mt-3 text-3xl">Mint test tokens</h1>
-        <p className="text-sm text-foreground-soft">
-          Mint mock stablecoins to your wallet so you can try a donation on Base Sepolia.
-        </p>
+    <main className="mx-auto w-full max-w-md px-6 py-10 md:py-16">
+      {/* Back link stays above the card. */}
+      <Link
+        href="/"
+        className="text-sm text-foreground-soft underline underline-offset-4 hover:no-underline"
+      >
+        ← Back to campaigns
+      </Link>
+
+      <div className="mt-4 rounded-2xl border border-border bg-card p-8 shadow-sm">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2 text-center">
+            <h1 className="font-serif text-3xl tracking-tight text-foreground">
+              Mint test tokens
+            </h1>
+            <p className="text-sm text-foreground-soft">
+              Mint mock stablecoins to your wallet so you can try a donation on Base Sepolia.
+            </p>
+          </div>
+          <RequireWallet>
+            <ChainGuard>
+              <GasPrompt>
+                <MintForm />
+              </GasPrompt>
+            </ChainGuard>
+          </RequireWallet>
+        </div>
       </div>
-      <RequireWallet>
-        <ChainGuard>
-          <GasPrompt>
-            <MintForm />
-          </GasPrompt>
-        </ChainGuard>
-      </RequireWallet>
     </main>
   );
 }
@@ -63,35 +73,27 @@ function MintForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Faucet</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <StablecoinSelect value={coin} onChange={setCoin} disabled={pending} />
-        <AmountField
-          label="Amount to mint"
-          value={input}
-          onChange={setInput}
-          error={amountError}
-          disabled={pending}
-        />
-        {balance !== undefined ? (
-          <p className="text-xs text-foreground-soft">
-            Balance: {formatTokenAmount(balance)} {coin}
-          </p>
-        ) : null}
-        <Button onClick={onMint} disabled={pending || !parsed.ok}>
-          {pending ? "Minting…" : `Mint ${coin}`}
-        </Button>
-        {phase === "success" ? (
-          <p className="text-sm text-primary">Minted. Your balance is updated.</p>
-        ) : null}
-        <TxStatus phase={phase} error={error} txHash={txHash} pendingLabel="Minting tokens…" />
-        <Link href="/" className="text-sm text-primary underline underline-offset-4">
-          Browse campaigns to donate →
-        </Link>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-4">
+      <StablecoinSelect value={coin} onChange={setCoin} disabled={pending} />
+      <AmountField
+        label="Amount to mint"
+        value={input}
+        onChange={setInput}
+        error={amountError}
+        disabled={pending}
+      />
+      {balance !== undefined ? (
+        <p className="text-xs text-foreground-soft">
+          Balance: {formatTokenAmount(balance)} {coin}
+        </p>
+      ) : null}
+      <Button onClick={onMint} disabled={pending || !parsed.ok}>
+        {pending ? "Minting…" : `Mint ${coin}`}
+      </Button>
+      {phase === "success" ? (
+        <p className="text-sm text-primary">Minted. Your balance is updated.</p>
+      ) : null}
+      <TxStatus phase={phase} error={error} txHash={txHash} pendingLabel="Minting tokens…" />
+    </div>
   );
 }
