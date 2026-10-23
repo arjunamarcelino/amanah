@@ -26,6 +26,7 @@ const CAUSES: Example[] = [
     blurb: "Tranches release as enrolment and attendance milestones are verified.",
     release: "MILESTONE",
     region: "Indonesia",
+    image: "/showcase/school-supplies.jpg",
   },
   {
     type: "medical",
@@ -33,6 +34,7 @@ const CAUSES: Example[] = [
     blurb: "Funds unlock against delivery and dispensing milestones.",
     release: "MILESTONE",
     region: "Indonesia",
+    image: "/showcase/clinic-medicine.jpg",
   },
   {
     type: "waqf",
@@ -40,6 +42,7 @@ const CAUSES: Example[] = [
     blurb: "A perpetual endowment; idle principal earns halal yield for the cause.",
     release: "MILESTONE",
     region: "Indonesia",
+    image: "/showcase/masjid-waqf.jpg",
   },
 ];
 
@@ -50,6 +53,7 @@ const DISASTERS: Example[] = [
     blurb: "Parametric release auto-triggers when flood thresholds are breached.",
     release: "PARAMETRIC",
     region: "Vietnam",
+    image: "/showcase/mekong-flood.jpg",
   },
   {
     type: "disaster",
@@ -57,6 +61,7 @@ const DISASTERS: Example[] = [
     blurb: "Humanitarian aid that releases on a verified cyclone trigger.",
     release: "PARAMETRIC",
     region: "Myanmar",
+    image: "/showcase/cyclone-ayeyarwady.jpg",
   },
 ];
 
