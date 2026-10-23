@@ -109,43 +109,37 @@ export type TiltedGridHeroProps = {
   speed?: number;
   /** Tile height, as a percentage of the hero's height. @default 26 */
   tileHeight?: number;
-  /** Tile width divided by tile height. @default 16 / 9 */
-  aspectRatio?: number;
-  /** Space between tiles, as a percentage of a tile's height. @default 6 */
-  gap?: number;
-  /** Vertical centre of the row, as a percentage of the hero's height. @default 56 */
-  axis?: number;
-  /**
-   * How far the row has bent round by the frame's edge, in degrees. Higher
-   * curls the ends harder toward the viewer. Clamped to 5–85.
-   * @default 80
-   */
-  curve?: number;
-  /** Width of the fade at each end, as a percentage of the hero's width. @default 12 */
-  fade?: number;
   /** Content rendered above the band. */
   children?: React.ReactNode;
   className?: string;
 };
 
+// Fixed tuning for the one place this is used. (These were props; inlined until a second
+// caller needs to vary them.) aspectRatio = tile w/h, gap = % of tile height between tiles,
+// axis = vertical centre %, curve = edge bend in degrees, fade = end-fade width %.
+const ASPECT_RATIO = 16 / 9;
+const GAP = 6;
+const AXIS = 56;
+const CURVE = 80;
+const FADE = 12;
+
 export function TiltedGridHero({
   images,
   speed = 4,
   tileHeight = 26,
-  aspectRatio = 16 / 9,
-  gap = 6,
-  axis = 56,
-  curve = 80,
-  fade = 12,
   children,
   className,
   ...props
 }: React.ComponentProps<"div"> & TiltedGridHeroProps) {
+  const aspectRatio = ASPECT_RATIO;
+  const gap = GAP;
+  const axis = AXIS;
+  const fade = FADE;
   const ref = React.useRef<HTMLDivElement>(null);
   const id = React.useId().replace(/[^a-zA-Z0-9]/g, "");
   const orbit = `tgh-o-${id}`;
   const tile = `tgh-t-${id}`;
-  const bend = (Math.min(85, Math.max(5, curve)) * Math.PI) / 180;
+  const bend = (Math.min(85, Math.max(5, CURVE)) * Math.PI) / 180;
 
   // Null until the observer has measured the hero. The band stays hidden
   // until then, so a first paint laid out for the wrong size never shows.
