@@ -55,20 +55,29 @@ function LoginBody() {
 
   switch (state.status) {
     case "initializing":
-      return <p className="text-sm text-foreground-soft">Loading wallet…</p>;
+      return (
+        <p role="status" className="text-sm text-foreground-soft">
+          Loading wallet…
+        </p>
+      );
     case "unauthenticated":
       return <DynamicWidget />;
     case "provisioning":
-      return <p className="text-sm text-foreground-soft">Finishing wallet setup…</p>;
+      return (
+        <p role="status" className="text-sm text-foreground-soft">
+          Finishing wallet setup…
+        </p>
+      );
     case "active": {
       const { address } = state;
       const short = `${address.slice(0, 6)}…${address.slice(-4)}`;
       return (
         <div className="flex w-full flex-col items-center gap-4">
-          <div className="flex flex-col items-center gap-1 text-center">
+          <div role="status" className="flex flex-col items-center gap-1 text-center">
             <p className="text-sm font-medium text-foreground">You&apos;re signed in</p>
             <p className="font-mono text-sm text-foreground-soft" title={address}>
-              {short}
+              <span aria-hidden="true">{short}</span>
+              <span className="sr-only">Connected wallet address {address}</span>
             </p>
           </div>
           <Button asChild className="w-full">
