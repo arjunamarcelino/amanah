@@ -21,7 +21,7 @@ importers:
         specifier: ^3.4.2
         version: 3.9.10
       turbo:
-        specifier: ^2.3.3
+        specifier: ^2.11.8
         version: 2.11.9
       typescript:
         specifier: ^5.7.3
@@ -206,7 +206,7 @@ importers:
         version: 10.6.1(postcss@8.5.31)
       eslint:
         specifier: ^9.17.0
-        version: 9.39.5(jiti@2.7.0)
+        version: 9.39.5(jiti@1.21.7)
       postcss:
         specifier: ^8.4.49
         version: 8.5.31
@@ -276,7 +276,7 @@ importers:
         version: 10.6.1(postcss@8.5.31)
       eslint:
         specifier: ^9.17.0
-        version: 9.39.5(jiti@1.21.7)
+        version: 9.39.5(jiti@2.7.0)
       postcss:
         specifier: ^8.4.49
         version: 8.5.31
