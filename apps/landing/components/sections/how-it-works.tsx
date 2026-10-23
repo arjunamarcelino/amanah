@@ -4,6 +4,7 @@ import { Reveal } from "@/components/reveal";
 import { Stagger } from "@/components/stagger";
 import { Eyebrow } from "@/components/eyebrow";
 import { SectionHeading } from "@/components/section-heading";
+import { StrokeIcon, DonateGlyph } from "@/components/icons";
 import { cn } from "@amanah/ui/lib/utils";
 
 type Step = {
@@ -88,23 +89,9 @@ export function HowItWorks() {
 }
 
 function StepIcon({ icon }: { icon: Step["icon"] }) {
-  const p = {
-    viewBox: "0 0 24 24",
-    className: "size-5",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-  };
   const paths: Record<Step["icon"], ReactNode> = {
-    // hand holding a heart
-    donate: (
-      <>
-        <path d="M3 13a2 2 0 0 1 2-2h3l2.3 1.5a2 2 0 0 0 2.2 0L17 9a1.6 1.6 0 1 1 2 2.5l-5 4a3 3 0 0 1-3 .5l-3-1" />
-        <path d="M14.5 3.3a2 2 0 0 0-2.5.4l-.5.5-.5-.5A2 2 0 1 0 8 7l3.5 3 3.5-3a2 2 0 0 0-.5-3.7Z" />
-      </>
-    ),
+    // hand holding a heart (shared canonical glyph)
+    donate: <DonateGlyph />,
     // stacked pool / layers
     pool: (
       <>
@@ -142,5 +129,5 @@ function StepIcon({ icon }: { icon: Step["icon"] }) {
       </>
     ),
   };
-  return <svg {...p}>{paths[icon]}</svg>;
+  return <StrokeIcon>{paths[icon]}</StrokeIcon>;
 }

@@ -4,6 +4,7 @@ import { Section } from "@/components/section";
 import { Reveal } from "@/components/reveal";
 import { Eyebrow } from "@/components/eyebrow";
 import { SectionHeading } from "@/components/section-heading";
+import { StrokeIcon } from "@/components/icons";
 
 // Comparison table: Amanah vs. mainstream donation platforms, across the aspects where an
 // on-chain router wins — fees that trend to zero, near-instant payout, and a ledger anyone
@@ -149,17 +150,8 @@ export function Comparison() {
 
 function CheckIcon() {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="mt-0.5 size-4 shrink-0"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <StrokeIcon strokeWidth={2.5} className="mt-0.5 size-4 shrink-0">
       <path d="M20 6 9 17l-5-5" />
-    </svg>
+    </StrokeIcon>
   );
 }

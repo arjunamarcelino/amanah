@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Wordmark } from "@/components/wordmark";
+import { StrokeIcon, DonateGlyph } from "@/components/icons";
 import { Button } from "@amanah/ui/button";
 import { cn } from "@amanah/ui/lib/utils";
 import {
@@ -329,105 +330,63 @@ function triggerClass(active: boolean) {
 
 function Chevron({ open }: { open: boolean }) {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
+    <StrokeIcon
+      strokeWidth={2.5}
       className={cn("size-3.5 transition-transform duration-200", open && "rotate-180")}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
     >
       <path d="m6 9 6 6 6-6" />
-    </svg>
+    </StrokeIcon>
   );
 }
 
 function SearchIcon() {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="size-[1.15rem]"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <StrokeIcon strokeWidth={2} className="size-[1.15rem]">
       <circle cx="11" cy="11" r="7" />
       <path d="m21 21-4.3-4.3" />
-    </svg>
+    </StrokeIcon>
   );
 }
 
 function MenuIcon() {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="size-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    >
+    <StrokeIcon strokeWidth={2} className="size-6">
       <path d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
+    </StrokeIcon>
   );
 }
 
 function CloseIcon() {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="size-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    >
+    <StrokeIcon strokeWidth={2} className="size-6">
       <path d="M6 6l12 12M18 6 6 18" />
-    </svg>
+    </StrokeIcon>
   );
 }
 
 /** Panel-header glyphs — heart-in-hand (Donate), megaphone (Fundraise), info (About). */
 function MenuIconGlyph({ icon }: { icon: MegaMenu["icon"] }) {
-  const common = {
-    "aria-hidden": true,
-    viewBox: "0 0 24 24",
-    className: "size-5",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-  };
   if (icon === "donate") {
     return (
-      <svg {...common}>
-        <path d="M3 14a2 2 0 0 1 2-2h3l2.3 1.5a2 2 0 0 0 2.2 0L17 10a1.6 1.6 0 1 1 2 2.5l-5 4a3 3 0 0 1-3 .5l-3-1" />
-        <path d="M14.5 3.5a2.1 2.1 0 0 0-2.5.4l-.5.5-.5-.5A2.1 2.1 0 1 0 8 7.3l3.5 3.2 3.5-3.2a2.1 2.1 0 0 0-.5-3.8Z" />
-      </svg>
+      <StrokeIcon>
+        <DonateGlyph />
+      </StrokeIcon>
     );
   }
   if (icon === "fundraise") {
     return (
-      <svg {...common}>
+      <StrokeIcon>
         <path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z" />
         <path d="M15.5 8.5a3 3 0 0 1 0 7" />
         <path d="M18 5.5a7 7 0 0 1 0 13" />
-      </svg>
+      </StrokeIcon>
     );
   }
   return (
-    <svg {...common}>
+    <StrokeIcon>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 11v5" />
       <path d="M12 8h.01" />
-    </svg>
+    </StrokeIcon>
   );
 }
