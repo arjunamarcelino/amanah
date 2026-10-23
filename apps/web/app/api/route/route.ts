@@ -62,7 +62,12 @@ export async function POST(request: Request) {
   }
 
   // Abuse guards for an unauthenticated same-origin POST (it triggers a paid LLM call).
-  const ip = (request.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown").trim();
+  // Trust exactly one proxy hop (Caddy), which APPENDS the real client IP to the right
+  // of any client-supplied X-Forwarded-For. Key the limiter on the RIGHTMOST entry — the
+  // leftmost is attacker-controllable, so keying on it lets a spoofed header mint unlimited
+  // paid LLM calls (denial-of-wallet). The Anthropic console spend cap is the real backstop.
+  const xff = request.headers.get("x-forwarded-for");
+  const ip = (xff?.split(",").pop() ?? "unknown").trim() || "unknown";
   if (rateLimited(ip, Date.now())) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
