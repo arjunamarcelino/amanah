@@ -19,11 +19,11 @@ export function DonateSuccess({ txHash, ledgerPending }: { txHash: Hex; ledgerPe
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <circle cx="64" cy="64" r="60" fill="#14532d" fillOpacity="0.08" />
-        <circle cx="64" cy="64" r="48" fill="#14532d" />
+        <circle cx="64" cy="64" r="60" style={{ fill: "hsl(var(--primary))" }} fillOpacity="0.08" />
+        <circle cx="64" cy="64" r="48" style={{ fill: "hsl(var(--primary))" }} />
         <path
           d="M43 64L57 78L85 50"
-          stroke="#FFF9EF"
+          style={{ stroke: "hsl(var(--primary-foreground))" }}
           strokeWidth="8"
           strokeLinecap="round"
           strokeLinejoin="round"
