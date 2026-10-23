@@ -1,5 +1,7 @@
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
 import { Badge } from "@amanah/ui/badge";
+import { CauseIcon } from "@amanah/ui/cause-icon";
 import { cn } from "@amanah/ui/lib/utils";
 import type { CampaignType } from "@amanah/shared";
 import { causeBadgeClass } from "@/lib/campaigns";
@@ -14,6 +16,7 @@ type Example = {
   blurb: string;
   release: "MILESTONE" | "PARAMETRIC";
   region: string;
+  image?: string; // optional same-origin cover path (apps/web/public); omit → text-only card
 };
 
 const CAUSES: Example[] = [
@@ -23,6 +26,7 @@ const CAUSES: Example[] = [
     blurb: "Tranches release as enrolment and attendance milestones are verified.",
     release: "MILESTONE",
     region: "Indonesia",
+    image: "/showcase/school-supplies.jpg",
   },
   {
     type: "medical",
@@ -30,6 +34,7 @@ const CAUSES: Example[] = [
     blurb: "Funds unlock against delivery and dispensing milestones.",
     release: "MILESTONE",
     region: "Indonesia",
+    image: "/showcase/clinic-medicine.jpg",
   },
   {
     type: "waqf",
@@ -37,6 +42,7 @@ const CAUSES: Example[] = [
     blurb: "A perpetual endowment; idle principal earns halal yield for the cause.",
     release: "MILESTONE",
     region: "Indonesia",
+    image: "/showcase/masjid-waqf.jpg",
   },
 ];
 
@@ -47,6 +53,7 @@ const DISASTERS: Example[] = [
     blurb: "Parametric release auto-triggers when flood thresholds are breached.",
     release: "PARAMETRIC",
     region: "Vietnam",
+    image: "/showcase/mekong-flood.jpg",
   },
   {
     type: "disaster",
@@ -54,15 +61,28 @@ const DISASTERS: Example[] = [
     blurb: "Humanitarian aid that releases on a verified cyclone trigger.",
     release: "PARAMETRIC",
     region: "Myanmar",
+    image: "/showcase/cyclone-ayeyarwady.jpg",
   },
 ];
 
 function ExampleCard({ e }: { e: Example }) {
   return (
-    <Card className="h-full">
+    <Card className="h-full overflow-hidden">
+      {e.image ? (
+        <div className="relative aspect-[16/9] w-full bg-muted">
+          <Image
+            src={e.image}
+            alt="" // decorative: the CardTitle already names the example
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover"
+          />
+        </div>
+      ) : null}
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
-          <Badge className={cn("border-transparent capitalize", causeBadgeClass(e.type))}>
+          <Badge className={cn("gap-1 border-transparent capitalize", causeBadgeClass(e.type))}>
+            <CauseIcon cause={e.type} className="size-3.5" />
             {e.type}
           </Badge>
         </div>

@@ -9,6 +9,7 @@
     "./button": "./src/components/button.tsx",
     "./card": "./src/components/card.tsx",
     "./badge": "./src/components/badge.tsx",
+    "./cause-icon": "./src/components/cause-icon.tsx",
     "./input": "./src/components/input.tsx",
     "./label": "./src/components/label.tsx",
     "./lib/utils": "./src/lib/utils.ts",

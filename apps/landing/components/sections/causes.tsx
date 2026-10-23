@@ -2,10 +2,11 @@ import { Reveal } from "@/components/reveal";
 import { Section } from "@/components/section";
 import { Eyebrow } from "@/components/eyebrow";
 import { Card, CardContent } from "@amanah/ui/card";
+import { CauseIcon, type Cause as CauseKey } from "@amanah/ui/cause-icon";
 import { cn } from "@amanah/ui/lib/utils";
 
 type Cause = {
-  emoji: string;
+  icon: CauseKey;
   label: string;
   description: string;
   featured?: boolean;
@@ -13,29 +14,29 @@ type Cause = {
 
 const causes: Cause[] = [
   {
-    emoji: "⚡",
+    icon: "disaster",
     label: "Disaster relief",
     description:
       "Get funds to the ground in hours, not weeks, when a crisis hits — the router finds the fastest path so help lands while it still matters.",
     featured: true,
   },
   {
-    emoji: "🎓",
+    icon: "education",
     label: "Education",
     description: "Fund schools, scholarships, and teachers — transparently, end to end.",
   },
   {
-    emoji: "⚕",
+    icon: "medical",
     label: "Medical",
     description: "Cover treatment and care with every transfer on the public record.",
   },
   {
-    emoji: "🏚",
+    icon: "poverty",
     label: "Poverty",
     description: "Direct support that reaches people without a cut taken along the way.",
   },
   {
-    emoji: "🌙",
+    icon: "waqf",
     label: "Masjid / waqf",
     description: "Sustain a masjid or endowment with optional riba-free handling.",
   },
@@ -72,12 +73,10 @@ export function Causes() {
                 )}
               >
                 <CardContent className="flex min-w-0 flex-1 flex-col p-0">
-                  <span
-                    aria-hidden="true"
-                    className={cn("leading-none", featured ? "text-4xl" : "text-2xl")}
-                  >
-                    {cause.emoji}
-                  </span>
+                  <CauseIcon
+                    cause={cause.icon}
+                    className={cn("text-primary", featured ? "size-10" : "size-8")}
+                  />
                   <h3
                     className={cn(
                       "mt-4 min-w-0 font-medium text-foreground [overflow-wrap:anywhere]",

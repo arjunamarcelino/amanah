@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@amanah/ui/button";
@@ -31,7 +32,16 @@ export default function BrowsePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 p-6 md:p-10">
       <header className="flex flex-col gap-2">
-        <h1 className="text-4xl">Amanah</h1>
+        <h1>
+          <Image
+            src="/amanah-logo.png"
+            alt="Amanah"
+            width={267}
+            height={100}
+            priority
+            className="h-10 w-auto md:h-12"
+          />
+        </h1>
         <p className="text-foreground-soft">
           Give to a cause on Base Sepolia — gasless, any stablecoin, transparent end to end.
         </p>

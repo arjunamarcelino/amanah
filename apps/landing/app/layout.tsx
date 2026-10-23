@@ -34,19 +34,27 @@ export const metadata: Metadata = {
   description,
   applicationName: siteConfig.name,
   alternates: { canonical: "/" },
+  // Favicon set lives in public/ (generated); Next renders these into <head>.
+  icons: {
+    icon: [{ url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" }],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/site.webmanifest",
+  appleWebApp: { title: siteConfig.name },
   openGraph: {
     type: "website",
     url: "/",
     siteName: siteConfig.name,
     title: "Amanah — Give once. Protect many. Lose nothing to the middle.",
     description,
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Amanah" }],
+    images: [{ url: "/amanah-og.jpg", width: 1730, height: 909, alt: "Amanah" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Amanah — Give once. Protect many. Lose nothing to the middle.",
     description,
-    images: ["/og.png"],
+    images: ["/amanah-og.jpg"],
   },
   robots: { index: true, follow: true },
 };

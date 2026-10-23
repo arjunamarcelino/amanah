@@ -43,6 +43,11 @@ export type CampaignResponse = {
   active: boolean;
   registeredOnChain: boolean;
   createdAt: string;
+  // Optional cover image for the campaign (grid card + featured hero). Same-origin
+  // path under apps/web/public (e.g. "/campaigns/ph-typhoon-2025.jpg") — CSP img-src
+  // is 'self'. Optional so existing responses/mappers need no change; null/undefined
+  // → the card falls back to its text-only layout.
+  imageUrl?: string | null;
 };
 
 // Runtime validator mirroring CampaignResponse. Lenient (.strip — the zod default)
@@ -63,6 +68,16 @@ export const CampaignResponseSchema = z.object({
   active: z.boolean(),
   registeredOnChain: z.boolean(),
   createdAt: z.string(),
+  // Same-origin relative path only (leading "/", not "//host", no scheme/whitespace):
+  // the value feeds next/image `src`, and next.config has no remotePatterns, so an
+  // absolute/remote URL would throw at render. Bounds the documented invariant.
+  // regex/max don't change the inferred type (still string), so _CampaignMirror holds.
+  imageUrl: z
+    .string()
+    .regex(/^\/(?!\/)\S*$/)
+    .max(512)
+    .nullable()
+    .optional(),
 });
 
 // ------------------------------- Rail ----------------------------------------

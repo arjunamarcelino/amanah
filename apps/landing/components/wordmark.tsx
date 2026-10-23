@@ -1,19 +1,20 @@
+import Image from "next/image";
 import { cn } from "@amanah/ui/lib/utils";
 
 /**
- * The Amanah wordmark — Fraunces with a pine terminal dot. Frozen contract: { className? }.
- * Used in the header bar and the footer; not a logo asset.
+ * The Amanah brand lockup — the horizontal logo (public/amanah-logo.png, 512×192).
+ * Frozen contract: { className? }. Used in the header bar, the footer, and the 404 page.
+ * No `priority`: landing serves images unoptimized (output: export), so a preload here
+ * would compete with the hero's LCP image for bandwidth at page start.
  */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-baseline font-serif text-[1.375rem] font-semibold tracking-tight text-primary",
-        className,
-      )}
-    >
-      Amanah
-      <span aria-hidden="true" className="ml-1 inline-block size-[0.3em] rounded-full bg-primary" />
-    </span>
+    <Image
+      src="/amanah-logo.png"
+      alt="Amanah"
+      width={267}
+      height={100}
+      className={cn("h-7 w-auto", className)}
+    />
   );
 }

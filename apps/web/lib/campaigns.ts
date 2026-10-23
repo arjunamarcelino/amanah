@@ -1,4 +1,13 @@
 import { campaignIdFromSlug, type CampaignResponse, type CampaignType } from "@amanah/shared";
+import type { Cause } from "@amanah/ui/cause-icon";
+
+// Compile-time guard: @amanah/ui can't depend on @amanah/shared, so CauseIcon's `Cause`
+// key set is maintained independently. This app imports both, so assert they stay equal —
+// adding/removing a CampaignType without updating the icon catalog fails the build here.
+type _Expect<T extends true> = T;
+type _Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type _CauseMirror = _Expect<_Equal<Cause, CampaignType>>;
 
 // Featured campaign is pinned by slug — no `featured` field exists on the model.
 export const FEATURED_SLUG = "ph-typhoon-2025";
@@ -20,6 +29,22 @@ export type CauseChip = "all" | CampaignType;
 
 export function isFeatured(c: CampaignResponse): boolean {
   return c.campaignId.toLowerCase() === FEATURED_ID;
+}
+
+// Demo cover images live in apps/web/public/campaigns and are keyed by the slug-derived
+// campaignId (the API does not yet emit `imageUrl`). campaignIdFromSlug returns lowercased
+// 0x-hex, so look up with `.toLowerCase()`. Campaigns without an entry render text-only.
+const COVER_BY_ID: Record<string, string> = {
+  [FEATURED_ID]: "/campaigns/relief.jpg",
+  [campaignIdFromSlug("id-rural-school-supplies")]: "/campaigns/classroom.jpg",
+  [campaignIdFromSlug("clinic-medicine-fund")]: "/campaigns/clinic.jpg",
+  [campaignIdFromSlug("masjid-waqf")]: "/campaigns/masjid-waqf.jpg",
+};
+
+/** Cover image for a campaign: its own `imageUrl` if present, else the demo map, else none. */
+export function coverImageFor(campaign: CampaignResponse): string | undefined {
+  // `||` not `??`: treat an empty-string imageUrl as "no image" and fall through.
+  return campaign.imageUrl || COVER_BY_ID[campaign.campaignId.toLowerCase()];
 }
 
 /** Campaigns shown in the grid: active and not the zero/general sentinel. */

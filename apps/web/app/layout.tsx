@@ -20,9 +20,38 @@ const hanken = localFont({
   variable: "--font-sans",
 });
 
+const description = "On-chain charitable disaster-relief protocol on Base Sepolia.";
+
+// Absolute base for OG/Twitter image URLs. NEXT_PUBLIC_APP_URL in prod (app.amanah.help);
+// falls back to the public domain so social cards resolve even if the env var is unset.
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.amanah.help";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(appUrl),
   title: "Amanah",
-  description: "On-chain charitable disaster-relief protocol on Base Sepolia.",
+  description,
+  // Favicon set lives in public/ (generated); Next renders these into <head>.
+  icons: {
+    icon: [{ url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" }],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/site.webmanifest",
+  appleWebApp: { title: "Amanah" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Amanah",
+    title: "Amanah",
+    description,
+    images: [{ url: "/amanah-og.jpg", width: 1730, height: 909, alt: "Amanah" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Amanah",
+    description,
+    images: ["/amanah-og.jpg"],
+  },
 };
 
 export const viewport: Viewport = {
