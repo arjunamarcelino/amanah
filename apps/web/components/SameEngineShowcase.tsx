@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
 import { Badge } from "@amanah/ui/badge";
 import { cn } from "@amanah/ui/lib/utils";
@@ -14,6 +15,7 @@ type Example = {
   blurb: string;
   release: "MILESTONE" | "PARAMETRIC";
   region: string;
+  image?: string; // optional same-origin cover path (apps/web/public); omit → text-only card
 };
 
 const CAUSES: Example[] = [
@@ -59,7 +61,18 @@ const DISASTERS: Example[] = [
 
 function ExampleCard({ e }: { e: Example }) {
   return (
-    <Card className="h-full">
+    <Card className="h-full overflow-hidden">
+      {e.image ? (
+        <div className="relative aspect-[16/9] w-full bg-muted">
+          <Image
+            src={e.image}
+            alt={e.title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover"
+          />
+        </div>
+      ) : null}
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <Badge className={cn("border-transparent capitalize", causeBadgeClass(e.type))}>

@@ -20,9 +20,33 @@ const hanken = localFont({
   variable: "--font-sans",
 });
 
+const description = "On-chain charitable disaster-relief protocol on Base Sepolia.";
+
+// Absolute base for OG/Twitter image URLs. NEXT_PUBLIC_APP_URL in prod (app.amanah.help);
+// falls back to the public domain so social cards resolve even if the env var is unset.
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.amanah.help";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(appUrl),
   title: "Amanah",
-  description: "On-chain charitable disaster-relief protocol on Base Sepolia.",
+  description,
+  // app/icon.svg is picked up automatically; this also wires the SVG as the shortcut icon.
+  icons: { icon: "/icon.svg" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Amanah",
+    title: "Amanah",
+    description,
+    // Drop a 1200×630 PNG at apps/web/public/og.png (see apps/landing/public/og.png).
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Amanah" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Amanah",
+    description,
+    images: ["/og.png"],
+  },
 };
 
 export const viewport: Viewport = {
