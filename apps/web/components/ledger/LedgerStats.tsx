@@ -4,17 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getCampaigns, getLedger } from "@/lib/api";
 import { fetchChainEvents, mergeLedger } from "@/lib/ledger";
 import { visibleCampaigns } from "@/lib/campaigns";
-import { usd } from "@/lib/funding";
+import { baseUnitsToUsd, safeBig, usd } from "@/lib/funding";
 
 const POLL_MS = 12_000;
-
-function safeBig(s: string): bigint {
-  try {
-    return BigInt(s);
-  } catch {
-    return 0n;
-  }
-}
 
 // Impact summary for the ledger. Real data: total donated is the sum of every campaign's
 // confirmed on-chain raised (baseRaised), active campaigns is the visible count, on-chain
@@ -37,7 +29,7 @@ export function LedgerStats() {
 
   const active = visibleCampaigns(campaignsQ.data ?? []);
   const totalBase = active.reduce((acc, c) => acc + safeBig(c.baseRaised), 0n);
-  const totalUsd = Number(totalBase / 1_000_000n);
+  const totalUsd = baseUnitsToUsd(totalBase);
   const events = mergeLedger(apiQ.data ?? [], chainQ.data ?? []).length;
 
   const stats: { label: string; value: string; accent?: boolean }[] = [

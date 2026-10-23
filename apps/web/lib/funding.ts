@@ -13,12 +13,23 @@ export type FundingView = {
   goalLabel: string | null;
 };
 
-function safeBig(s: string): bigint {
+/** Parse a base-unit integer string to BigInt; never throws (garbage → 0n). */
+export function safeBig(s: string): bigint {
   try {
     return BigInt(s);
   } catch {
     return 0n;
   }
+}
+
+/** Base units (6-dp) → whole dollars. The one place "1_000_000 base units = $1" lives. */
+export function baseUnitsToUsd(units: bigint): number {
+  return Number(units / BASE_PER_USD);
+}
+
+/** Convenience: base-unit string → whole dollars. */
+export function baseToUsd(s: string): number {
+  return baseUnitsToUsd(safeBig(s));
 }
 
 export function usd(whole: number): string {
@@ -29,8 +40,8 @@ export function usd(whole: number): string {
 export function fundingView(baseRaised: string, goalBase: string | null): FundingView {
   const raised = safeBig(baseRaised);
   const goal = goalBase ? safeBig(goalBase) : null;
-  const raisedUsd = Number(raised / BASE_PER_USD);
-  const goalUsd = goal !== null ? Number(goal / BASE_PER_USD) : null;
+  const raisedUsd = baseUnitsToUsd(raised);
+  const goalUsd = goal !== null ? baseUnitsToUsd(goal) : null;
   // Derive pct from the SAME floored-dollar figures the labels show, so the bar and the
   // "$X raised of $Y" text never disagree (e.g. a ~100% bar labeled "$99 of $100"). Floored,
   // so it never over-reports raised.

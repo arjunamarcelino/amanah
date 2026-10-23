@@ -14,7 +14,7 @@ import {
   isFeatured,
   visibleCampaigns,
 } from "@/lib/campaigns";
-import { fundingView, usd } from "@/lib/funding";
+import { fundingView, usd, baseToUsd } from "@/lib/funding";
 import { storyFor } from "@/lib/story";
 import { FundingProgress } from "@/components/FundingProgress";
 import { CauseTag } from "@/components/CauseTag";
@@ -327,9 +327,5 @@ function shortDonor(d: LedgerEntry): string {
 
 function donationUsd(d: LedgerEntry): string {
   const base = typeof d.payload.baseOut === "string" ? d.payload.baseOut : "0";
-  try {
-    return usd(Number(BigInt(base) / 1_000_000n));
-  } catch {
-    return "$0";
-  }
+  return usd(baseToUsd(base)); // baseToUsd(safeBig) never throws on garbage
 }
