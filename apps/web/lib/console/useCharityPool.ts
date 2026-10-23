@@ -9,7 +9,7 @@ const POOL = ADDRESSES[CHAIN_ID].CharityPool;
 
 // Console-config only: reads resolve against whichever WagmiProvider renders this,
 // which in the (console) group is the injected-owner config. Do NOT mount under the
-// Privy (wallet) tree.
+// donor (wallet) tree.
 //
 // Two multicall-batched reads (not ~9 separate eth_calls): pool-wide values (always)
 // and the per-campaign totals (when a campaign is selected). viem's baseSepolia carries

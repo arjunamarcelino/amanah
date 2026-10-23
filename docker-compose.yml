@@ -49,7 +49,7 @@ services:
       args:
         # Inlined into the bundle + CSP at BUILD time; a change ⇒ rebuild (deploy.sh --build).
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL in .env}
-        NEXT_PUBLIC_PRIVY_APP_ID: ${NEXT_PUBLIC_PRIVY_APP_ID:?set NEXT_PUBLIC_PRIVY_APP_ID in .env}
+        NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID: ${NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID:?set NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID in .env}
         NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL: ${NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL:-https://sepolia.base.org}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?set NEXT_PUBLIC_APP_URL in .env}
     environment:

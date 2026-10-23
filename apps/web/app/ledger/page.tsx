@@ -1,8 +1,8 @@
 import { LedgerFeed } from "@/components/ledger/LedgerFeed";
 import { CompliancePanel } from "@/components/CompliancePanel";
 
-// Public, wallet-free. Lives OUTSIDE the (wallet)/(console) groups, so it mounts neither
-// Privy nor the injected config — only the root QueryProvider. Chain is the source of
+// Public, wallet-free. Lives OUTSIDE the (wallet)/(console) groups, so it mounts neither the
+// Dynamic wallet SDK nor the injected config — only the root QueryProvider. Chain is the source of
 // truth; the API is the convenience index (LedgerFeed merges both).
 export const dynamic = "force-dynamic";
 

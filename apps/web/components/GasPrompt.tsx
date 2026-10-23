@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@amanah/ui/button";
 import { useDonorWallet } from "@/lib/hooks/useDonorWallet";
 
-// Base Sepolia ETH faucet (Privy fundWallet is mainnet-only → not used here).
+// Base Sepolia ETH faucet (Dynamic's onramp is mainnet-only → faucet used here instead).
 const FAUCET_URL = "https://www.alchemy.com/faucets/base-sepolia";
 
 // Shows a self-fund prompt when the embedded wallet has no gas; otherwise renders
