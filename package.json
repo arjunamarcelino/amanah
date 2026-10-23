@@ -14,7 +14,9 @@
     "test": "turbo run test",
     "clean": "turbo run clean",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "deploy:contracts": "pnpm --filter @amanah/contracts deploy:contracts"
+    "deploy:contracts": "pnpm --filter @amanah/contracts deploy:contracts",
+    "seed:demo": "docker compose run --rm seed",
+    "deploy": "bash scripts/deploy.sh"
   },
   "devDependencies": {
     "prettier": "^3.4.2",
