@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
 import { Badge } from "@amanah/ui/badge";
+import { CauseIcon } from "@amanah/ui/cause-icon";
 import { cn } from "@amanah/ui/lib/utils";
 import type { CampaignType } from "@amanah/shared";
 import { causeBadgeClass } from "@/lib/campaigns";
@@ -75,7 +76,8 @@ function ExampleCard({ e }: { e: Example }) {
       ) : null}
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
-          <Badge className={cn("border-transparent capitalize", causeBadgeClass(e.type))}>
+          <Badge className={cn("gap-1 border-transparent capitalize", causeBadgeClass(e.type))}>
+            <CauseIcon cause={e.type} className="size-3.5" />
             {e.type}
           </Badge>
         </div>
