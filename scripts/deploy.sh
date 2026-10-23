@@ -9,9 +9,13 @@
 # runs `prisma migrate deploy` before api/indexer start; if it fails, api/indexer never
 # start (depends_on service_completed_successfully) and this script exits non-zero.
 #
-# Migrate recovery: a migration that fails mid-apply marks _prisma_migrations failed and
-# every later deploy aborts with P3009 until you run, on the VPS:
-#   docker compose run --rm migrate pnpm --filter @amanah/db exec prisma migrate resolve --applied <name>
+# Migrate recovery (P3009): `prisma migrate deploy` aborts if a prior migration is marked
+# failed. The init migration is a single transactional DDL script, so a mid-apply failure
+# ROLLS THE WHOLE THING BACK (no tables) — recover by marking it rolled back so the next
+# deploy re-applies it, on the VPS:
+#   docker compose run --rm migrate pnpm --filter @amanah/db exec prisma migrate resolve --rolled-back <name>
+# (Use --applied ONLY if you manually finished a partially-applied migration by hand —
+# marking a rolled-back migration --applied starts the app against an empty schema.)
 set -euo pipefail
 
 : "${VPS_HOST:?set VPS_HOST=user@host}"
