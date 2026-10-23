@@ -37,5 +37,5 @@ See the [README honesty note](./README.md#real-vs-mocked-honesty-note). Short ve
 
 - A `NEXT_PUBLIC_*` change requires `docker compose up -d --build` (baked into the image + CSP at build time).
 - `DEPLOYER_PRIVATE_KEY` is the contract **owner** key — testnet/mock only; **never reuse on mainnet**.
-- Migrate failure (P3009): `docker compose run --rm migrate pnpm --filter @amanah/db exec prisma migrate resolve --applied <name>`.
+- Migrate failure (P3009): the init migration is transactional DDL, so a mid-apply failure rolls back fully — recover with `docker compose run --rm migrate pnpm --filter @amanah/db exec prisma migrate resolve --rolled-back <name>` (then redeploy). Use `--applied` only for a hand-finished partial apply.
 - `v1.0-demo` captures source + committed addresses + docs — **not** secrets, images, DB data, or minted balances. Rollback is code/image only; on-chain state and migrations are forward-only.
