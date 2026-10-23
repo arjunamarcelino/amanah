@@ -44,13 +44,13 @@ export const metadata: Metadata = {
     siteName: "Amanah",
     title: "Amanah",
     description,
-    images: [{ url: "/amanah-og.png", width: 1730, height: 909, alt: "Amanah" }],
+    images: [{ url: "/amanah-og.jpg", width: 1730, height: 909, alt: "Amanah" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Amanah",
     description,
-    images: ["/amanah-og.png"],
+    images: ["/amanah-og.jpg"],
   },
 };
 
