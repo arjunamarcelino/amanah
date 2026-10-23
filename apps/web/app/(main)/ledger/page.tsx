@@ -1,9 +1,10 @@
 import { LedgerFeed } from "@/components/ledger/LedgerFeed";
 import { CompliancePanel } from "@/components/CompliancePanel";
 
-// Public, wallet-free. Lives OUTSIDE the (wallet)/(console) groups, so it mounts neither the
-// Dynamic wallet SDK nor the injected config — only the root QueryProvider. Chain is the source of
-// truth; the API is the convenience index (LedgerFeed merges both).
+// Public ledger. Lives in the (main) group so it shares the SiteHeader (and the Dynamic
+// providers mounted there for the header's wallet control), but the page itself reads nothing
+// from the wallet. Chain is the source of truth; the API is the convenience index (LedgerFeed
+// merges both).
 export const dynamic = "force-dynamic";
 
 export default function LedgerPage() {

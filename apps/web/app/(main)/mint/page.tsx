@@ -12,7 +12,7 @@ import { useMint } from "@/lib/hooks/useMint";
 import { StablecoinSelect } from "@/components/StablecoinSelect";
 import { AmountField } from "@/components/AmountField";
 import { TxStatus } from "@/components/TxStatus";
-import { LoginGate } from "@/components/LoginGate";
+import { RequireWallet } from "@/components/RequireWallet";
 import { ChainGuard } from "@/components/ChainGuard";
 import { GasPrompt } from "@/components/GasPrompt";
 
@@ -31,13 +31,13 @@ export default function MintPage() {
           Mint mock stablecoins to your wallet so you can try a donation on Base Sepolia.
         </p>
       </div>
-      <LoginGate>
+      <RequireWallet>
         <ChainGuard>
           <GasPrompt>
             <MintForm />
           </GasPrompt>
         </ChainGuard>
-      </LoginGate>
+      </RequireWallet>
     </main>
   );
 }

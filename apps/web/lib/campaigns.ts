@@ -63,10 +63,30 @@ export function filterByCause(list: CampaignResponse[], chip: CauseChip): Campai
   return list.filter((c) => c.type === chip);
 }
 
+/**
+ * Free-text search over the loaded campaigns (name, cause, country, type). Case-insensitive
+ * substring match — the dataset is small enough that client-side filtering is instant and
+ * needs no backend round-trip. An empty/whitespace query returns the list unchanged.
+ */
+export function searchCampaigns(
+  list: CampaignResponse[],
+  query: string,
+): CampaignResponse[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter((c) =>
+    [c.name, c.cause, c.country, c.type]
+      .filter((v): v is string => Boolean(v))
+      .some((v) => v.toLowerCase().includes(q)),
+  );
+}
+
 // Enum-keyed class allowlist (S-4): the free-text `type`/`cause` is NEVER
 // interpolated into a className. Unknown values fall back to neutral.
 const CAUSE_BADGE: Record<CampaignType, string> = {
-  disaster: "bg-destructive/10 text-destructive",
+  // Solid red fill (not a faint tint) so the disaster tag stays legible over a cover photo,
+  // on par with the other causes' filled chips.
+  disaster: "bg-destructive text-destructive-foreground",
   education: "bg-accent text-accent-foreground",
   medical: "bg-accent text-accent-foreground",
   poverty: "bg-secondary text-secondary-foreground",

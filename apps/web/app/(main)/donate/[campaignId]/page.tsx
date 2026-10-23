@@ -23,7 +23,7 @@ import { AmountField } from "@/components/AmountField";
 import { ConsentBox } from "@/components/ConsentBox";
 import { TxStatus } from "@/components/TxStatus";
 import { DonateSuccess } from "@/components/DonateSuccess";
-import { LoginGate } from "@/components/LoginGate";
+import { RequireWallet } from "@/components/RequireWallet";
 import { ChainGuard } from "@/components/ChainGuard";
 import { GasPrompt } from "@/components/GasPrompt";
 
@@ -88,13 +88,13 @@ export default function DonatePage() {
   return (
     <Shell>
       <ConfirmHeader campaign={campaign} />
-      <LoginGate>
+      <RequireWallet>
         <ChainGuard>
           <GasPrompt>
             <DonateForm campaignId={validId} />
           </GasPrompt>
         </ChainGuard>
-      </LoginGate>
+      </RequireWallet>
     </Shell>
   );
 }

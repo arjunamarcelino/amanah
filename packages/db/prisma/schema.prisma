@@ -67,6 +67,11 @@ model Campaign {
   country           String?
   releaseType       ReleaseType
   recipientOrg      String?
+  // Offchain display target in base units (Decimal(78,0), 6-dp base). Set by the
+  // metadata seed/API; NOT a money column (no funds, no on-chain truth). null => the
+  // card shows real raised without a progress percentage. Raised itself is never
+  // stored here — it's summed from confirmed DonationLog rows at read time.
+  goalBase          Decimal?    @db.Decimal(78, 0)
   active            Boolean     @default(false)
   registeredOnChain Boolean     @default(false)
   createdAt         DateTime    @default(now())

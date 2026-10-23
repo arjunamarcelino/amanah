@@ -13,6 +13,10 @@ const prisma = new PrismaClient();
 /** bytes32(0) — the general/unattributed fund (CharityPool campaignId == 0). */
 const GENERAL_FUND_ID = `0x${"0".repeat(64)}`;
 
+// Goal = a display TARGET the campaign declares (not a claim about funds received), in
+// base units. Base is 6-dp, so $1 = 1_000_000 units → `usd * 1_000_000` as a string.
+const goalBase = (usd: number): string => (BigInt(usd) * 1_000_000n).toString();
+
 const campaigns = [
   {
     slug: "ph-typhoon-2025",
@@ -22,6 +26,7 @@ const campaigns = [
     country: "PH",
     releaseType: "PARAMETRIC" as const,
     recipientOrg: "PH Disaster Relief Network",
+    goalBase: goalBase(500_000),
   },
   {
     slug: "id-rural-school-supplies",
@@ -31,6 +36,7 @@ const campaigns = [
     country: "ID",
     releaseType: "MILESTONE" as const,
     recipientOrg: "Yayasan Pendidikan Desa",
+    goalBase: goalBase(25_000),
   },
   {
     slug: "clinic-medicine-fund",
@@ -40,6 +46,7 @@ const campaigns = [
     country: "ID",
     releaseType: "MILESTONE" as const,
     recipientOrg: "Community Health Clinic",
+    goalBase: goalBase(40_000),
   },
   {
     slug: "masjid-waqf",
@@ -49,6 +56,7 @@ const campaigns = [
     country: "ID",
     releaseType: "MILESTONE" as const,
     recipientOrg: "Waqf Board",
+    goalBase: goalBase(75_000),
   },
 ];
 
@@ -81,6 +89,7 @@ async function main() {
         country: c.country,
         releaseType: c.releaseType,
         recipientOrg: c.recipientOrg,
+        goalBase: c.goalBase,
       },
       create: {
         campaignId,
@@ -90,6 +99,7 @@ async function main() {
         country: c.country,
         releaseType: c.releaseType,
         recipientOrg: c.recipientOrg,
+        goalBase: c.goalBase,
         active: true,
       },
     });
