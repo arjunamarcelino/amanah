@@ -11,11 +11,14 @@ symptoms:
   - "command (apps/.../contracts) pnpm run build exited (1) — forge: command not found"
   - "command (apps/agent) pnpm run lint exited (1)"
   - "ESLint: couldn't find a configuration file / triple-slash-reference on next-env.d.ts"
-tags: [turbo, monorepo, ci, github-actions, eslint, flat-config, foundry, pnpm]
+  - "CI lint fails: 'Definition for rule \"@next/next/no-img-element\" was not found' on a line carrying an eslint-disable-next-line for that rule (PR #12)"
+tags: [turbo, monorepo, ci, github-actions, eslint, flat-config, foundry, pnpm, eslint-disable, next-plugin, no-img-element]
 related:
   - PR: https://github.com/arjunamarcelino/amanah/pull/1
   - commit-cause: fa6eebc
   - commit-fix: 71f6837
+  - later-gotcha-PR: https://github.com/arjunamarcelino/amanah/pull/12
+  - later-gotcha-fix: 712cf15
 ---
 
 # CI build job fails: turbo runs `forge` where it isn't installed, and ESLint flat config isn't wired
@@ -124,7 +127,32 @@ Then CI (run `39294892386`) went green on both jobs: `build` ✓ and `contracts`
 - **Always reproduce the CI command locally** (same flags) before pushing — the failure was a
   verbatim repro of the one-line Node-job command.
 
+## Later gotcha: `eslint-disable` for a rule the flat config doesn't define (PR #12, fix `712cf15`)
+
+A follow-on CI failure in the same `build` job, from the opposite direction — a suppression
+comment for a rule that **isn't registered**:
+
+```
+apps/web/components/ChainGuard.tsx
+  22:8  error  Definition for rule '@next/next/no-img-element' was not found  @next/next/no-img-element
+```
+
+Two `<img>` tags were added with `{/* eslint-disable-next-line @next/next/no-img-element … */}`.
+But this repo lints with `eslint .` + the shared `@amanah/config` flat config — it does **not**
+use `next lint`/`eslint-config-next`, so the `@next/next/*` plugin and its rules are **not loaded**.
+ESLint treats a disable directive naming an unknown rule as an **error**, not a no-op.
+
+**Fix:** because the rule isn't active, plain `<img>` needs no suppression at all — delete the
+`eslint-disable` directive (keep a plain comment if you want to explain the `<img>` vs `next/image`
+choice). Don't add `eslint-config-next` just to satisfy the comment.
+
+**Rule of thumb:** only `eslint-disable` a rule that is actually configured in the resolved flat
+config. If a directive errors with "Definition for rule … was not found," the rule isn't loaded —
+remove the directive rather than wiring the plugin. And run the exact CI command
+(`pnpm turbo run build lint test check:exports --filter='!@amanah/contracts'`) before pushing.
+
 ## Related
 
 - PR [#1](https://github.com/arjunamarcelino/amanah/pull/1) (where the green CI is observed)
 - Cause: scaffold commit `fa6eebc`; fix: `71f6837`
+- Later gotcha: PR [#12](https://github.com/arjunamarcelino/amanah/pull/12); fix `712cf15`
