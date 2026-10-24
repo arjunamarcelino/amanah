@@ -238,5 +238,3 @@ node script/export-shared.mjs   # regenerate @amanah/shared addresses/ABIs
 | MockHalalVault | `0x15b248cD7939a4b9E1f6c06AC91D53d04B9ccB3B` |
 
 **Demo video:** https://www.youtube.com/watch?v=7N5-Li4SaQ4
-
-> `v1.0-demo` captures source + the committed `deployments/84532.json` + docs. It cannot capture the gitignored VPS `.env` (secrets), the built images, Postgres data, or minted balances — a reviewer must supply those. Rollback is code/image only (`git checkout <tag>` + rebuild); on-chain state and applied migrations are forward-only.
