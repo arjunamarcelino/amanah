@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { Button } from "@amanah/ui/button";
 import { cn } from "@amanah/ui/lib/utils";
@@ -56,29 +56,43 @@ export function CampaignEntranceEffect({ campaign }: { campaign: CampaignRespons
   const [entered, setEntered] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const key = `amanah.fx.seen.${campaign.campaignId.toLowerCase()}`;
+  const dismissTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
+    let raf = 0;
     try {
       if (!sessionStorage.getItem(key)) {
         setVisible(true);
         // next frame → opacity transitions 0 → 1 for a smooth fade-in (not a hard cut).
-        requestAnimationFrame(() => setEntered(true));
+        raf = requestAnimationFrame(() => setEntered(true));
       }
     } catch {
       /* sessionStorage unavailable → just don't show */
     }
+    // Cancel the pending rAF if we unmount before it fires (hygiene; React no-ops a late setState).
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, [key]);
 
-  function dismiss() {
-    if (leaving) return;
+  // Clear a still-pending dismiss timeout on unmount so it can't fire setVisible after teardown.
+  useEffect(
+    () => () => {
+      if (dismissTimer.current) window.clearTimeout(dismissTimer.current);
+    },
+    [],
+  );
+
+  const dismiss = useCallback(() => {
+    if (dismissTimer.current) return; // already leaving — the timer is our in-flight guard
     setLeaving(true);
     try {
       sessionStorage.setItem(key, "1");
     } catch {
       /* ignore */
     }
-    window.setTimeout(() => setVisible(false), 500);
-  }
+    dismissTimer.current = window.setTimeout(() => setVisible(false), 500);
+  }, [key]);
 
   if (!visible) return null;
   const kind = effectFor(campaign);
