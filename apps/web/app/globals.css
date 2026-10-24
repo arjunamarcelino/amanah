@@ -83,5 +83,8 @@
   will-change: transform;
 }
 @media (prefers-reduced-motion: reduce) {
-  .fx-anim { animation: none !important; }
+  /* JS already skips the SVG smoke under reduced motion; pin .fx-smoke here too for
+     defense-in-depth so the drift can never animate regardless of render path. */
+  .fx-anim,
+  .fx-smoke { animation: none !important; }
 }
