@@ -1,12 +1,81 @@
-# amanah
+<div align="center">
 
-On-chain charitable disaster-relief protocol on Base Sepolia. Donations become a transparent, auditable pool; every money movement emits an on-chain event; parametric and milestone triggers release funds; an AI off-ramp router proposes payout rails for human approval; and idle principal earns yield for the cause. **One engine, any cause or disaster.**
+# Amanah
+
+**On-chain charitable disaster-relief protocol on Base.**
+
+Donations become a transparent, auditable pool; every money movement emits an on-chain event;
+parametric and milestone triggers release funds; an AI off-ramp router proposes payout rails for
+human approval; and idle principal earns yield for the cause.
+
+**One engine, any cause or disaster.**
+
+[🌐 Landing](https://amanah.help) · [🖥️ App](https://app.amanah.help) · [🔌 API](https://api.amanah.help) · ⛓️ Base Sepolia (`84532`)
+
+</div>
+
+---
+
+## Contents
+
+- [The problem](#the-problem)
+- [How it works](#how-it-works)
+- [Hero features](#hero-features)
+- [The money flow](#the-money-flow)
+- [Architecture](#architecture)
+- [Monorepo](#monorepo)
+- [Tech stack](#tech-stack)
+- [Develop](#develop)
+- [Test](#test)
+- [Seed the demo](#seed-the-demo)
+- [90-second demo runbook](#90-second-demo-runbook-philippines-typhoon)
+- [Deploy to the VPS (Docker)](#deploy-to-the-vps-docker)
+- [Contract deploy](#contract-deploy-only-if-redeploying)
+- [Real vs mocked (honesty note)](#real-vs-mocked-honesty-note)
+- [Deployments](#deployments)
+
+---
+
+## The problem
+
+When disaster strikes, the world gives fast — then the money vanishes into a black box.
+
+- **No proof.** Donors can't verify where their money went, or when, or to whom.
+- **Slow payouts.** Relief is gated behind committees and multi-week approvals while people wait.
+- **Borders are expensive.** Getting funds into an affected country means correspondent banks, days of settlement, and fees skimmed at every hop.
+- **Idle money does nothing.** Pooled donations sit dead for weeks instead of working for the cause.
+
+Amanah turns donations into **one transparent on-chain pool**. Smart contracts are the source of
+truth for money; off-chain services only mirror and operate — they never hold financial state.
+
+## How it works
+
+1. **Donate** — a donor gives in a stablecoin through a gasless, embedded-wallet flow. `CharityPool` records it and emits an event.
+2. **Grow** — balance above a liquidity buffer is deployed to a yield adapter via `investIdle()` (optional halal-only mode) so waiting funds earn for the cause.
+3. **Release** — a parametric/milestone trigger fires `ReleaseController.fire()` **on-chain**. The condition itself is the authorization — no committee, no delay.
+4. **Route** — the AI off-ramp agent takes an amount + country and recommends the best payout rail (fee, speed, liquidity) for a human to approve, with a deterministic lowest-fee fallback.
+5. **Prove** — every hop emits a public event; the indexer mirrors them into a live ledger UI anyone can audit, each row linking to the on-chain transaction.
 
 ## Hero features
 
 1. **Parametric auto-release** — a disaster trigger (e.g. a Philippines typhoon threshold) fires an on-chain release via `ReleaseController.fire()`. No committee, no delay: the condition is the authorization.
 2. **AI off-ramp routing** — given an amount + country, the agent picks the best payout rail (fees, liquidity, ETA) and returns a decision for human approval, with a deterministic lowest-fee fallback when the model is unavailable.
 3. **Idle-yield on pooled donations** — `CharityPool.investIdle()` deploys idle base (above a liquidity buffer) into a yield adapter, with an optional halal-only mode, so waiting funds still work for the cause.
+
+Plus, for free from being on-chain: **borderless** reach, **fast settlement** (seconds, not weeks),
+**no intermediaries** skimming a cut, and a **transparent, programmable** ledger.
+
+## The money flow
+
+```
+  DONORS ──▶ [ CHARITY POOL ] ──▶ RELEASE ──▶ OFF-RAMP ──▶ PEOPLE
+   (gasless)   │        ▲        (trigger)    (AI rail)   (any country,
+              idle ─────┘                      stablecoin   seconds)
+             yield ↻  (keeps working while it waits)
+```
+
+Every hop emits an on-chain event (a public receipt). The donor flow, operator console, and
+ledger in `apps/web` all read from those events — nothing about the money lives only off-chain.
 
 ## Architecture
 
@@ -60,6 +129,19 @@ packages/
 
 On-chain contracts are the source of truth for money. `apps/api` stores **offchain operational data only** — never financial state.
 
+## Tech stack
+
+| Layer | Stack |
+|---|---|
+| **Smart contracts** | Solidity + **Foundry** on **Base Sepolia** — `CharityPool`, `ReleaseController`, `PayoutRouter`, yield adapters (`MockYieldVault` / `MockHalalVault`) |
+| **Web dApp** | **Next.js 15**, React 19, **wagmi + viem**, **Dynamic** (embedded / email-social wallets), shadcn/ui, Tailwind |
+| **Landing** | Next.js (static export), served by Caddy |
+| **AI agent** | **Fastify** + **Anthropic Claude** (`@anthropic-ai/sdk`) — internal-only off-ramp router behind a shared-secret gate |
+| **Indexer** | **viem** worker mirroring on-chain events into Postgres |
+| **API** | **NestJS** (REST, offchain operational data only) |
+| **Data** | **PostgreSQL** + **Prisma** |
+| **Tooling** | **pnpm + Turborepo** (Node 22), **Docker Compose**, **Caddy** (automatic HTTPS), shared `zod` schemas / ABIs / addresses |
+
 ## Develop
 
 ```bash
@@ -68,6 +150,29 @@ pnpm turbo run build     # build all packages + apps
 pnpm turbo run dev       # run all in watch mode
 cd packages/contracts && forge build && forge test
 ```
+
+## Test
+
+```bash
+pnpm turbo run test                      # unit/integration across the workspace
+pnpm turbo run lint                      # eslint + prettier
+cd packages/contracts && forge test      # Solidity tests (Foundry)
+```
+
+## Seed the demo
+
+```bash
+pnpm seed:demo   # one-shot: on-chain register (×2) + donation + investIdle, then offchain metadata/rails
+```
+
+Idempotent and preflight-guarded (fails loud if the deployer key is underfunded). It leaves the PARAMETRIC flagship **armed** — fire it live in the demo.
+
+## 90-second demo runbook (Philippines typhoon)
+
+1. **Browse** `https://app.amanah.help` — the seeded flagship (PH typhoon) is featured; the "same engine, any cause" section shows the breadth.
+2. **Open & donate** — click the flagship to open its campaign page (`/f/ph-typhoon-2025`), then **Donate now** → gasless, any mock stablecoin, with an approve → donate → done stepper; the donation appears on `/ledger` as a real on-chain row (seeded close to demo time; `INDEXER_CONFIRMATIONS` is low in the demo env so it surfaces fast).
+3. **Route** the payout — the AI off-ramp router proposes the best rail (live Claude call; deterministic fallback if unavailable).
+4. **Fire the trigger** — from the operator console, fire the typhoon parametric trigger → the on-chain release happens live, visible in the ledger. (Idle-yield from `investIdle` is already reflected.)
 
 ## Deploy to the VPS (Docker)
 
@@ -102,21 +207,6 @@ forge script script/Deploy.s.sol:Deploy --rpc-url $BASE_SEPOLIA_RPC_URL --broadc
 node script/export-shared.mjs   # regenerate @amanah/shared addresses/ABIs
 ```
 
-## Seed the demo
-
-```bash
-pnpm seed:demo   # one-shot: on-chain register (×2) + donation + investIdle, then offchain metadata/rails
-```
-
-Idempotent and preflight-guarded (fails loud if the deployer key is underfunded). It leaves the PARAMETRIC flagship **armed** — fire it live in the demo.
-
-## 90-second demo runbook (Philippines typhoon)
-
-1. **Browse** `https://app.amanah.help` — the seeded flagship (PH typhoon) is featured; the "same engine, any cause" section shows the breadth.
-2. **Open & donate** — click the flagship to open its campaign page (`/f/ph-typhoon-2025`), then **Donate now** → gasless, any mock stablecoin, with an approve → donate → done stepper; the donation appears on `/ledger` as a real on-chain row (seeded close to demo time; `INDEXER_CONFIRMATIONS` is low in the demo env so it surfaces fast).
-3. **Route** the payout — the AI off-ramp router proposes the best rail (live Claude call; deterministic fallback if unavailable).
-4. **Fire the trigger** — from the operator console, fire the typhoon parametric trigger → the on-chain release happens live, visible in the ledger. (Idle-yield from `investIdle` is already reflected.)
-
 ## Real vs mocked (honesty note)
 
 - **Real:** all contracts on Base Sepolia; donations, releases, and `investIdle` are genuine on-chain txs; the indexer mirrors real events; the agent makes real Claude calls.
@@ -147,6 +237,6 @@ Idempotent and preflight-guarded (fails loud if the deployer key is underfunded)
 | MockYieldVault | `0x46c504396857f9c67d0db8229DE50d112aec4cf7` |
 | MockHalalVault | `0x15b248cD7939a4b9E1f6c06AC91D53d04B9ccB3B` |
 
-**Demo video:** _TODO — add link after recording._
+**Demo video:** https://www.youtube.com/watch?v=7N5-Li4SaQ4
 
 > `v1.0-demo` captures source + the committed `deployments/84532.json` + docs. It cannot capture the gitignored VPS `.env` (secrets), the built images, Postgres data, or minted balances — a reviewer must supply those. Rollback is code/image only (`git checkout <tag>` + rebuild); on-chain state and applied migrations are forward-only.

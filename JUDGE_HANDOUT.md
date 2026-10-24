@@ -17,7 +17,7 @@ One platform, any cause or disaster. On-chain charitable relief on Base Sepolia:
 | API | https://api.amanah.help |
 | Agent | internal-only (not publicly routed — paid Claude endpoint) |
 
-**Demo video:** _TODO — add link after recording._
+**Demo video:** https://www.youtube.com/watch?v=7N5-Li4SaQ4
 
 ## Watch it work
 
