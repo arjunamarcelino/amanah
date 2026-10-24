@@ -21,6 +21,7 @@ import { storyFor } from "@/lib/story";
 import { FundingProgress } from "@/components/FundingProgress";
 import { CauseTag } from "@/components/CauseTag";
 import { CampaignCard } from "@/components/CampaignCard";
+import { CampaignEntranceEffect } from "@/components/CampaignEntranceEffect";
 
 // GoFundMe-style fundraiser page. Cards link here (not straight to /donate); the sidebar's
 // "Donate now" button is the redirect into the donate flow. Layout: hero → [story | sticky
@@ -84,6 +85,7 @@ export function CampaignDetail({
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-8 sm:px-6 md:py-10">
+      <CampaignEntranceEffect campaign={campaign} />
       <div className="flex flex-col gap-5">
         <div className="flex flex-wrap items-center gap-2">
           <CauseTag type={campaign.type} />

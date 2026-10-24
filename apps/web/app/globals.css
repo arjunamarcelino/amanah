@@ -54,3 +54,28 @@
     font-optical-sizing: auto;
   }
 }
+
+/* ── Campaign entrance-effect keyframes (CampaignEntranceEffect) ──────────────
+   Semi-transparent, themed disaster/cause overlays on the detail page. Gated by
+   prefers-reduced-motion at the component (renders a static version instead). */
+@keyframes fx-drift {
+  0% { transform: translate3d(-6%, 0, 0) scale(1); }
+  50% { transform: translate3d(6%, -3%, 0) scale(1.12); }
+  100% { transform: translate3d(-6%, 0, 0) scale(1); }
+}
+@keyframes fx-rise {
+  0% { transform: translateY(16vh); opacity: 0; }
+  12% { opacity: 1; }
+  100% { transform: translateY(-18vh); opacity: 0; }
+}
+@keyframes fx-rain {
+  0% { transform: translateY(-20vh); }
+  100% { transform: translateY(120vh); }
+}
+@keyframes fx-ring {
+  0% { transform: scale(0.25); opacity: 0.55; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-anim { animation: none !important; }
+}
