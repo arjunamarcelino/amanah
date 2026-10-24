@@ -44,12 +44,17 @@ const cols = (n: number) => Array.from({ length: n }, (_, i) => i);
 export function CampaignEntranceEffect({ campaign }: { campaign: CampaignResponse }) {
   const reduce = useReducedMotion();
   const [visible, setVisible] = useState(false);
+  const [entered, setEntered] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const key = `amanah.fx.seen.${campaign.campaignId.toLowerCase()}`;
 
   useEffect(() => {
     try {
-      if (!sessionStorage.getItem(key)) setVisible(true);
+      if (!sessionStorage.getItem(key)) {
+        setVisible(true);
+        // next frame → opacity transitions 0 → 1 for a smooth fade-in (not a hard cut).
+        requestAnimationFrame(() => setEntered(true));
+      }
     } catch {
       /* sessionStorage unavailable → just don't show */
     }
@@ -77,8 +82,8 @@ export function CampaignEntranceEffect({ campaign }: { campaign: CampaignRespons
       aria-label={copy.aria}
       onClick={dismiss}
       className={cn(
-        "fixed inset-0 z-[60] flex cursor-pointer items-center justify-center overflow-hidden transition-opacity duration-500",
-        leaving ? "opacity-0" : "opacity-100",
+        "fixed inset-0 z-[60] flex cursor-pointer items-center justify-center overflow-hidden transition-opacity duration-700 ease-out",
+        leaving || !entered ? "opacity-0" : "opacity-100",
       )}
     >
       <EffectLayers kind={kind} reduce={!!reduce} />
@@ -101,22 +106,36 @@ function EffectLayers({ kind, reduce }: { kind: Kind; reduce: boolean }) {
   );
 
   if (kind === "smoke") {
+    // Overall soft haze over a blurred page; slow, large, overlapping fog blobs that drift +
+    // breathe so they read as one continuous, smooth haze (not discrete puffs).
     return (
       <>
-        <div className="absolute inset-0 bg-neutral-600/55 backdrop-blur-md" />
-        {!reduce &&
+        <div className="absolute inset-0 bg-neutral-500/45 backdrop-blur-xl" />
+        {reduce ? (
+          <div className="absolute inset-0 bg-neutral-400/25 blur-2xl" />
+        ) : (
           [
-            { l: "8%", t: "20%", s: "40vw", d: 11, delay: 0 },
-            { l: "55%", t: "10%", s: "46vw", d: 14, delay: 1.5 },
-            { l: "30%", t: "55%", s: "50vw", d: 12, delay: 0.8 },
-            { l: "70%", t: "60%", s: "38vw", d: 13, delay: 2.2 },
+            { l: "-8%", t: "6%", s: "62vw", d: 26, delay: 0 },
+            { l: "48%", t: "-6%", s: "66vw", d: 30, delay: 3 },
+            { l: "22%", t: "42%", s: "72vw", d: 24, delay: 1.5 },
+            { l: "62%", t: "48%", s: "58vw", d: 28, delay: 4.5 },
+            { l: "6%", t: "62%", s: "60vw", d: 32, delay: 2 },
+            { l: "72%", t: "12%", s: "52vw", d: 22, delay: 5.5 },
           ].map((b, i) => (
             <div
               key={i}
-              className="fx-anim absolute rounded-full bg-neutral-300/30 blur-3xl"
-              style={{ left: b.l, top: b.t, width: b.s, height: b.s, animation: `fx-drift ${b.d}s ease-in-out ${b.delay}s infinite` }}
+              className="fx-anim absolute rounded-full bg-neutral-300/25"
+              style={{
+                left: b.l,
+                top: b.t,
+                width: b.s,
+                height: b.s,
+                filter: "blur(80px)",
+                animation: `fx-fog ${b.d}s ease-in-out ${b.delay}s infinite`,
+              }}
             />
-          ))}
+          ))
+        )}
         {vignette}
       </>
     );
