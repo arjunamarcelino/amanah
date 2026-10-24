@@ -13,7 +13,7 @@ import type { Address } from "viem";
 
 /** Slugs the console knows how to drive. A typed union (not Record<string,…>) so a
  * miss is visible and `apps/web` doesn't need noUncheckedIndexedAccess to stay sound. */
-export type DemoSlug = "ph-typhoon-2025" | "edu-waqf-2025";
+export type DemoSlug = "ph-typhoon-2025" | "edu-waqf-2025" | "id-forest-fire-2026";
 
 export type ReleasePreset = {
   beneficiary: Address;
@@ -33,6 +33,11 @@ export const RELEASE_PRESETS: Record<DemoSlug, ReleasePreset> = {
     beneficiary: "0x000000000000000000000000000000000000bEEF",
     trancheAmount: 300_000_000n, // 300 USDC
     detail: "School supplies delivered",
+  },
+  "id-forest-fire-2026": {
+    beneficiary: "0x000000000000000000000000000000000000f13e",
+    trancheAmount: 500_000_000n, // 500 USDC
+    detail: "Forest-fire haze emergency, Sumatra",
   },
 };
 
