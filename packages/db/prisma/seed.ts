@@ -22,7 +22,7 @@ const campaigns = [
     slug: "ph-typhoon-2025",
     type: "disaster",
     cause: "Typhoon disaster relief",
-    name: "Philippines Typhoon 2025 (flagship)",
+    name: "Philippines Typhoon 2026 (flagship)",
     country: "PH",
     releaseType: "PARAMETRIC" as const,
     recipientOrg: "PH Disaster Relief Network",
