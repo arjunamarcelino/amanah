@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
+import { CheckIcon } from "@amanah/ui/check-icon";
 import { useDonorWallet } from "@/lib/hooks/useDonorWallet";
 import { assertNever } from "@/lib/assertNever";
 
@@ -52,7 +53,7 @@ export function LoginView() {
             <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-foreground-soft">
               {["Gasless", "Any stablecoin", "Fully on-chain"].map((t) => (
                 <li key={t} className="inline-flex items-center gap-1.5">
-                  <Check />
+                  <CheckIcon className="text-primary" />
                   {t}
                 </li>
               ))}
@@ -118,22 +119,5 @@ function Hint({ children }: { children: ReactNode }) {
     <p role="status" className="text-sm text-foreground-soft">
       {children}
     </p>
-  );
-}
-
-function Check() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className="size-4 text-primary"
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
   );
 }

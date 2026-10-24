@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@amanah/ui/lib/utils";
+import { CheckIcon } from "@amanah/ui/check-icon";
 import type { OperatorStep, OperatorStepName } from "@/lib/console/operatorStep";
 
 // Visible operator workflow: Donations → Release condition → Unlock (T+N) → Release tranche →
@@ -46,7 +47,7 @@ export function OperatorStepper({ step }: { step: OperatorStep }) {
                   !done && !active && "border-border text-muted-foreground",
                 )}
               >
-                {done ? <Check /> : i + 1}
+                {done ? <CheckIcon /> : i + 1}
               </span>
               <span
                 className={cn(
@@ -64,13 +65,5 @@ export function OperatorStepper({ step }: { step: OperatorStep }) {
         );
       })}
     </ol>
-  );
-}
-
-function Check() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="size-4">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
   );
 }

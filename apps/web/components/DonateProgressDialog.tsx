@@ -5,6 +5,7 @@ import Link from "next/link";
 import { txUrl } from "@amanah/shared";
 import { Button } from "@amanah/ui/button";
 import { cn } from "@amanah/ui/lib/utils";
+import { CheckIcon } from "@amanah/ui/check-icon";
 import type { Hex } from "viem";
 import type { TxPhase } from "@/lib/tx";
 import type { DonateStage } from "@/lib/hooks/useDonateEngine";
@@ -125,7 +126,7 @@ function Stepper({
                   !done && !active && "border-border text-muted-foreground",
                 )}
               >
-                {done ? <Check /> : active && !stepErrored ? <Spinner /> : stepErrored ? "!" : i + 1}
+                {done ? <CheckIcon /> : active && !stepErrored ? <Spinner /> : stepErrored ? "!" : i + 1}
               </span>
               <span
                 className={cn(
@@ -203,14 +204,6 @@ function Success({
         </Button>
       </div>
     </div>
-  );
-}
-
-function Check() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="size-4">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
   );
 }
 
