@@ -94,6 +94,16 @@ export function CampaignEntranceEffect({ campaign }: { campaign: CampaignRespons
     dismissTimer.current = window.setTimeout(() => setVisible(false), 500);
   }, [key]);
 
+  // Keyboard parity with the tap/button dismiss: Escape closes the modal overlay while it's shown.
+  useEffect(() => {
+    if (!visible) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") dismiss();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [visible, dismiss]);
+
   if (!visible) return null;
   const kind = effectFor(campaign);
   const copy = COPY[kind];
