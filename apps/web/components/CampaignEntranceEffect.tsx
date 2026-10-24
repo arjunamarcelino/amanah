@@ -116,7 +116,9 @@ function EffectLayers({ kind, reduce }: { kind: Kind; reduce: boolean }) {
     // (static filter, CSS-driven motion → smooth and cheap). The page stays visible behind.
     return (
       <>
-        <div className="absolute inset-0 bg-neutral-500/35 backdrop-blur-lg" />
+        {/* backdrop-blur-sm (not -lg): a smaller blur radius is far cheaper to recompute while
+            the overlay opacity animates — the feTurbulence texture carries the haze look. */}
+        <div className="absolute inset-0 bg-neutral-500/40 backdrop-blur-sm" />
         {reduce ? (
           <div className="absolute inset-0 bg-neutral-400/30 blur-2xl" />
         ) : (
