@@ -54,3 +54,37 @@
     font-optical-sizing: auto;
   }
 }
+
+/* ── Campaign entrance-effect keyframes (CampaignEntranceEffect) ──────────────
+   Semi-transparent, themed disaster/cause overlays on the detail page. Gated by
+   prefers-reduced-motion at the component (renders a static version instead). */
+@keyframes fx-rise {
+  0% { transform: translateY(16vh); opacity: 0; }
+  12% { opacity: 1; }
+  100% { transform: translateY(-18vh); opacity: 0; }
+}
+@keyframes fx-rain {
+  0% { transform: translateY(-20vh); }
+  100% { transform: translateY(120vh); }
+}
+@keyframes fx-ring {
+  0% { transform: scale(0.25); opacity: 0.55; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+/* Realistic smoke: a static SVG feTurbulence texture slowly drifted/scaled by CSS (cheap —
+   no per-frame filter recompute) so it churns smoothly like real haze. */
+@keyframes fx-smoke-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1.1); }
+  50%  { transform: translate3d(-5%, -3%, 0) scale(1.24); }
+  100% { transform: translate3d(0, 0, 0) scale(1.1); }
+}
+.fx-smoke {
+  animation: fx-smoke-drift 42s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* JS already skips the SVG smoke under reduced motion; pin .fx-smoke here too for
+     defense-in-depth so the drift can never animate regardless of render path. */
+  .fx-anim,
+  .fx-smoke { animation: none !important; }
+}

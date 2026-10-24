@@ -33,12 +33,18 @@ export function OwnerGate({ children }: { children: ReactNode }) {
     return (
       <Gate
         title="Connect the owner wallet"
-        body="The operator console signs owner-only transactions. Connect the injected wallet (MetaMask) holding the protocol owner key."
+        body="The operator console signs owner-only transactions. Connect a browser wallet (e.g. MetaMask) holding the protocol owner key."
       >
-        <Button disabled={connecting || !connector} onClick={() => connector && connect({ connector })}>
+        <Button
+          disabled={connecting || !connector}
+          onClick={() => connector && connect({ connector })}
+          className="rounded-full px-6 font-semibold"
+        >
           {connecting ? "Connecting…" : "Connect wallet"}
         </Button>
-        {connectError && <p className="mt-3 text-destructive">{connectError.message}</p>}
+        {connectError ? (
+          <p className="mt-3 text-sm text-destructive">{connectErrorMessage(connectError)}</p>
+        ) : null}
       </Gate>
     );
   }
@@ -69,12 +75,33 @@ export function OwnerGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// Map wagmi connect errors to operator-friendly guidance. ProviderNotFoundError means no
+// injected wallet owns window.ethereum — almost always "no wallet extension installed".
+function connectErrorMessage(err: Error): string {
+  const text = `${err.name} ${err.message}`;
+  if (/ProviderNotFound|Provider not found/i.test(text)) {
+    return "No browser wallet detected. Install MetaMask (or another EVM wallet extension), then reload this page.";
+  }
+  if (/User rejected|rejected the request/i.test(text)) {
+    return "Connection request was rejected in your wallet.";
+  }
+  // Don't surface raw wallet/provider error text to the operator — a fixed generic string
+  // is airtight (no internals leaked) and the two actionable cases are handled above.
+  return "Could not connect your wallet. Make sure it's unlocked, then try again.";
+}
+
 function Gate({ title, body, children }: { title: string; body: string; children?: ReactNode }) {
   return (
-    <div className="mx-auto mt-10 max-w-md rounded-lg border border-border bg-card p-6">
-      <h2 className="font-serif text-lg text-foreground">{title}</h2>
+    <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center px-6 py-12 text-center">
+      <span className="inline-flex size-14 items-center justify-center rounded-full bg-accent text-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="size-7">
+          <rect x="4" y="11" width="16" height="9" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </svg>
+      </span>
+      <h2 className="mt-4 font-serif text-2xl tracking-tight text-foreground">{title}</h2>
       <p className="mt-2 text-sm text-foreground-soft">{body}</p>
-      {children && <div className="mt-4">{children}</div>}
-    </div>
+      {children ? <div className="mt-5 flex flex-col items-center">{children}</div> : null}
+    </main>
   );
 }

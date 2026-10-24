@@ -8,12 +8,13 @@ import type { Address } from "viem";
 // `country` is intentionally NOT here: it must match the candidate rails, so the
 // route step derives it from the selected campaign, not a hand-seeded preset.
 //
-// Keep these aligned with scripts/seed-demo (PROMPT 12): same slugs, same
-// beneficiary addresses, same amounts.
+// Keep these slugs aligned with the demo seeds that register/fund the same campaigns:
+// packages/contracts/script/DemoSeed.s.sol (on-chain) and packages/db/prisma/seed.ts
+// (offchain metadata) — all three derive campaignId via campaignIdFromSlug(slug).
 
 /** Slugs the console knows how to drive. A typed union (not Record<string,…>) so a
  * miss is visible and `apps/web` doesn't need noUncheckedIndexedAccess to stay sound. */
-export type DemoSlug = "ph-typhoon-2025" | "edu-waqf-2025";
+export type DemoSlug = "ph-typhoon-2025" | "id-forest-fire-2026";
 
 export type ReleasePreset = {
   beneficiary: Address;
@@ -23,16 +24,21 @@ export type ReleasePreset = {
   detail: string;
 };
 
+// ⚠️ TESTNET DEMO ONLY. The `beneficiary` addresses below are deliberate burn/placeholder
+// addresses (0x…dEaD, 0x…f13e) — they can NEVER receive or move funds. This is safe only
+// because the demo runs on Base Sepolia with mock stablecoins (mUSDC/mXSGD/mIDRX) that have
+// no real value. Before any mainnet deployment these MUST be replaced with real, custodied
+// recipient addresses, or released tranches will be permanently unrecoverable.
 export const RELEASE_PRESETS: Record<DemoSlug, ReleasePreset> = {
   "ph-typhoon-2025": {
     beneficiary: "0x000000000000000000000000000000000000dEaD",
     trancheAmount: 500_000_000n, // 500 USDC
     detail: "Typhoon Cat 4, Tacloban",
   },
-  "edu-waqf-2025": {
-    beneficiary: "0x000000000000000000000000000000000000bEEF",
-    trancheAmount: 300_000_000n, // 300 USDC
-    detail: "School supplies delivered",
+  "id-forest-fire-2026": {
+    beneficiary: "0x000000000000000000000000000000000000f13e",
+    trancheAmount: 500_000_000n, // 500 USDC
+    detail: "Forest-fire haze emergency, Sumatra",
   },
 };
 

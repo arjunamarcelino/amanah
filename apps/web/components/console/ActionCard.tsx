@@ -3,6 +3,7 @@
 import type { Hex } from "viem";
 import { Button } from "@amanah/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
+import { CONSOLE_CARD } from "@/lib/console/ui";
 import { TxStatus, type TxPhase } from "@/components/TxStatus";
 
 // Shared shell for the simple single-button owner actions (invest / accrue): title +
@@ -32,7 +33,7 @@ export function ActionCard({
   disabled?: boolean;
 }) {
   return (
-    <Card>
+    <Card className={CONSOLE_CARD}>
       <CardHeader>
         <CardTitle className="font-serif text-lg">{title}</CardTitle>
       </CardHeader>

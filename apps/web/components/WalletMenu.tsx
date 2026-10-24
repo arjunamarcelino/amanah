@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatEther } from "viem";
 import { Button } from "@amanah/ui/button";
 import { cn } from "@amanah/ui/lib/utils";
+import { CheckIcon } from "@amanah/ui/check-icon";
 import { useDonorWallet } from "@/lib/hooks/useDonorWallet";
 import { useCopied } from "@/lib/hooks/useCopied";
 import { shortAddress } from "@/lib/address";
@@ -124,7 +125,7 @@ function AccountMenu({
                 {address}
               </span>
               <span className="mt-0.5 shrink-0 text-foreground-soft group-hover/copy:text-primary">
-                {copied ? <CheckIcon /> : <CopyIcon />}
+                {copied ? <CheckIcon className="text-primary" /> : <CopyIcon />}
               </span>
             </button>
             <span
@@ -211,23 +212,6 @@ function CopyIcon() {
     >
       <rect x="9" y="9" width="13" height="13" rx="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className="size-4 text-primary"
-    >
-      <path d="M20 6 9 17l-5-5" />
     </svg>
   );
 }

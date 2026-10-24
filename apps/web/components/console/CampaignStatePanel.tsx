@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
+import { CONSOLE_CARD } from "@/lib/console/ui";
 import { Badge } from "@amanah/ui/badge";
 import { formatTokenAmount } from "@/lib/amount";
 import type { OperatorStep } from "@/lib/console/operatorStep";
@@ -33,7 +34,7 @@ export function CampaignStatePanel({
   const fmt = (v: bigint | undefined) => (v === undefined ? "—" : `${formatTokenAmount(v)} USDC`);
 
   return (
-    <Card>
+    <Card className={CONSOLE_CARD}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between font-serif text-lg">
           <span>{campaignName ?? "Campaign"}</span>

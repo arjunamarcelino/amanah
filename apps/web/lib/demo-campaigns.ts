@@ -40,6 +40,15 @@ const BY_SLUG: Record<string, Omit<DemoCampaign, "slug">> = {
       "Every movement of funds is recorded on-chain, so the community can verify the waqf is managed faithfully, in perpetuity.",
     ],
   },
+  "id-forest-fire-2026": {
+    // Reuse the general relief cover (no dedicated forest-fire asset yet).
+    cover: "/campaigns/relief.jpg",
+    story: [
+      "Forest and peatland fires are sweeping across Indonesia again, blanketing whole regions in toxic haze. Families are fleeing their homes, schools and markets have closed, and clinics are filling with people struggling to breathe.",
+      "This fund delivers emergency relief to the residents worst affected — clean water, N95 masks and air filtration, food, and medical care for smoke-related illness. Because release is parametric, the on-chain trigger fires the moment the disaster threshold is met: no committee, no delay, the condition is the authorization.",
+      "Funds move to vetted local responders, and every movement is a public event on Base. You can follow your gift from the moment you give to the moment it reaches a family on the ground.",
+    ],
+  },
 };
 
 /** Demo presentation data keyed by lowercased campaignId (the join key used across the app). */

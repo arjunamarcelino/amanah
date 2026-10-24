@@ -25,10 +25,14 @@ import {IYieldAdapter} from "../src/yield/IYieldAdapter.sol";
 contract DemoSeed is Script {
     string internal constant FLAGSHIP_SLUG = "ph-typhoon-2025"; // PARAMETRIC (armed, not fired)
     string internal constant MILESTONE_SLUG = "id-rural-school-supplies"; // MILESTONE (registered)
+    string internal constant FIRE_SLUG = "id-forest-fire-2026"; // PARAMETRIC (armed, not fired)
 
     uint256 internal constant SEED_AMOUNT = 100e6; // 100 mUSDC (6 decimals)
-    // Preflight floor: ~10x headroom for ~6 cheap L2 txs (2x register, mint, approve,
-    // donate, investIdle).
+    // Forest-fire campaign funded ABOVE its console preset tranche (500 mUSDC) so a demo
+    // releaseTranche doesn't revert ExceedsCampaignFunds (releaseTranche does not cap).
+    uint256 internal constant FIRE_SEED_AMOUNT = 600e6; // 600 mUSDC
+    // Preflight floor: ~10x headroom for ~9 cheap L2 txs (3x register, 2x mint/approve/donate,
+    // investIdle).
     uint256 internal constant MIN_ETH = 0.005 ether;
     uint16 internal constant MAX_BPS = 10_000; // mirrors CharityPool.MAX_BPS
 
@@ -75,6 +79,19 @@ contract DemoSeed is Script {
             console2.log("DemoSeed: milestone already registered - skip");
         }
 
+        // Scoped block: these locals are freed before the donation section below, so they
+        // don't deepen the stack at the mint/approve/donate calls (avoids "stack too deep").
+        {
+            bytes32 fireId = keccak256(bytes(FIRE_SLUG));
+            (bool fireRegistered,) = rc.campaignInfo(fireId);
+            if (!fireRegistered) {
+                rc.registerCampaign(fireId, IReleaseController.ReleaseType.PARAMETRIC);
+                console2.log("DemoSeed: registered PARAMETRIC forest-fire (id-forest-fire-2026)");
+            } else {
+                console2.log("DemoSeed: forest-fire already registered - skip");
+            }
+        }
+
         // 3. Idempotent mint + approve + donate to the flagship. Guard on the
         // per-campaign cumulative tally (donatedByCampaign) — skip if already seeded.
         if (needDonation) {
@@ -87,6 +104,10 @@ contract DemoSeed is Script {
             console2.log("DemoSeed: donation skipped");
         }
 
+        // 3b. Fund the forest-fire PARAMETRIC campaign above its console preset tranche so a
+        // demo releaseTranche doesn't revert ExceedsCampaignFunds. (keccak inline — no local.)
+        _seedDonation(pool, musdc, deployer, keccak256(bytes(FIRE_SLUG)), FIRE_SEED_AMOUNT, consentHash);
+
         // 4. Idempotent investIdle() (extracted to keep run()'s stack shallow).
         _investIdleIfSurplus(pool, musdc);
 
@@ -94,6 +115,26 @@ contract DemoSeed is Script {
 
         // 5. fire() intentionally NOT called: PARAMETRIC flagship left ARMED for the demo.
         console2.log("DemoSeed: done. Flagship left ARMED (not fired).");
+    }
+
+    // Idempotent mint+approve+donate bringing donatedByCampaign[campaignId] up to `amount`
+    // (skips if already ≥). Own frame keeps run()'s stack shallow. Call within a broadcast.
+    function _seedDonation(
+        CharityPool pool,
+        MockStablecoin token,
+        address donor,
+        bytes32 campaignId,
+        uint256 amount,
+        bytes32 consentHash
+    ) internal {
+        if (pool.donatedByCampaign(campaignId) >= amount) {
+            console2.log("DemoSeed: campaign already funded - donation skipped");
+            return;
+        }
+        token.mint(donor, amount);
+        token.approve(address(pool), amount);
+        uint256 baseOut = pool.donate(campaignId, address(token), amount, consentHash);
+        console2.log("DemoSeed: donated mUSDC to campaign, baseOut =", baseOut);
     }
 
     // Deploy idle base above the liquidity buffer into the active adapter — only if

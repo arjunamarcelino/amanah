@@ -12,8 +12,8 @@ const EVENT_BADGE: Record<string, { label: string; className: string }> = {
   SukukYieldAccrued: { label: "Sukuk yield", className: "bg-primary text-primary-foreground" },
   TriggerFired: { label: "Trigger fired", className: "bg-destructive text-destructive-foreground" },
   MilestoneApproved: { label: "Milestone approved", className: "bg-accent text-accent-foreground" },
-  TrancheReleased: { label: "Tranche released", className: "border border-primary text-primary" },
-  Routed: { label: "Routed", className: "border border-input text-foreground" },
+  TrancheReleased: { label: "Tranche released", className: "bg-accent text-accent-foreground" },
+  Routed: { label: "Routed", className: "bg-secondary text-secondary-foreground" },
   PayoutPending: { label: "Payout pending", className: "bg-muted text-muted-foreground" },
 };
 

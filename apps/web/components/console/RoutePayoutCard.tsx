@@ -12,6 +12,7 @@ import {
 } from "@amanah/shared";
 import { Button } from "@amanah/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
+import { CONSOLE_CARD } from "@/lib/console/ui";
 import { TxStatus } from "@/components/TxStatus";
 import { RouterAnimation } from "./RouterAnimation";
 import type { RouterPhase } from "./routerTypes";
@@ -130,7 +131,7 @@ export function RoutePayoutCard({
   const routed = payout.status === "routed";
 
   return (
-    <Card>
+    <Card className={CONSOLE_CARD}>
       <CardHeader>
         <CardTitle className="font-serif text-lg">Route payout</CardTitle>
       </CardHeader>
@@ -174,7 +175,10 @@ export function RoutePayoutCard({
           </p>
         )}
         {routeError && <p className="text-sm text-destructive">{routeError}</p>}
-        <TxStatus phase={txPhase} error={txError} txHash={txHash} pendingLabel="Disbursing…" />
+        {/* Hidden once routed — the "Paid · View on Basescan" line above already links the tx. */}
+        {!routed && (
+          <TxStatus phase={txPhase} error={txError} txHash={txHash} pendingLabel="Disbursing…" />
+        )}
       </CardContent>
     </Card>
   );
