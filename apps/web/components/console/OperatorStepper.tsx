@@ -20,7 +20,9 @@ const CURRENT_INDEX: Record<OperatorStepName, number> = {
   needs_trigger: 1,
   awaiting_unlock: 2,
   can_release: 3,
-  fully_released: 4,
+  // Everything released and nothing pending to route → all nodes done (NOT "Route payout"
+  // active, which would imply a routable tranche that doesn't exist in this state).
+  fully_released: STEPS.length,
   can_route: 4,
   paid: STEPS.length,
 };
