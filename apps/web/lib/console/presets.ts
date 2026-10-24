@@ -23,6 +23,11 @@ export type ReleasePreset = {
   detail: string;
 };
 
+// ⚠️ TESTNET DEMO ONLY. The `beneficiary` addresses below are deliberate burn/placeholder
+// addresses (0x…dEaD, 0x…f13e) — they can NEVER receive or move funds. This is safe only
+// because the demo runs on Base Sepolia with mock stablecoins (mUSDC/mXSGD/mIDRX) that have
+// no real value. Before any mainnet deployment these MUST be replaced with real, custodied
+// recipient addresses, or released tranches will be permanently unrecoverable.
 export const RELEASE_PRESETS: Record<DemoSlug, ReleasePreset> = {
   "ph-typhoon-2025": {
     beneficiary: "0x000000000000000000000000000000000000dEaD",
