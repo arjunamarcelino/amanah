@@ -82,8 +82,14 @@ export function CampaignEntranceEffect({ campaign }: { campaign: CampaignRespons
       aria-label={copy.aria}
       onClick={dismiss}
       className={cn(
-        "fixed inset-0 z-[60] flex cursor-pointer items-center justify-center overflow-hidden transition-opacity duration-[1200ms] ease-out",
-        leaving || !entered ? "opacity-0" : "opacity-100",
+        "fixed inset-0 z-[60] flex cursor-pointer items-center justify-center overflow-hidden transition-opacity ease-out",
+        // Entrance: 1.2s fade-in. Exit: a quick 500ms fade that MATCHES the unmount timeout, and
+        // pointer-events-none so the fading overlay stops eating clicks meant for the page.
+        leaving
+          ? "pointer-events-none opacity-0 duration-500"
+          : entered
+            ? "opacity-100 duration-[1200ms]"
+            : "opacity-0 duration-[1200ms]",
       )}
     >
       <EffectLayers kind={kind} reduce={!!reduce} />
