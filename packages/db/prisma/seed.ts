@@ -91,10 +91,11 @@ async function main() {
     const campaignId = campaignIdFromSlug(c.slug);
     await prisma.campaign.upsert({
       where: { campaignId },
-      // Metadata only on update — never reset indexer-owned registeredOnChain/active.
-      // goalBase IS rewritten here (presentation metadata): re-seeding resets it to the
-      // hardcoded value. Intentional today (the API/console can't set goalBase); revisit if a
-      // goal-editing surface ships, so a re-seed doesn't clobber an operator-set goal.
+      // Metadata on update — never reset the indexer-owned registeredOnChain. `active` IS set
+      // here (it's an offchain display flag the seed owns, NOT indexer-owned): if the indexer
+      // created a stub first (on CampaignRegistered → active=false) the update path must still
+      // activate these seeded campaigns, else they'd stay invisible in the grid. goalBase is
+      // also rewritten (presentation metadata) — revisit if a goal-editing surface ships.
       update: {
         type: c.type,
         cause: c.cause,
@@ -103,6 +104,7 @@ async function main() {
         releaseType: c.releaseType,
         recipientOrg: c.recipientOrg,
         goalBase: c.goalBase,
+        active: true,
       },
       create: {
         campaignId,
