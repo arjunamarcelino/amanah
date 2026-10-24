@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { Button } from "@amanah/ui/button";
 import { cn } from "@amanah/ui/lib/utils";
@@ -130,6 +130,8 @@ export function CampaignEntranceEffect({ campaign }: { campaign: CampaignRespons
 }
 
 function EffectLayers({ kind, reduce }: { kind: Kind; reduce: boolean }) {
+  // Unique per instance so two mounted overlays don't both bind url(#fx-smoke-filter).
+  const smokeFilterId = useId();
   const vignette = (
     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_48%,transparent,rgba(0,0,0,0.4))]" />
   );
@@ -152,7 +154,7 @@ function EffectLayers({ kind, reduce }: { kind: Kind; reduce: boolean }) {
           >
             {/* numOctaves 3 (near-identical for drifting haze) + a smaller filter region keep
                 the one-time feTurbulence rasterization cheap, esp. at high mobile DPR. */}
-            <filter id="fx-smoke-filter">
+            <filter id={smokeFilterId}>
               <feTurbulence
                 type="fractalNoise"
                 baseFrequency="0.012 0.018"
@@ -163,7 +165,7 @@ function EffectLayers({ kind, reduce }: { kind: Kind; reduce: boolean }) {
               {/* Map the noise to a translucent gray smoke: constant gray RGB, alpha from noise. */}
               <feColorMatrix type="matrix" values="0 0 0 0 0.72 0 0 0 0 0.72 0 0 0 0 0.72 0 0 0 1.1 -0.35" />
             </filter>
-            <rect width="100%" height="100%" filter="url(#fx-smoke-filter)" />
+            <rect width="100%" height="100%" filter={`url(#${smokeFilterId})`} />
           </svg>
         )}
         {vignette}
