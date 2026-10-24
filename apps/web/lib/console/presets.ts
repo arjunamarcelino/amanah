@@ -8,8 +8,9 @@ import type { Address } from "viem";
 // `country` is intentionally NOT here: it must match the candidate rails, so the
 // route step derives it from the selected campaign, not a hand-seeded preset.
 //
-// Keep these aligned with scripts/seed-demo (PROMPT 12): same slugs, same
-// beneficiary addresses, same amounts.
+// Keep these slugs aligned with the demo seeds that register/fund the same campaigns:
+// packages/contracts/script/DemoSeed.s.sol (on-chain) and packages/db/prisma/seed.ts
+// (offchain metadata) — all three derive campaignId via campaignIdFromSlug(slug).
 
 /** Slugs the console knows how to drive. A typed union (not Record<string,…>) so a
  * miss is visible and `apps/web` doesn't need noUncheckedIndexedAccess to stay sound. */
