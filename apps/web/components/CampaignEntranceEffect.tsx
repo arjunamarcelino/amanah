@@ -123,15 +123,17 @@ function EffectLayers({ kind, reduce }: { kind: Kind; reduce: boolean }) {
           <div className="absolute inset-0 bg-neutral-400/30 blur-2xl" />
         ) : (
           <svg
-            className="fx-smoke absolute inset-[-20%] h-[140%] w-[140%]"
+            className="fx-smoke absolute inset-[-12%] h-[124%] w-[124%]"
             preserveAspectRatio="xMidYMid slice"
             aria-hidden
           >
+            {/* numOctaves 3 (near-identical for drifting haze) + a smaller filter region keep
+                the one-time feTurbulence rasterization cheap, esp. at high mobile DPR. */}
             <filter id="fx-smoke-filter">
               <feTurbulence
                 type="fractalNoise"
                 baseFrequency="0.012 0.018"
-                numOctaves="4"
+                numOctaves="3"
                 seed="7"
                 stitchTiles="stitch"
               />
