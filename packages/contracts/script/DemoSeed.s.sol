@@ -25,6 +25,7 @@ import {IYieldAdapter} from "../src/yield/IYieldAdapter.sol";
 contract DemoSeed is Script {
     string internal constant FLAGSHIP_SLUG = "ph-typhoon-2025"; // PARAMETRIC (armed, not fired)
     string internal constant MILESTONE_SLUG = "id-rural-school-supplies"; // MILESTONE (registered)
+    string internal constant FIRE_SLUG = "id-forest-fire-2026"; // PARAMETRIC (armed, not fired)
 
     uint256 internal constant SEED_AMOUNT = 100e6; // 100 mUSDC (6 decimals)
     // Preflight floor: ~10x headroom for ~6 cheap L2 txs (2x register, mint, approve,
@@ -73,6 +74,19 @@ contract DemoSeed is Script {
             console2.log("DemoSeed: registered MILESTONE (id-rural-school-supplies)");
         } else {
             console2.log("DemoSeed: milestone already registered - skip");
+        }
+
+        // Scoped block: these locals are freed before the donation section below, so they
+        // don't deepen the stack at the mint/approve/donate calls (avoids "stack too deep").
+        {
+            bytes32 fireId = keccak256(bytes(FIRE_SLUG));
+            (bool fireRegistered,) = rc.campaignInfo(fireId);
+            if (!fireRegistered) {
+                rc.registerCampaign(fireId, IReleaseController.ReleaseType.PARAMETRIC);
+                console2.log("DemoSeed: registered PARAMETRIC forest-fire (id-forest-fire-2026)");
+            } else {
+                console2.log("DemoSeed: forest-fire already registered - skip");
+            }
         }
 
         // 3. Idempotent mint + approve + donate to the flagship. Guard on the

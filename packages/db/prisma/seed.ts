@@ -58,6 +58,16 @@ const campaigns = [
     recipientOrg: "Waqf Board",
     goalBase: goalBase(75_000),
   },
+  {
+    slug: "id-forest-fire-2026",
+    type: "disaster",
+    cause: "Emergency relief for residents affected by Indonesia's forest fires",
+    name: "Indonesia Forest Fire Relief 2026",
+    country: "ID",
+    releaseType: "PARAMETRIC" as const,
+    recipientOrg: "Indonesia Disaster Relief Network",
+    goalBase: goalBase(150_000),
+  },
 ];
 
 const railsPH = [
