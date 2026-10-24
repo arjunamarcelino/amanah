@@ -124,6 +124,9 @@ then serves the real flag and the donate gate opens.
 ## Related
 
 - PR [#12](https://github.com/arjunamarcelino/amanah/pull/12)
+- The *offchain-owned* sibling flag `active` has the mirror-image ordering trap — the seed must
+  re-assert it on the upsert UPDATE branch or an indexer-first stub stays `active=false`:
+  [`seed-upsert-update-branch-drops-active-flag.md`](./seed-upsert-update-branch-drops-active-flag.md)
 - Indexer reading events over a public RPC:
   [`browser-reading-unindexed-events-public-rpc.md`](./browser-reading-unindexed-events-public-rpc.md)
 - Prisma upsert / on-conflict pattern the flag-writer relies on:
