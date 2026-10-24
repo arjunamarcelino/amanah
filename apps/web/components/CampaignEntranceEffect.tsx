@@ -82,7 +82,7 @@ export function CampaignEntranceEffect({ campaign }: { campaign: CampaignRespons
       aria-label={copy.aria}
       onClick={dismiss}
       className={cn(
-        "fixed inset-0 z-[60] flex cursor-pointer items-center justify-center overflow-hidden transition-opacity duration-700 ease-out",
+        "fixed inset-0 z-[60] flex cursor-pointer items-center justify-center overflow-hidden transition-opacity duration-[1200ms] ease-out",
         leaving || !entered ? "opacity-0" : "opacity-100",
       )}
     >
@@ -106,35 +106,32 @@ function EffectLayers({ kind, reduce }: { kind: Kind; reduce: boolean }) {
   );
 
   if (kind === "smoke") {
-    // Overall soft haze over a blurred page; slow, large, overlapping fog blobs that drift +
-    // breathe so they read as one continuous, smooth haze (not discrete puffs).
+    // Realistic haze: a soft blurred base + an SVG feTurbulence smoke texture slowly drifting
+    // (static filter, CSS-driven motion → smooth and cheap). The page stays visible behind.
     return (
       <>
-        <div className="absolute inset-0 bg-neutral-500/45 backdrop-blur-xl" />
+        <div className="absolute inset-0 bg-neutral-500/35 backdrop-blur-lg" />
         {reduce ? (
-          <div className="absolute inset-0 bg-neutral-400/25 blur-2xl" />
+          <div className="absolute inset-0 bg-neutral-400/30 blur-2xl" />
         ) : (
-          [
-            { l: "-8%", t: "6%", s: "62vw", d: 26, delay: 0 },
-            { l: "48%", t: "-6%", s: "66vw", d: 30, delay: 3 },
-            { l: "22%", t: "42%", s: "72vw", d: 24, delay: 1.5 },
-            { l: "62%", t: "48%", s: "58vw", d: 28, delay: 4.5 },
-            { l: "6%", t: "62%", s: "60vw", d: 32, delay: 2 },
-            { l: "72%", t: "12%", s: "52vw", d: 22, delay: 5.5 },
-          ].map((b, i) => (
-            <div
-              key={i}
-              className="fx-anim absolute rounded-full bg-neutral-300/25"
-              style={{
-                left: b.l,
-                top: b.t,
-                width: b.s,
-                height: b.s,
-                filter: "blur(80px)",
-                animation: `fx-fog ${b.d}s ease-in-out ${b.delay}s infinite`,
-              }}
-            />
-          ))
+          <svg
+            className="fx-smoke absolute inset-[-20%] h-[140%] w-[140%]"
+            preserveAspectRatio="xMidYMid slice"
+            aria-hidden
+          >
+            <filter id="fx-smoke-filter">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.012 0.018"
+                numOctaves="4"
+                seed="7"
+                stitchTiles="stitch"
+              />
+              {/* Map the noise to a translucent gray smoke: constant gray RGB, alpha from noise. */}
+              <feColorMatrix type="matrix" values="0 0 0 0 0.72 0 0 0 0 0.72 0 0 0 0 0.72 0 0 0 1.1 -0.35" />
+            </filter>
+            <rect width="100%" height="100%" filter="url(#fx-smoke-filter)" />
+          </svg>
         )}
         {vignette}
       </>
