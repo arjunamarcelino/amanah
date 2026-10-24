@@ -31,11 +31,11 @@ export function effectFor(c: CampaignResponse): Kind {
 }
 
 const COPY: Record<Kind, { headline: string; button: string; aria: string }> = {
-  smoke: { headline: "Haze blankets the region.", button: "Help clear the air", aria: "Smoke overlay" },
-  water: { headline: "The floodwaters are rising.", button: "Help clear the water", aria: "Flood overlay" },
+  smoke: { headline: "Haze blankets the region.", button: "Help the people affected", aria: "Smoke overlay" },
+  water: { headline: "The floodwaters are rising.", button: "Help the people affected", aria: "Flood overlay" },
   warmLight: { headline: "Keep the classrooms lit.", button: "Help a child learn", aria: "Education overlay" },
-  pulse: { headline: "The clinic is running low.", button: "Help keep care going", aria: "Medical overlay" },
-  lantern: { headline: "A gift that endures.", button: "Help build the waqf", aria: "Waqf overlay" },
+  pulse: { headline: "The clinic is running low.", button: "Help patients in need", aria: "Medical overlay" },
+  lantern: { headline: "A gift that endures.", button: "Support the community", aria: "Waqf overlay" },
 };
 
 // Deterministic (no Math.random → no hydration risk) positions/timings.
