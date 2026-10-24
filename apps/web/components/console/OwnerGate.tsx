@@ -85,7 +85,9 @@ function connectErrorMessage(err: Error): string {
   if (/User rejected|rejected the request/i.test(text)) {
     return "Connection request was rejected in your wallet.";
   }
-  return err.message;
+  // Don't surface raw wallet/provider error text to the operator — a fixed generic string
+  // is airtight (no internals leaked) and the two actionable cases are handled above.
+  return "Could not connect your wallet. Make sure it's unlocked, then try again.";
 }
 
 function Gate({ title, body, children }: { title: string; body: string; children?: ReactNode }) {
