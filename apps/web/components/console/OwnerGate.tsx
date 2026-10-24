@@ -33,7 +33,7 @@ export function OwnerGate({ children }: { children: ReactNode }) {
     return (
       <Gate
         title="Connect the owner wallet"
-        body="The operator console signs owner-only transactions. Connect the injected wallet (MetaMask) holding the protocol owner key."
+        body="The operator console signs owner-only transactions. Connect a browser wallet (e.g. MetaMask) holding the protocol owner key."
       >
         <Button
           disabled={connecting || !connector}
