@@ -14,8 +14,10 @@ type Kind = "smoke" | "water" | "warmLight" | "pulse" | "lantern";
 
 export function effectFor(c: CampaignResponse): Kind {
   const text = `${c.name ?? ""} ${c.cause}`.toLowerCase();
-  if (/fire|forest|karhutla|wildfire|haze|asap/.test(text)) return "smoke";
-  if (/typhoon|flood|banjir|storm|cyclone|tsunami|rain/.test(text)) return "water";
+  // \b-anchored so we match whole words, not substrings: "reforestation" must not trip
+  // \bforest\b, "campfire" must not trip \bfire\b, "brainstorm" must not trip \bstorm\b.
+  if (/\b(?:fire|forest|karhutla|wildfire|haze|asap)\b/.test(text)) return "smoke";
+  if (/\b(?:typhoon|flood|banjir|storm|cyclone|tsunami|rain)\b/.test(text)) return "water";
   switch (c.type) {
     case "education":
       return "warmLight";
