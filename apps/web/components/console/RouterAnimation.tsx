@@ -48,15 +48,15 @@ export function RouterAnimation({
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
           AI payout router
         </p>
-        <h2 className="font-serif text-2xl text-foreground md:text-3xl">
+        <h2 className="max-w-xl font-serif text-xl tracking-tight text-foreground md:text-2xl">
           Choosing the fastest, cheapest way to reach the recipient
         </h2>
       </header>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {candidates.map((rail) => (
           <RailCard key={rail.id} rail={rail} state={cardStateFor(rail, phase, chosen)} />
         ))}

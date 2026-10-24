@@ -174,7 +174,10 @@ export function RoutePayoutCard({
           </p>
         )}
         {routeError && <p className="text-sm text-destructive">{routeError}</p>}
-        <TxStatus phase={txPhase} error={txError} txHash={txHash} pendingLabel="Disbursing…" />
+        {/* Hidden once routed — the "Paid · View on Basescan" line above already links the tx. */}
+        {!routed && (
+          <TxStatus phase={txPhase} error={txError} txHash={txHash} pendingLabel="Disbursing…" />
+        )}
       </CardContent>
     </Card>
   );

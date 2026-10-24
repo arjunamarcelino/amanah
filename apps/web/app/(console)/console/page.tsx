@@ -132,7 +132,7 @@ function ConsoleInner() {
 
           <section className="flex flex-col gap-3">
             <h2 className="font-serif text-xl tracking-tight text-foreground">Release &amp; payout</h2>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <ReleaseConditionCard
                 campaignId={campaignId}
                 releaseType={rc.releaseType}
@@ -148,12 +148,13 @@ function ConsoleInner() {
                 remainingCap={pool.remainingCap}
                 onReleased={refetch}
               />
-              <RoutePayoutCard
-                country={campaign?.country ?? undefined}
-                accruedYield={pool.accruedYield}
-                onRouted={refetch}
-              />
             </div>
+            {/* Full width — the AI router animation needs room for the rail grid. */}
+            <RoutePayoutCard
+              country={campaign?.country ?? undefined}
+              accruedYield={pool.accruedYield}
+              onRouted={refetch}
+            />
           </section>
         </>
       )}
