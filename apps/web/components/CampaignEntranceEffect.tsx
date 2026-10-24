@@ -20,6 +20,8 @@ export function effectFor(c: CampaignResponse): Kind {
   if (/\b(?:typhoon|flood|banjir|storm|cyclone|tsunami|rain)\b/.test(text)) return "water";
   switch (c.type) {
     case "education":
+    case "poverty":
+    case "general":
       return "warmLight";
     case "medical":
       return "pulse";
@@ -27,8 +29,13 @@ export function effectFor(c: CampaignResponse): Kind {
       return "lantern";
     case "disaster":
       return "smoke"; // generic disaster → haze
-    default:
+    default: {
+      // Exhaustiveness guard: every CampaignType is handled above, so c.type is `never`
+      // here. Adding a new CampaignType turns this into a compile error (not a silent
+      // fallthrough to warmLight), while the return keeps a safe runtime default.
+      const _exhaustive: never = c.type;
       return "warmLight";
+    }
   }
 }
 
