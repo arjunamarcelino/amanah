@@ -3,6 +3,7 @@
 import { CharityPoolAbi, ADDRESSES, CHAIN_ID } from "@amanah/shared";
 import { Button } from "@amanah/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
+import { CONSOLE_CARD } from "@/lib/console/ui";
 import { Badge } from "@amanah/ui/badge";
 import { TxStatus } from "@/components/TxStatus";
 import { useOwnerWrite } from "@/lib/console/useOwnerWrite";
@@ -41,7 +42,7 @@ export function HalalToggle({
   }
 
   return (
-    <Card className="rounded-2xl shadow-sm">
+    <Card className={CONSOLE_CARD}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-serif text-lg">
           Treasury mode

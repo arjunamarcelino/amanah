@@ -5,6 +5,7 @@ import type { Hex } from "viem";
 import { CharityPoolAbi, ADDRESSES, CHAIN_ID, parseTrancheReleasedEvent } from "@amanah/shared";
 import { Button } from "@amanah/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
+import { CONSOLE_CARD } from "@/lib/console/ui";
 import { TxStatus } from "@/components/TxStatus";
 import { useOwnerWrite } from "@/lib/console/useOwnerWrite";
 import { useConsoleSession } from "@/lib/console/session";
@@ -40,7 +41,7 @@ export function ReleaseTrancheCard({
 
   if (!preset) {
     return (
-      <Card className="rounded-2xl shadow-sm">
+      <Card className={CONSOLE_CARD}>
         <CardHeader>
           <CardTitle className="font-serif text-lg">Release tranche</CardTitle>
         </CardHeader>
@@ -86,7 +87,7 @@ export function ReleaseTrancheCard({
   }
 
   return (
-    <Card className="rounded-2xl shadow-sm">
+    <Card className={CONSOLE_CARD}>
       <CardHeader>
         <CardTitle className="font-serif text-lg">Release tranche</CardTitle>
       </CardHeader>

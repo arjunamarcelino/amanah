@@ -12,6 +12,7 @@ import {
 } from "@amanah/shared";
 import { Button } from "@amanah/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
+import { CONSOLE_CARD } from "@/lib/console/ui";
 import { TxStatus } from "@/components/TxStatus";
 import { RouterAnimation } from "./RouterAnimation";
 import type { RouterPhase } from "./routerTypes";
@@ -130,7 +131,7 @@ export function RoutePayoutCard({
   const routed = payout.status === "routed";
 
   return (
-    <Card className="rounded-2xl shadow-sm">
+    <Card className={CONSOLE_CARD}>
       <CardHeader>
         <CardTitle className="font-serif text-lg">Route payout</CardTitle>
       </CardHeader>

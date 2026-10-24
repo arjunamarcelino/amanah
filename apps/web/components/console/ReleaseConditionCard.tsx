@@ -4,6 +4,7 @@ import type { Hex } from "viem";
 import { ReleaseControllerAbi, ADDRESSES, CHAIN_ID, type ReleaseType } from "@amanah/shared";
 import { Button } from "@amanah/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@amanah/ui/card";
+import { CONSOLE_CARD } from "@/lib/console/ui";
 import { TxStatus } from "@/components/TxStatus";
 import { useOwnerWrite } from "@/lib/console/useOwnerWrite";
 
@@ -29,7 +30,7 @@ export function ReleaseConditionCard({
 
   if (releaseType === undefined) {
     return (
-      <Card className="rounded-2xl shadow-sm">
+      <Card className={CONSOLE_CARD}>
         <CardHeader>
           <CardTitle className="font-serif text-lg">Release condition</CardTitle>
         </CardHeader>
@@ -60,7 +61,7 @@ export function ReleaseConditionCard({
   }
 
   return (
-    <Card className="rounded-2xl shadow-sm">
+    <Card className={CONSOLE_CARD}>
       <CardHeader>
         <CardTitle className="font-serif text-lg">{title}</CardTitle>
       </CardHeader>
